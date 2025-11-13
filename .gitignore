@@ -1,0 +1,9 @@
+/tmp/
+/build/
+/.cache/
+/.cproject
+/.project
+/.settings
+/target/
+/maven-build.xml
+/maven-build.properties
