@@ -36,13 +36,7 @@ help:
 cmake: distclean-cmake
 	mkdir -p ${BUILD_DIR}; cd ${BUILD_DIR}; cmake ../${SOURCE_DIR} -G Ninja
 
-src/util/Perf.inc: src/util/Perf.h data/gen-perf-inc.awk
-	awk -f data/gen-perf-inc.awk src/util/Perf.h >src/util/Perf.inc
-
-src/util/trace.inc: src/util/trace.h data/gen-trace-inc.awk
-	awk -f data/gen-trace-inc.awk src/util/trace.h >src/util/trace.inc
-
-build: src/util/Perf.inc src/util/trace.inc
+build:
 	/usr/bin/time cmake --build ${BUILD_DIR}
 
 distclean: distclean-cmake distclean-maven distclean-macos
