@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,236 +36,373 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
+#include <memory>
+#include <type_traits>
 
 #include "Util.h"
 
 
 class ByteBuffer {
-protected:
-	static constexpr int INVALID_POS = -1;
+    static const int bytesPerWord = 2;
 
-	int      myBase;
-	int      myPosition;  // read/write offset
-	int      myLimit;     // maximu written offset
-	int      myCapacity;  // size of myData
-	uint8_t* myData;
-	int      myMarkPos;
+    static uint32_t byteValueToWordValue(uint32_t byteValue) {
+        return (byteValue + bytesPerWord - 1) / bytesPerWord;
+    }
+    static uint32_t wordValueToByteValue(uint32_t wordValue) {
+        return wordValue * bytesPerWord;
+    }
 
+    struct Impl {
+        uint32_t mySize;
+        std::shared_ptr<uint8_t> myData;
+
+        static void deleter(uint8_t* myData) {
+            logger.info("deleter  myData  %p", myData);
+        }
+    
+        Impl() : mySize(0), myData(0) {}
+        Impl(uint32_t size) : mySize(size), myData(new uint8_t[mySize], deleter) {}
+
+        virtual ~Impl() {
+            mySize = 0;
+            myData = 0;
+        }
+
+        virtual const char* name() = 0;
+
+        // 8
+        virtual uint8_t  get8(uint8_t* data, uint32_t pos) = 0;
+        virtual void     put8(uint8_t* data, uint32_t pos, uint8_t value) = 0;
+        // 16
+        virtual uint16_t get16(uint8_t* data, uint32_t pos) = 0;
+        virtual void     put16(uint8_t* data, uint32_t pos, uint16_t value) = 0;
+        // 32
+        virtual uint32_t get32(uint8_t* data, uint32_t pos) = 0;
+        virtual void     put32(uint8_t* data, uint32_t pos, uint32_t value) = 0;
+    };
+    static void deleter(Impl* impl) {
+        logger.info("deleter  impl  %p  %u", impl->myData.get(), impl->mySize);
+    }
+
+
+    std::shared_ptr<Impl> myImpl;
+    uint8_t*  myData;
+    uint32_t  myByteSize;
+    uint32_t  myBytePos;
+ 
+    ByteBuffer(std::shared_ptr<Impl> impl, uint8_t* data, uint32_t byteSize) : myImpl(impl), myData(data), myByteSize(byteSize), myBytePos(0) {}
+
+    void checkByteRange(uint32_t bytePos, uint32_t readSize) const {
+        checkBytePos(bytePos);
+        checkBytePos(bytePos + readSize - 1);
+    }
+    void checkBytePos(uint32_t pos) const;
+
+    // getX
+    uint8_t get8(uint32_t bytePos) {
+        return myImpl->get8(myData, bytePos);
+    }
+    uint16_t get16(uint32_t bytePos) {
+        return myImpl->get16(myData, bytePos);
+    }
+    uint32_t get32(uint32_t bytePos) {
+        return myImpl->get32(myData, bytePos);
+    }
+    // putX
+    void put8(uint32_t bytePos, uint8_t value) const {
+        myImpl->put8(myData, bytePos, value);
+    }
+    void put16(uint32_t bytePos, uint16_t value) const {
+        myImpl->put16(myData, bytePos, value);
+    }
+    void put32(uint32_t bytePos, uint32_t value) const {
+        myImpl->put32(myData, bytePos, value);
+    }
 public:
-	ByteBuffer() : myBase(0), myPosition(0), myLimit(0), myCapacity(0), myData(0), myMarkPos(INVALID_POS) {}
-	// assume data[0..capacity) has meaningful value
-	// you can read from this ByteBuffer
-	ByteBuffer(int capacity, uint8_t* data) :
-		myBase(0), myPosition(0), myLimit(capacity), myCapacity(capacity), myData(data), myMarkPos(INVALID_POS) {}
+    ~ByteBuffer() {
+        myData     = 0;
+        myByteSize = 0;
+        myBytePos  = 0;
+    }
 
-	ByteBuffer(const ByteBuffer& that) :
-		myBase(that.myBase), myPosition(that.myPosition), myLimit(that.myLimit),
-		myCapacity(that.myCapacity), myData(that.myData), myMarkPos(that.myMarkPos) {
-	}
-	ByteBuffer& operator =(const ByteBuffer& that) {
-		this->myBase     = that.myBase;
-		this->myPosition = that.myPosition;
-		this->myLimit    = that.myLimit;
-		this->myCapacity = that.myCapacity;
-		this->myData     = that.myData;
-		this->myMarkPos  = that.myMarkPos;
-		return *this;
-	}
-	
-	// copy from data to ByteBuffer
-	//void copyFrom(int len, const uint8_t* data);
+    static uint8_t highByte(uint16_t value) {
+        return (uint8_t)(value >> 8);
+    }
+    static uint8_t lowByte(uint16_t value) {
+        return (uint8_t)(value >> 0);
+    }
+
+    struct Mesa {
+        struct MyImpl : public Impl {
+            MyImpl() : Impl() {}
+            MyImpl(uint32_t size) : Impl(size) {}
+
+            const char* name() override {
+                return "MESA";
+            }
+            // 8
+            uint8_t  get8(uint8_t* data, uint32_t pos) override {
+                return data[pos];
+            }
+            void     put8(uint8_t* data, uint32_t pos, uint8_t value) override {
+                data[pos] = value;
+            }
+            // 16
+            uint16_t get16(uint8_t* data, uint32_t pos) override {
+                return (data[pos + 0] << 8) | (data[pos + 1] << 0);
+            }
+            void     put16(uint8_t* data, uint32_t pos, uint16_t value) override {
+                data[pos + 0] = (uint8_t)(value >> 8);
+                data[pos + 1] = (uint8_t)(value >> 0);
+            }
+            // 32
+            // mesa order for 32bit value  low half and high half
+            uint32_t get32(uint8_t* data, uint32_t pos) override {
+                return (data[pos + 0] << 8) | (data[pos + 1] << 0) | (data[pos + 2] << 24) | (data[pos + 3] << 16);
+            }
+            void     put32(uint8_t* data, uint32_t pos, uint32_t value) override {
+                data[pos + 0] = (uint8_t)(value >>  8);
+                data[pos + 1] = (uint8_t)(value >>  0);
+                data[pos + 2] = (uint8_t)(value >> 24);
+                data[pos + 3] = (uint8_t)(value >> 16);
+            }
+        };
+
+        static ByteBuffer getInstance(uint8_t* data, uint32_t size) {
+            static std::shared_ptr<MyImpl> myImpl(new MyImpl(), deleter);
+            return ByteBuffer(myImpl, data, size);
+        }
+        static ByteBuffer getInstance(uint32_t size) {
+            std::shared_ptr<MyImpl> myImpl(new MyImpl(size), deleter);
+            return ByteBuffer(myImpl, myImpl->myData.get(), size);
+        }
+    };
+    struct Net {
+        struct MyImpl : public Impl {
+            MyImpl() : Impl() {}
+            MyImpl(uint32_t size) : Impl(size) {}
+
+            const char* name() override {
+                return "NET";
+            }
+            // 8
+            uint8_t  get8(uint8_t* data, uint32_t pos) override {
+                return data[pos];
+            }
+            void     put8(uint8_t* data, uint32_t pos, uint8_t value) override {
+                data[pos] = value;
+            }
+            // 16
+            uint16_t get16(uint8_t* data, uint32_t pos) override {
+                return (data[pos + 0] << 8) | (data[pos + 1] << 0);
+            }
+            void     put16(uint8_t* data, uint32_t pos, uint16_t value) override {
+                data[pos + 0] = (uint8_t)(value >> 8);
+                data[pos + 1] = (uint8_t)(value >> 0);
+            }
+            // 32
+            // netowrk order for 32bit value  high half and low half
+            uint32_t get32(uint8_t* data, uint32_t pos) override {
+                return (data[pos + 0] << 24) | (data[pos + 1] << 16) | (data[pos + 2] << 8) | (data[pos + 3] << 0);
+            }
+            void     put32(uint8_t* data, uint32_t pos, uint32_t value) override {
+                data[pos + 0] = (uint8_t)(value >> 24);
+                data[pos + 1] = (uint8_t)(value >> 16);
+                data[pos + 2] = (uint8_t)(value >>  8);
+                data[pos + 3] = (uint8_t)(value >>  0);
+            }
+        };
+
+        static ByteBuffer getInstance(uint8_t* data, uint32_t size) {
+            static std::shared_ptr<MyImpl> myImpl(new MyImpl(), deleter);
+            return ByteBuffer(myImpl, data, size);
+        }
+        static ByteBuffer getInstance(uint32_t size) {
+            std::shared_ptr<MyImpl> myImpl(new MyImpl(size), deleter);
+            return ByteBuffer(myImpl, myImpl->myData.get(), size);
+        }
+    };
+
+    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const;
+
+    const char* name() const {
+        return myImpl->name();
+    }
+
+    const uint8_t* data() const {
+        return myData;
+    }
+
+    uint32_t byteSize() const {
+        return myByteSize;
+    }
+    uint32_t size() const {
+        return byteValueToWordValue(byteSize());
+    }
+    void bytePos(uint32_t bytePos) {
+        checkBytePos(bytePos);
+        myBytePos = bytePos;
+    }
+    uint32_t bytePos() const {
+        return myBytePos;
+    }
+    void pos(uint32_t wordPos) {
+        bytePos(wordValueToByteValue(wordPos));
+    }
+    uint32_t pos() const {
+        return byteValueToWordValue(bytePos());
+    }
+    
+    // getX
+    uint8_t get8() {
+        const uint32_t readSize = 1;
+
+        checkByteRange(myBytePos, readSize);
+        auto ret = get8(myBytePos);
+        myBytePos += readSize;
+        return ret;
+    }
+    uint16_t get16() {
+        const uint32_t readSize = 2;
+
+        checkByteRange(myBytePos, readSize);
+        auto ret = get16(myBytePos);
+        myBytePos += readSize;
+        return ret;
+    }
+    uint32_t get32() {
+        const uint32_t readSize = 4;
+
+        checkByteRange(myBytePos, readSize);
+        auto ret = get32(myBytePos);
+        myBytePos += readSize;
+        return ret;
+    }
+
+    // putX
+    void put8(uint8_t value) {
+        const uint32_t readSize = 1;
+
+        checkByteRange(myBytePos, readSize);
+        put8(myBytePos, value);
+        myBytePos += readSize;
+    }
+    void put16(uint16_t value) {
+        const uint32_t readSize = 2;
+
+        checkByteRange(myBytePos, readSize);
+        put16(myBytePos, value);
+        myBytePos += readSize;
+    }
+    void put32(uint32_t value) {
+        const uint32_t readSize = 2;
+
+        checkByteRange(myBytePos, readSize);
+        put32(myBytePos, value);
+        myBytePos += readSize;
+    }
 
 
-	bool isNull() {
-		return myData == nullptr;
-	}
+    //
+    // HasRead and read(...)
+    //
+    struct HasRead {
+        virtual ByteBuffer& read(ByteBuffer& bb) = 0;
+    };
+    ByteBuffer& read() {
+        return *this;
+    }
+    template <class Head, class... Tail>
+    ByteBuffer& read(Head&& head, Tail&&... tail) {
+        constexpr auto is_uint8_t  = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint8_t>::value;
+        constexpr auto is_uint16_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint16_t>::value;
+        constexpr auto is_uint32_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint32_t>::value;
+        constexpr auto is_class    = std::is_class_v<std::remove_reference_t<Head>>;
 
-	// // Create subrange ByteBuffer
-	// ByteBuffer newBase(int newValue) const {
-	// 	ByteBuffer ret(*this);
-	// 	ret.setBase(newValue);
-	// 	return ret;
-	// }
-	// ByteBuffer newBase() const {
-	// 	return newBase(myPosition);
-	// }
-	void setBase(int newValue) {
-		myBase     = newValue;
-		myPosition = newValue;
-		myMarkPos  = INVALID_POS;
-	}
-	// void setBase() {
-	// 	setBase(myPosition);
-	// }
+    //		logger.info("read head  %s!  %d  |  %d  %d  |  %d", demangle(typeid(head).name()), sizeof(head), is_uint16_t, is_uint32_t, is_class);
 
-	// output as hexadecimal string between base and limit
-	std::string toString(int offset = 0) const;
-	std::string toStringFromBase() const {
-		return toString(base());
-	}
-	std::string toStringFromPosition() const {
-		return toString(position());
-	}
+        if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
+            read(head);
+        } else {
+            if constexpr (is_class) {
+                constexpr auto has_read = std::is_base_of_v<HasRead, std::remove_reference_t<Head>>;
+                if constexpr (has_read) {
+                    head.read(*this);
+                } else {
+                    logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                    ERROR()
+                }
+            } else {
+                logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                ERROR()
+            }
+        }
+        return read(std::forward<Tail>(tail)...);
+    }
 
-	int base() const {
-		return myBase;
-	}
-	int position() const {
-		return myPosition;
-	}
-	int limit() const {
-		return myLimit;
-	}
-	int capacity() const {
-		return myCapacity;
-	}
-	uint8_t* data() const {
-		return myData;
-	}
-	int markPos() const {
-		return myMarkPos;
-	}
-
-	// returns how many bytes can read
-	int remaining() const {
-		return myLimit - myPosition;
-	}
-	bool hasRemaining() const {
-		return myPosition < myLimit;
-	}
-	// returns size of written data
-	int length() const {
-		return myLimit - myBase;
-	}
-	bool empty() const {
-		return length() == 0;
-	}
-
-	// prepare for read from beginning
-	void rewind() {
-		myPosition = myBase;
-	}
-	// prepare for read from beginning after write
-	void flip() {
-		myLimit    = myPosition;
-		myPosition = myBase;
-	}
-	// prepare for write from beginning
-	void clear() {
-		myPosition = myBase;
-		myLimit    = myBase;
-	}
-
-	// // set data
-	// void data_(uint8_t* data) {
-	// 	myData = data;
-	// }
-	// set limit
-	void limit(int newValue);
-
-	// set position
-	// void position(int newValue);
-	// mark current position for reset
-	void mark();
-	// set position to marked position
-	void reset();
+    ByteBuffer& read(uint8_t& value) {
+        value = get8();
+        return *this;
+    }
+    ByteBuffer& read(uint16_t& value) {
+        value = get16();
+        return *this;
+    }
+    ByteBuffer& read(uint32_t& value) {
+        value = get32();
+        return *this;
+    }
+    ByteBuffer& read(int value) = delete;
 
 
-	// read from ByteBuffer
-	void read8 (uint8_t&  value) {
-		read8(myPosition, value);
-		myPosition += 1;
-	}
-	void read16(uint16_t& value) {
-		read16(myPosition, value);
-		myPosition += 2;
-	}
-	void read32(uint32_t& value) {
-		read32(myPosition, value);
-		myPosition += 4;
-	}
-	void read48(uint64_t& value) {
-		read48(myPosition, value);
-		myPosition += 6;
-	}
+    //
+    // HasWrite and write(...)
+    //
+    struct HasWrite {
+        virtual ByteBuffer& write(ByteBuffer& bb) const = 0;
+    };
+    ByteBuffer& write() {
+        return *this;
+    }
+    template <class Head, class... Tail>
+    ByteBuffer& write(Head&& head, Tail&&... tail) {
+        constexpr auto is_uint8_t  = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint8_t>::value;
+        constexpr auto is_uint16_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint16_t>::value;
+        constexpr auto is_uint32_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint32_t>::value;
+        constexpr auto is_class    = std::is_class_v<std::remove_reference_t<Head>>;
 
-	void read  (const int readSize, uint8_t* value) {
-		read(myPosition, readSize, value);
-		myPosition += readSize;
-	}
+    //		logger.info("write head  %s!  %d  |  %d  %d  |  %d", demangle(typeid(head).name()), sizeof(head), is_uint16_t, is_uint32_t, is_class);
 
-	void read8 (const int index, uint8_t&  value) const;
-	void read16(const int index, uint16_t& value) const;
-	void read32(const int index, uint32_t& value) const;
-	void read48(const int index, uint64_t& value) const;
-	void read  (const int index, const int readSize, uint8_t* value) const;
+        if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
+            write(head);
+        } else {
+            if constexpr (is_class) {
+                constexpr auto has_write = std::is_base_of_v<HasWrite, std::remove_reference_t<Head>>;
+                if constexpr (has_write) {
+                    head.write(*this);
+                } else {
+                    logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                    ERROR()
+                }
+            } else {
+                logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                ERROR()
+            }
+        }
+        return write(std::forward<Tail>(tail)...);
+    }
+    ByteBuffer& write(uint8_t value) {
+        put8(value);
+        return *this;
+    }
+    ByteBuffer& write(uint16_t value) {
+        put16(value);
+        return *this;
+    }
+    ByteBuffer& write(uint32_t value) {
+        put32(value);
+        return *this;
+    }
+    ByteBuffer& write(int value) = delete;
 
-	// write to ByteBuffer
-	void write8 (uint8_t  value) {
-		write8(myPosition, value);
-		myLimit = myPosition += 1;
-	}
-	void write16(uint16_t value) {
-		write16(myPosition, value);
-		myLimit = myPosition += 2;
-	}
-	void write32(uint32_t value) {
-		write32(myPosition, value);
-		myLimit = myPosition += 4;
-	}
-	void write48(uint64_t value) {
-		write48(myPosition, value);
-		myLimit = myPosition += 6;
-	}
-
-	void write  (const int writeSize, const uint8_t* value) {
-		write(myPosition, writeSize, value);
-		myLimit = myPosition += writeSize;
-	}
-
-	void write8 (const int index, uint8_t  value);
-	void write16(const int index, uint16_t value);
-	void write32(const int index, uint32_t value);
-	void write48(const int index, uint64_t value);
-	void write  (const int index, const int writeSize, const uint8_t* value);
-
-	void writeZero(int n);
-};
-
-template<int N>
-class ByteBufferArray : public ByteBuffer {
-	uint8_t array[N];
-protected:
-	void copyFrom(const ByteBuffer& that) {
-		if (N < that.capacity()) ERROR()
-
-		myBase     = that.base();
-		myPosition = that.position();
-		myLimit    = that.limit();
-//		myCapacity = that.capacity();
-		myMarkPos  = that.markPos();
-		// copy content of that.data[0..that.capacity)
-		memcpy(myData, that.data(), that.capacity());
-	}
-public:
-	ByteBufferArray() : ByteBuffer(N, array) {
-		clear();
-	}
-	// ByteBufferArray
-	ByteBufferArray(const ByteBufferArray& that) : ByteBuffer(N, array) {
-		copyFrom(that);
-	}
-	ByteBufferArray& operator =(const ByteBufferArray& that) {
-		copyFrom(that);
-		return *this;
-	}
-	// ByteBuffer
-	ByteBufferArray(const ByteBuffer& that) : ByteBuffer(N, array) {
-		copyFrom(that);
-	}
-	ByteBufferArray& operator =(const ByteBuffer& that) {
-		copyFrom(that);
-		return *this;
-	}
-};
+    };

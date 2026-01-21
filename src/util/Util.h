@@ -39,8 +39,11 @@
 #include <cstdint>
 #include <set>
 #include <source_location>
+#include <concepts>
+#include <variant>
 
 #include <log4cxx/logger.h>
+#include <vector>
 
 
 //
@@ -195,21 +198,8 @@ struct ErrorError {
 	ErrorError(std::source_location location_ = std::source_location::current()) : location(location_) {}
 };
 
-#define ERROR() { ErrorError errorError; LogSourceLocation::fatal(logger, errorError.location, "ERROR  "); throw errorError; }
+#define ERROR() { logBackTrace(); ErrorError errorError; LogSourceLocation::fatal(logger, errorError.location, "ERROR  "); throw errorError; }
 
-class Abort {
-public:
-	const std::source_location location;
-	Abort(std::source_location location_ = std::source_location::current()) : location(location_) {}
-};
-#define ERROR_Abort() { throw Abort(); }
-
-class RequestReschedule {
-public:
-	const std::source_location location;
-	RequestReschedule(std::source_location location_ = std::source_location::current()) : location(location_) {}
-};
-#define ERROR_RequestReschedule() { throw RequestReschedule(); }
 
 void logBackTrace();
 void setSignalHandler(int signum = SIGSEGV);
@@ -231,13 +221,13 @@ std::string formatWithCommas(T value) {
 }
 
 std::string readFile(const std::string& path);
+void writeFile(const std::string& path, const std::string& string);
+
+void readFile(const std::string& path, std::vector<uint8_t>& data);
 
 // https://stackoverflow.com/questions/18361638/converting-steady-clocktime-point-to-time-t
 std::chrono::system_clock::time_point to_system_clock(std::chrono::steady_clock::time_point steady_time);
 
-
-// convert to utf8
-#define TO_CSTRING(e) (e).toUtf8().constData()
 
 // helper macro for syscall
 #define LOG_ERRNO(errNo)               { logger.error( "errno = %d  \"%s\"", errNo, strerror(errNo)); }
@@ -247,20 +237,10 @@ std::chrono::system_clock::time_point to_system_clock(std::chrono::steady_clock:
 #define LOG_SYSCALL2(retVar, errNo, syscall)   { retVar = syscall; errNo = errno; if (retVar < 0) { logger.error("%s = %d", #syscall, retVar);  LOG_ERRNO(errNo)         } }
 #define CHECK_SYSCALL2(retVar, errNo, syscall) { retVar = syscall; errNo = errno; if (retVar < 0) { logger.error("%s = %d", #syscall, retVar);  LOG_ERRNO(errNo) ERROR() } }
 
-// Helper macro to make toString for enum class
-#define TO_STRING_PROLOGUE(e) \
-	typedef e ENUM; \
-	static std::map<ENUM, std::string> map({
-#define MAP_ENTRY(m) {ENUM::m, #m},
-#define TO_STRING_EPILOGUE \
-	}); \
-	if (map.contains(value)) { \
-		return map[value]; \
-	} else { \
-		logger.error("Unknown value = %d", (int)value); \
-		ERROR(); \
-		return std_sprintf("%d", (int)value); \
-	}
+
+// Helper macro for enum
+//#define ENUM_VALUE(enum,value) {enum::value, #value},
+#define ENUM_VALUE(enum,value) value,
 
 // bitFiled is used in symbols
 uint16_t bitField(uint16_t word, int startBit, int stopBit);
@@ -274,6 +254,46 @@ inline uint16_t bitField(uint16_t word, int startBit) {
 // get build directory from Environment variable BUILD_DIR
 inline const char* getBuildDir() {
 	return BUILD_DIR;
+}
+
+// macro that support variant
+#define DEFINE_VARIANT_METHOD(name) \
+const name& to##name() const { return std::get<name>(variant); } \
+bool is##name() const { return tag == decltype(tag)::name; }
+
+
+//
+// for use const char* as template parameter
+//
+// template <StringLiteral PRIFIX, class T>
+// struct Index {
+//     static inline const char* prefix = PRIFIX;
+// };
+template<size_t N>
+struct StringLiteral {
+    constexpr StringLiteral(const char (&str)[N]) {
+        std::copy_n(str, N, value);
+    }
+
+	operator const std::string&() const {
+		return value;
+	}
+	operator const char*() const {
+		return value;
+	}
+    char value[N];
+};
+
+struct HasToString {
+    virtual std::string toString() const = 0;
+};
+template <typename T>
+concept Stringable = std::derived_from<T, HasToString>;
+
+// use this template function to call toString method of the class in std::varinat
+template<class T>
+std::string toString(T a) {
+	return std::visit([](auto& x) -> std::string { return x.toString(); }, a);
 }
 
 class Util {
@@ -291,8 +311,16 @@ public:
 		return toMesaTime(getUnixTime());
 	}
 
-	static void*   mapFile  (const std::string& path, uint32_t& mapSize);
-	static void    unmapFile(void* page);
+	static std::string toString(uint32_t unixTime);
+
+	struct MapFileResult {
+		void*     mapPage;
+		uint32_t  mapSize;
+
+		MapFileResult(void* mapPage_, uint32_t mapSize_) : mapPage(mapPage_), mapSize(mapSize_) {}
+	};
+	static MapFileResult mapFile(const std::string& path);
+	static void          unmapFile(void* mapPage);
 
 	static void    byteswap  (uint16_t* source, uint16_t* dest, int size);
 

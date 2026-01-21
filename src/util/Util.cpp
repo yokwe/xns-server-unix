@@ -42,6 +42,7 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
+#include <iterator>
 #include <bit>
 
 #include <execinfo.h>
@@ -255,6 +256,51 @@ std::string readFile(const std::string& path) {
 	buffer << ifs.rdbuf();
 	return buffer.str();
 }
+void writeFile(const std::string& path, const std::string& string) {
+	std::filesystem::path outPath(path);
+	std::filesystem::create_directories(outPath.parent_path());
+    std::ofstream ofs;
+    ofs.open(path);
+    ofs << string;
+    ofs.close();
+}
+
+void readFile(const std::string& path, std::vector<uint8_t>& data) {
+	// sanity check
+    if (!std::filesystem::exists(path)) {
+        logger.error("The path doesn't exist");
+        logger.error("  path %s!", path);
+        ERROR();
+    }
+    if (!std::filesystem::is_regular_file(path)) {
+        logger.error("The path is not regular file");
+        logger.error("  path %s!", path);
+        ERROR();
+    }
+
+    std::ifstream ifs(path, std::ios::binary);
+
+    // Stop eating new lines in binary mode!!!
+    ifs.unsetf(std::ios::skipws);
+
+    // get its size:
+    std::streampos fileSize;
+
+    ifs.seekg(0, std::ios::end);
+    fileSize = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+
+    // reserve capacity
+	data.clear();
+    data.reserve(fileSize);
+
+    // read the data:
+    std::copy(
+        std::istream_iterator<uint8_t>(ifs),
+        std::istream_iterator<uint8_t>(),
+        std::back_inserter(data));
+}
+
 
 std::chrono::system_clock::time_point to_system_clock(std::chrono::steady_clock::time_point time_steady) {
 	static auto base_system_ = std::chrono::system_clock::now();
@@ -294,7 +340,7 @@ public:
 static std::map<void*, MapInfo>mapInfoMap;
 int MapInfo::count = 0;
 
-void* Util::mapFile  (const std::string& path, uint32_t& mapSize) {
+Util::MapFileResult Util::mapFile  (const std::string& path) {
 	// sanity check
 	if (!std::filesystem::exists(path)) {
 		logger.error("unexpected path");
@@ -308,21 +354,22 @@ void* Util::mapFile  (const std::string& path, uint32_t& mapSize) {
 	CHECK_SYSCALL(mapInfo.fd, open(path.c_str(), O_RDWR))
 	mapInfo.size = std::filesystem::file_size(path);
 	mapInfo.page = mmap(nullptr, mapInfo.size, PROT_READ | PROT_WRITE, MAP_SHARED, mapInfo.fd, 0);
+	// sanity check
+	if (std::numeric_limits<uint32_t>::max() < mapInfo.size) ERROR()
 	if (mapInfo.page == MAP_FAILED) ERROR()
 	
 	mapInfoMap.insert({mapInfo.page, mapInfo});
 	logger.info("mapFile    %d  size = %8X  path = %s", mapInfo.id, (uint32_t)mapInfo.size, mapInfo.path);
 
-	mapSize = mapInfo.size;
-	return mapInfo.page;
+	return Util::MapFileResult(mapInfo.page, (uint32_t)mapInfo.size);
 }
-void  Util::unmapFile(void* page) {
-	if (!mapInfoMap.contains(page)) {
-		logger.error("unexpected page");
-		logger.error("  page  %p", page);
+void  Util::unmapFile(void* mapPage) {
+	if (!mapInfoMap.contains(mapPage)) {
+		logger.error("unexpected mapPage");
+		logger.error("  mapPage  %p", mapPage);
 		ERROR()
 	}
-	const MapInfo& mapInfo = mapInfoMap[page];
+	const MapInfo& mapInfo = mapInfoMap[mapPage];
 
 	logger.info("unmapFile  %d  size = %8X  path = %s", mapInfo.id, (uint32_t)mapInfo.size, mapInfo.path);
 
@@ -337,6 +384,13 @@ void  Util::unmapFile(void* page) {
 uint64_t Util::getSecondsSinceEpoch() {
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
 	return std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+}
+
+std::string Util::toString(uint32_t unixTime) {
+	time_t temp = unixTime;
+    struct tm tm;
+    localtime_r(&temp, &tm);
+    return std_sprintf("%d-%02d-%02d %02d:%02d:%02d", 1900 + tm.tm_year, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
 void Util::byteswap(uint16_t* source, uint16_t* dest, int size) {
