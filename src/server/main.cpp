@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,12 @@
  // main.cpp
  //
 
+#include <span>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../util/ByteBuffer.h"
 #include "../util/net.h"
 #include "../util/ThreadControl.h"
 #include "../util/ThreadQueue.h"
@@ -47,25 +49,38 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<net::Packet> {
+struct TransmitData {
+    ByteBuffer tx;
+    TransmitData() : tx(ByteBuffer::Net::getInstance(xns::PACKET_SIZE)) {}
+};
+struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
     net::Driver& driver;
 
-    ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<net::Packet>("ThreadTransmit"), driver(driver_) {}
+    ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<TransmitData>("ThreadTransmit"), driver(driver_) {}
 
-    void process(const net::Packet& data) override {
-        driver.write(data);
+    void process(const TransmitData& data) override {
+        auto span = data.tx.toSpanLimit();
+        driver.transmit(span);
     }
 };
 
-struct ThreadReceive : public thread_queue::ThreadQueueProducer<net::Packet> {
+struct ReceiveData {
+    ByteBuffer rx;
+    ReceiveData() : rx(ByteBuffer::Net::getInstance(xns::PACKET_SIZE)) {}
+};
+struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     net::Driver& driver;
 
-    ThreadReceive(net::Driver& driver_) : thread_queue::ThreadQueueProducer<net::Packet>("ThreadReceive"), driver(driver_) {}
+    ThreadReceive(net::Driver& driver_) : thread_queue::ThreadQueueProducer<ReceiveData>("ThreadReceive"), driver(driver_) {}
 
     // produce return true when data has value
-    bool produce(net::Packet& packet, std::chrono::milliseconds timeout) override{
-        packet.clear();
-        int ret = driver.read(packet, timeout);
+    bool produce(ReceiveData& data, std::chrono::milliseconds timeout) override{
+        net::Driver::data_type span;
+        int ret = driver.receive(span, timeout);
+        data.rx.clear();
+        // copy data from span to bb
+        if (ret) data.rx.put(span);
+        data.rx.flip();
         return ret;
     }
 };
@@ -84,23 +99,7 @@ int main(int, char **) {
     auto config = xns::config::Config::getInstance();
     logger.info("config network interface  %s", config.server.interface);
     // register constant of host and net from config
-    {
-        {
-            auto address = config.server.address;
-            auto name = config.server.name;
-            xns::Host::registerName(address, name);
-            logger.info("config host  %s  %s  %s", net::toHexaDecimalString(address), net::toDecimalString(address), name);
-        }
-        for(const auto& e: config.host) {
-            xns::Host::registerName(e.address, e.name);
-            logger.info("config host  %s  %s  %s", net::toHexaDecimalString(e.address), net::toDecimalString(e.address), e.name);
-        }
-        for(const auto& e: config.net) {
-            Routing routing = Routing(e.net, e.delay, e.name);
-            xns::Net::registerName(e.net, e.name);
-            logger.info("config net  %d  %d  %s", e.net, e.delay, e.name);
-        }
-    }
+    xns::initialize(config);
 
     context = Context(config);
 	logger.info("device  %s  %s", context.driver->device.name, net::toHexaDecimalString(context.driver->device.address));
@@ -124,47 +123,57 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        net::Packet rx;
-        threadReceive.pop(rx);
-        if (rx.empty()) continue;
-        // build receive
-        xns::ethernet::Frame receive(rx);
-        if (receive.dest != context.ME && receive.dest != xns::Host::BROADCAST) {
+        ReceiveData receiveData;
+
+        threadReceive.pop(receiveData);
+        if (receiveData.rx.empty()) continue;
+
+        // build receiveFrame
+        xns::ethernet::Frame receiveFrame;
+        receiveData.rx.read(receiveFrame);
+
+        logger.info("ETH  >>  %s  %d", receiveFrame.toString(), receiveData.rx.remains());
+
+        if (receiveFrame.dest() != context.ME && receiveFrame.dest() != xns::BROADCAST) {
             // not my address or not broadcast
             // logger.info("frame  %s  %d", receive.toString(), rx.remaining());
             continue;
         }
-        logger.info("ETH  >>  %s  %d", receive.toString(), rx.remaining());
+        if (receiveFrame.type == xns::XNS) {
+            // not XNS packet
+            continue;
+        }
 
-        net::Packet payload;
-        if (receive.type == xns::ethernet::Type::XNS) processIDP(rx, payload, context);
+        xns::ethernet::Frame transmitFrame;
+        // build transmitFrame
+        transmitFrame.dest(receiveFrame.source());
+        transmitFrame.source(context.ME);
+        transmitFrame.type = receiveFrame.type;
+
+        ByteBuffer payload = ByteBuffer::Net::getInstance(net::PACKET_SIZE);
+
+        // build payload
+//        processIDP(receiveData.rx, payload, context);
+
         // if payload is empty, continue with next received data
         payload.flip();
         // logger.info("payload  length  %d", payload.length());
         if (payload.empty()) continue;
 
-        xns::ethernet::Frame transmit;
-        // build transmit
-        {
-            transmit.dest   = receive.source;
-            transmit.source = context.ME;
-            transmit.type   = receive.type;
-        }
-        logger.info("ETH  <<  %s  %d", transmit.toString(), payload.remaining());
+        logger.info("ETH  <<  %s  %d", transmitFrame.toString(), payload.remains());
 
-        net::Packet tx;
-        // build tx
-        {
-            transmit.toByteBuffer(tx);
-            tx.write(payload.length(), payload.data());
-            // add padding if it is smaller than MINIMUM_LENGTH
-            int length = tx.length();
-            if (length < xns::ethernet::Frame::MINIMUM_LENGTH) {
-                tx.writeZero(xns::ethernet::Frame::MINIMUM_LENGTH - length);
-            }
-            // logger.info("TX  length  %d", tx.length());
+        TransmitData transmitData;
+        // build transmitData
+        transmitData.tx.write(transmitFrame);
+        transmitData.tx.write(payload.toSpanLimit());
+
+        // add padding if it is smaller than MINIMUM_LENGTH
+        auto length = transmitData.tx.byteLimit();
+        if (length < xns::MINIMUM_LENGTH) {
+            for(uint32_t i = length; i < xns::MINIMUM_LENGTH; i++) transmitData.tx.put8(0);
         }
-        threadTransmit.push(tx);
+
+        threadTransmit.push(transmitData);
 	}
 
     threadReceive.stop();

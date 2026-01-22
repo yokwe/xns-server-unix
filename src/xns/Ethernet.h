@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,66 +35,60 @@
 
 #pragma once
 
+#include <cstdint>
+
+#include "../util/ByteBuffer.h"
+
 #include "Type.h"
 
+
 namespace xns::ethernet {
+//
+class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+    static uint64_t to64(uint16_t a, uint16_t b, uint16_t c) {
+        return (uint64_t)a << 32 | (uint64_t)b << 16 | (uint64_t)c;
+    }
+    static void from64(uint16_t& a, uint16_t& b, uint16_t& c, uint64_t value) {
+        a = (uint16_t)(value >> 32);
+        b = (uint16_t)(value >> 16);
+        c = (uint16_t)(value >>  0);
+    }
 
-class Type {
-    Type() = delete;
-    inline static const char* FORMAT = "%d";
 public:
-    using T = uint16_t;
+    uint16_t  dest1;   // Host
+    uint16_t  dest2;   // Host
+    uint16_t  dest3;   // Host
+    uint16_t  source1; // Host
+    uint16_t  source2; // Host
+    uint16_t  source3; // Host
+    uint16_t  type;    // type
 
-    DECL_CLASS_CONSTANT(Type, XNS,  0x0600)
-    DECL_CLASS_CONSTANT(Type, IP ,  0x0800)
-
-    static std::string toString(T value) {
-        return constantMap.toString(value);
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(dest1, dest2, dest3, source1, source2, source3, type);
+        return bb;
     }
-    static void registerName(T value, const std::string& name) {
-        constantMap.registerName(value, name);
-    }
-private:
-    struct MyConstantMap: public ConstantMap<T> {
-        MyConstantMap() : ConstantMap<T>(FORMAT) {
-            initialize();
-        }
-        void initialize();
-    };
-
-    static inline MyConstantMap constantMap;
-};
-
-struct Frame : public Base {
-    static constexpr int HEADER_LENGTH  = 14;
-    static constexpr int MINIMUM_LENGTH = 64;
-    static constexpr int MAXIMUM_LENGTH = 6 + 6 + 2 + 1500; // 1514
-
-    uint64_t  dest;   // Host
-    uint64_t  source; // Host
-    uint16_t  type;   // type
-
-    Frame() {}
-
-    std::string toString() const {
-        return std_sprintf("{%s  %s  %s}", Host::toString(dest), Host::toString(source), Type::toString(type));
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        bb.write(dest1, dest2, dest3, source1, source2, source3, type);
+        return bb;
     }
 
-    Frame(ByteBuffer& bb) {
-        fromByteBuffer(bb);
+    uint64_t dest() const {
+        return to64(dest1, dest2, dest3);
+    }
+    uint64_t source() const {
+        return to64(source1, source2, source3);
+    }
+    void dest(uint64_t value) {
+        from64(dest1, dest2, dest3, value);
+    }
+    void source(uint64_t value) {
+        from64(source1, source2, source3, value);
     }
 
-    void fromByteBuffer(ByteBuffer& bb) {
-        bb.read48(dest);
-        bb.read48(source);
-        bb.read16(type);
+    std::string toString() const override {
+        return std_sprintf("{%s  %s  %s}", xns::hostname(dest()), xns::hostname(source()), xns::packetTypeName(type));
     }
 
-    void toByteBuffer(ByteBuffer& bb) const {
-        bb.write48(dest);
-        bb.write48(source);
-        bb.write16(type);
-    }
 };
 
 }

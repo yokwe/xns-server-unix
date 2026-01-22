@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.24.0)
 
-project(mesa-emulator-unix VERSION 2.0.0 LANGUAGES CXX)
+project(xns-server-unix VERSION 2.0.0 LANGUAGES CXX)
 
 #
 # common setting
@@ -57,6 +57,6 @@ else()
 endif()
 
 # add subdirectory
-add_subdirectory (util    ../build/util)
-add_subdirectory (xns     ../build/xns)
-add_subdirectory (server  ../build/server)
+add_subdirectory (util   ../build/util)
+add_subdirectory (xns    ../build/xns)
+add_subdirectory (server ../build/server)

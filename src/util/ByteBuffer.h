@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <memory>
 #include <type_traits>
+#include <span>
 
 #include "Util.h"
 
@@ -163,6 +164,10 @@ public:
             }
         };
     public:
+        static ByteBuffer getInstance() {
+            static std::shared_ptr<MyImpl> myImpl(new MyImpl());
+            return ByteBuffer(myImpl, 0, 0);
+        }
         static ByteBuffer getInstance(uint8_t* data, uint32_t size) {
             static std::shared_ptr<MyImpl> myImpl(new MyImpl());
             return ByteBuffer(myImpl, data, size, size);
@@ -186,9 +191,14 @@ public:
         myByteCapacity  = 0;
         myBytePos       = 0;
         myByteLimit     = 0;
+        myByteMark      = BAD_MARK;
     }
 
     ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const;
+
+    std::span<uint8_t> toSpanLimit() const {
+        return std::span<uint8_t>{myData, myByteLimit};
+    }
 
     const char* name() const {
         return myImpl->myName;
@@ -255,6 +265,9 @@ public:
     uint32_t limit() const {
         return byteValueToWordValue(byteLimit());
     }
+    bool empty() {
+        return byteLimit() == 0;
+    }
     //
     // remains
     //
@@ -293,6 +306,15 @@ public:
     }
 
     // putX
+    void put(std::span<uint8_t> span) {
+        auto byteSize = span.size();
+
+        checkBeforeWrite(byteSize);
+        for(auto e: span) {
+            put8(myBytePos++, e);
+        }
+        myByteLimit = myBytePos;
+    }
     void put8(uint8_t value) {
         const uint32_t byteSize = 1;
 
@@ -425,4 +447,4 @@ public:
     ByteBuffer& write(int64_t  value) = delete;
     ByteBuffer& write(uint64_t value) = delete;
 
-    };
+};

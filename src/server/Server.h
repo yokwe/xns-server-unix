@@ -38,8 +38,9 @@
 #include <string>
 #include <map>
 
-#include "../xns/Config.h"
 #include "../util/net.h"
+
+#include "../xns/Config.h"
 
 
 struct Routing {

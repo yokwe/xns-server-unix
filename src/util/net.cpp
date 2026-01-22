@@ -29,7 +29,8 @@
  *******************************************************************************/
 
 
- #include <vector>
+ #include <unordered_map>
+#include <vector>
  #include <regex>
 
 #include <net/bpf.h>
@@ -245,6 +246,14 @@ uint64_t fromString(const std::string& string) {
     logger.error("Unexpected");
     logger.error("  string = %s!", string);
     ERROR();
+}
+
+std::unordered_map<uint16_t, std::string> packetTypeNameMap = {
+    {0x0600, "XNS"},
+    {0x0800, "IP4"},
+};
+std::string toPacketTypeString(uint16_t packetType) {
+    return packetTypeNameMap.contains(packetType) ? packetTypeNameMap[packetType] : std_sprintf("%04X", packetType);
 }
 
 }

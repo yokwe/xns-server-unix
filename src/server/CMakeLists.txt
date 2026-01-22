@@ -11,14 +11,7 @@ target_sources(
 	PUBLIC
     Server.h
   PRIVATE
-    ECHO.cpp
-    ERROR.cpp
-    IDP.cpp
     main.cpp
-    PEX.cpp
-    RIP.cpp
-    SPP.cpp
-    TIME.cpp
 )
 
 add_dependencies(server xns util)
