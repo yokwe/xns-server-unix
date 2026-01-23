@@ -53,6 +53,9 @@ distclean-macos:
 server:
 	/usr/bin/time cmake --build build --target server
 
+tcpdump-xns:
+	sudo tcpdump ether proto 0x0600
+
 #
 # ANTLR
 #
