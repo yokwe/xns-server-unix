@@ -39,19 +39,18 @@
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
-#include "../util/net.h"
 #include "../util/ThreadControl.h"
 #include "../util/ThreadQueue.h"
 
-#include "../xns/Type.h"
-#include "../xns/Ethernet.h"
 #include "../xns/Config.h"
+#include "../xns/xns.h"
+#include "../xns/Ethernet.h"
 
 #include "Server.h"
 
 struct TransmitData {
     ByteBuffer tx;
-    TransmitData() : tx(ByteBuffer::Net::getInstance(xns::PACKET_SIZE)) {}
+    TransmitData() : tx(ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE)) {}
 };
 struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
     net::Driver& driver;
@@ -66,7 +65,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
 
 struct ReceiveData {
     ByteBuffer rx;
-    ReceiveData() : rx(ByteBuffer::Net::getInstance(xns::PACKET_SIZE)) {}
+    ReceiveData() : rx(ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE)) {}
 };
 struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     net::Driver& driver;
@@ -98,13 +97,16 @@ int main(int, char **) {
 
     auto config = xns::config::Config::getInstance();
     logger.info("config network interface  %s", config.server.interface);
+
     // register constant of host and net from config
-    xns::initialize(config);
+    xns::initialize(&config);
 
     context = Context(config);
-	logger.info("device  %s  %s", context.driver->device.name, net::toHexaDecimalString(context.driver->device.address));
-	logger.info("ME      %s", net::toHexaDecimalString(context.ME));
-	logger.info("NET     %d", context.NET);
+	logger.info("device  %s  %s", net::toHexaDecimalString(context.driver->device.address), context.driver->device.name);
+	logger.info("me      %s  BPF", net::toHexaDecimalString(context.me));
+	logger.info("net     %d", context.net);
+
+    xns::initialize(&config);
 
     auto& driver = *context.driver;
 	driver.open();
@@ -134,23 +136,21 @@ int main(int, char **) {
 
         logger.info("ETH  >>  %s  %d", receiveFrame.toString(), receiveData.rx.remains());
 
-        if (receiveFrame.dest() != context.ME && receiveFrame.dest() != xns::BROADCAST) {
-            // not my address or not broadcast
-            // logger.info("frame  %s  %d", receive.toString(), rx.remaining());
-            continue;
+        bool discardPacket = true;
+        if (receiveFrame.type == xns::PACKET_TYPE_XNS) {
+            if (receiveFrame.dest == context.me || receiveFrame.dest == xns::BROADCAST) {
+                discardPacket = false;
+            }
         }
-        if (receiveFrame.type == xns::XNS) {
-            // not XNS packet
-            continue;
-        }
+        if (discardPacket) continue;
 
         xns::ethernet::Frame transmitFrame;
         // build transmitFrame
-        transmitFrame.dest(receiveFrame.source());
-        transmitFrame.source(context.ME);
-        transmitFrame.type = receiveFrame.type;
+        transmitFrame.dest   = receiveFrame.source;
+        transmitFrame.source = context.me;
+        transmitFrame.type   = receiveFrame.type;
 
-        ByteBuffer payload = ByteBuffer::Net::getInstance(net::PACKET_SIZE);
+        ByteBuffer payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
         // build payload
 //        processIDP(receiveData.rx, payload, context);
@@ -169,8 +169,8 @@ int main(int, char **) {
 
         // add padding if it is smaller than MINIMUM_LENGTH
         auto length = transmitData.tx.byteLimit();
-        if (length < xns::MINIMUM_LENGTH) {
-            for(uint32_t i = length; i < xns::MINIMUM_LENGTH; i++) transmitData.tx.put8(0);
+        if (length < xns::MIN_PACKET_SIZE) {
+            for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) transmitData.tx.put8(0);
         }
 
         threadTransmit.push(transmitData);

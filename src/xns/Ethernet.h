@@ -39,7 +39,7 @@
 
 #include "../util/ByteBuffer.h"
 
-#include "Type.h"
+#include "xns.h"
 
 
 namespace xns::ethernet {
@@ -55,38 +55,51 @@ class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public Ha
     }
 
 public:
-    uint16_t  dest1;   // Host
-    uint16_t  dest2;   // Host
-    uint16_t  dest3;   // Host
-    uint16_t  source1; // Host
-    uint16_t  source2; // Host
-    uint16_t  source3; // Host
-    uint16_t  type;    // type
+    struct Host : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+        uint16_t word1;
+        uint16_t word2;
+        uint16_t word3;
+
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(word1, word2, word3);
+            return bb;
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(word1, word2, word3);
+            return bb;
+        }
+        std::string toString() const override {
+            return xns::hostname((uint64_t)this);
+        }
+
+        Host() : word1(0), word2(0), word3(0) {}
+
+        Host(uint64_t value) {
+            word1 = (uint16_t)(value >> 32);
+            word2 = (uint16_t)(value >> 16);
+            word3 = (uint16_t)(value >>  0);
+        }
+
+        operator uint64_t() const {
+            return (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
+         }
+    };
+
+    Host     dest;
+    Host     source;
+    uint16_t type;
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(dest1, dest2, dest3, source1, source2, source3, type);
+        bb.read(dest, source, type);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(dest1, dest2, dest3, source1, source2, source3, type);
+        bb.write(dest, source, type);
         return bb;
     }
 
-    uint64_t dest() const {
-        return to64(dest1, dest2, dest3);
-    }
-    uint64_t source() const {
-        return to64(source1, source2, source3);
-    }
-    void dest(uint64_t value) {
-        from64(dest1, dest2, dest3, value);
-    }
-    void source(uint64_t value) {
-        from64(source1, source2, source3, value);
-    }
-
     std::string toString() const override {
-        return std_sprintf("{%s  %s  %s}", xns::hostname(dest()), xns::hostname(source()), xns::packetTypeName(type));
+        return std_sprintf("{%s  %s  %s}", xns::hostname(dest), xns::hostname(source), xns::packetTypeName(type));
     }
 
 };

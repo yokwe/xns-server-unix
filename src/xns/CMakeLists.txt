@@ -10,10 +10,12 @@ target_sources(
 		Config.h
 		Ethernet.h
 		Type.h
+		xns.h
 	PRIVATE
 		Config.cpp
 #		Ethernet.cpp
 		Type.cpp
+		xns.cpp
 )
 
 target_link_libraries(xns util log4cxx)

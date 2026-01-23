@@ -39,6 +39,7 @@
 #include <map>
 
 #include "../util/net.h"
+#include "../util/ByteBuffer.h"
 
 #include "../xns/Config.h"
 
@@ -55,22 +56,22 @@ struct Routing {
 struct Context {
     xns::config::Config         config;
     net::Driver*                driver;
-    uint64_t                    ME;
-    uint32_t                    NET;
+    uint64_t                    me;
+    uint32_t                    net;
     std::map<uint32_t, Routing> routingMap;
 
     Context(xns::config::Config config_) : config(config_) {
         auto device = net::getDevice(config.server.interface);
         driver = net::getDriver(device);
-        ME     = config.server.address;
-        NET    = config.server.net;
+        me     = config.server.address;
+        net    = config.server.net;
         // build routingMap
         for(const auto& e: config.net) {
             Routing routing = Routing(e.net, e.delay, e.name);
             routingMap[e.net] = routing;
         }
     }
-    Context() : config(), driver(0), ME(0), NET(0) {}
+    Context() : config(), driver(0), me(0), net(0) {}
 };
 
 void processIDP      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
