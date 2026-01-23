@@ -9,13 +9,11 @@ target_sources(
 	PUBLIC
 		Config.h
 		Ethernet.h
-		Type.h
-		xns.h
+		XNS.h
 	PRIVATE
 		Config.cpp
 #		Ethernet.cpp
-		Type.cpp
-		xns.cpp
+		XNS.cpp
 )
 
 target_link_libraries(xns util log4cxx)

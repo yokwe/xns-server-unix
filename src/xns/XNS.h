@@ -38,13 +38,14 @@
 #include <cstdint>
 #include <string>
 
+#include "../util/Util.h"
+#include "../util/ByteBuffer.h"
 #include "../util/net.h"
 
 #include "Config.h"
 
 namespace xns {
 //
-
 const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
 const uint64_t UNKNOWN   = 0x0000'0000'0000;
 
@@ -56,7 +57,49 @@ const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
 
 void initialize(const config::Config* config);
 
-std::string hostname(uint64_t address);
+std::string hostName(uint64_t address);
 std::string packetTypeName(uint16_t packetType);
+
+
+//
+// Host
+//
+class Host : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+public:
+    uint64_t value;
+
+    Host() : value(0) {}
+
+    Host(uint64_t value_) {
+        value = value_;
+    }
+    Host(int value) = delete;
+
+    operator uint64_t() const {
+        return value;
+    }
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        uint16_t word1;
+        uint16_t word2;
+        uint16_t word3;
+        
+        bb.read(word1, word2, word3);
+
+        value = (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        uint16_t word1 = (uint16_t)(value >> 32);
+        uint16_t word2 = (uint16_t)(value >> 16);
+        uint16_t word3 = (uint16_t)(value >>  0);
+
+        bb.write(word1, word2, word3);
+        return bb;
+    }
+    std::string toString() const override {
+        return xns::hostName(value);
+    }
+};
 
 }

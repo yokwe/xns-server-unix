@@ -30,7 +30,7 @@
 
 
  //
- // xns.cpp
+ // XNS.cpp
  //
 
 #include "../util/Util.h"
@@ -48,11 +48,11 @@ void initialize(const config::Config* config) {
     myConfig = config;
 }
 
-std::string hostname(uint64_t address) {
+std::string hostName(uint64_t address) {
     for(const auto& e: myConfig->host) {
         if (e.address == address) return e.name;
     }
-    return net::toDecimalString(address);
+    return net::toHexaDecimalString(address);
 }
 std::string packetTypeName(uint16_t value) {
     for(const auto& e: myConfig->packetType) {

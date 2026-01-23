@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 #include "../util/ThreadQueue.h"
 
 #include "../xns/Config.h"
-#include "../xns/xns.h"
+#include "../xns/XNS.h"
 #include "../xns/Ethernet.h"
 
 #include "Server.h"
