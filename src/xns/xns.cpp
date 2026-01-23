@@ -30,13 +30,35 @@
 
 
  //
- // Type.cpp
+ // xns.cpp
  //
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../util/net.h"
+
+#include "Config.h"
+
 namespace xns {
 //
+static const config::Config* myConfig = 0;
+
+void initialize(const config::Config* config) {
+    myConfig = config;
+}
+
+std::string hostname(uint64_t address) {
+    for(const auto& e: myConfig->host) {
+        if (e.address == address) return e.name;
+    }
+    return net::toDecimalString(address);
+}
+std::string packetTypeName(uint16_t value) {
+    for(const auto& e: myConfig->packetType) {
+        if (e.value == value) return e.name;
+    }
+    return std_sprintf("%d", value);
+}
 
 }

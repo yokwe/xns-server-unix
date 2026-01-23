@@ -35,36 +35,7 @@
 
 #pragma once
 
-#include <cstdint>
-#include <string>
-
-#include "../util/net.h"
-
-#include "Config.h"
-
 namespace xns {
 //
-
-const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
-const uint64_t UNKNOWN   = 0x0000'0000'0000;
-
-const uint16_t XNS = 0x0600;
-const uint16_t IP4 = 0x0800;
-
-const uint32_t MINIMUM_LENGTH = net::minBytesPerEthernetPacket;
-
-const uint32_t PACKET_SIZE = net::PACKET_SIZE;
-
-
-
-void initialize(const config::Config& config);
-
-std::string hostname(uint64_t address);
-std::string packetTypeName(uint16_t packetType);
-
-namespace host {
-//
-}
-
 
 }
