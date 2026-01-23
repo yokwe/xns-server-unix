@@ -65,10 +65,14 @@ void from_json(const json& j, Net& p) {
 	simple(name)
 }
 void from_json(const json& j, Host& p) {
-	simple(name)
-
     const std::string& string = j.at("address");
     p.address = net::fromString(string);
+	simple(name)
+}
+void from_json(const json& j, PacketType& p) {
+    const std::string& string = j.at("value");
+    p.value = toIntMesaNumber(string);
+	simple(name)
 }
 void from_json(const json& j, Time& p) {
 	simple(offsetDirection)
@@ -92,6 +96,9 @@ Config Config::getInstance(const std::string& path) {
 	}
 	for(auto e: data["host"]) {
 		ret.host.push_back(e.template get<Host>());
+	}
+	for(auto e: data["packetType"]) {
+		ret.packetType.push_back(e.template get<PacketType>());
 	}
     ret.time = data.at("time").template get<Time>();
     return ret;
