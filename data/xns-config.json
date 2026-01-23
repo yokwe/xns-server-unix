@@ -11,8 +11,15 @@
 		{"net": 3, "delay": 2, "name" : "THREE"}
 	],
 	"host": [
-		{"name": "MacStudio2023", "address": "9c:76:0e:4a:08:f0"},
-		{"name": "GVWin", "address": "001-001-001-002"}
+		{"address": "ff:ff:ff:ff:ff:ff", "name": "BROADCAST"},
+		{"address": "00:00:00:00:00:00", "name": "UNKNOWN"},
+		{"address": "9c:76:0e:4a:08:f0", "name": "MacStudio2023"},
+		{"address": "001-001-001-001",   "name": "XNSServer"},
+		{"address": "001-001-001-002",   "name": "GVWin"}
+	],
+	"packetType": [
+		{"value": "0x0600", "name": "XNS"},
+		{"value": "0x0800", "name": "IP4"}
 	],
 	"time" : {
 		"offsetDirection" : 1,
