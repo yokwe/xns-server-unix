@@ -45,6 +45,9 @@ static const Logger logger(__FILE__);
 namespace xns::ethernet {
 //
 
+#undef  ENUM_NAME_VALUE
+#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
+
 struct TypeHash {
     template <typename T>
     std::size_t operator()(T t) const {
@@ -53,8 +56,8 @@ struct TypeHash {
 };
 std::string Frame::toString(Type type) {
     static std::unordered_map<Frame::Type, std::string, TypeHash> map = {
-        {Frame::Type::XNS, "XNS"},
-        {Frame::Type::IP4, "IP4"},
+        ENUM_NAME_VALUE(Type, XNS, 0x0600)
+        ENUM_NAME_VALUE(Type, IP4, 0x0800)
     };
         
     return map.contains(type) ? map[type] : std_sprintf("%04X", static_cast<uint16_t>(type));

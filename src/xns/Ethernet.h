@@ -48,8 +48,8 @@ namespace xns::ethernet {
 class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     enum class Type : uint16_t {
-        XNS = 0x0600,
-        IP4 = 0x0800,
+        ENUM_NAME_VALUE(Type, XNS, 0x0600)
+        ENUM_NAME_VALUE(Type, IP4, 0x0800)
     };
     static std::string toString(Type type);
 
