@@ -94,6 +94,4 @@ std::string toHexaDecimalString(uint64_t address, const std::string& sep = "-");
 
 uint64_t fromString(const std::string& string);
 
-std::string toPacketTypeString(uint16_t packetType);
-
 }
