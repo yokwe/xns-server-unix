@@ -60,5 +60,11 @@ std::string packetTypeName(uint16_t value) {
     }
     return std_sprintf("%d", value);
 }
+std::string netName(uint16_t net) {
+    for(const auto& e: myConfig->net) {
+        if (e.net == net) return e.name;
+    }
+    return std_sprintf("%d", net);
+}
 
 }

@@ -59,22 +59,19 @@ void initialize(const config::Config* config);
 
 std::string hostName(uint64_t address);
 std::string packetTypeName(uint16_t packetType);
+std::string netName(uint16_t net);
 
 
 //
 // Host
 //
 class Host : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public:
     uint64_t value;
-
+public:
     Host() : value(0) {}
-
     Host(uint64_t value_) {
         value = value_;
     }
-    Host(int value) = delete;
-
     operator uint64_t() const {
         return value;
     }
@@ -101,5 +98,32 @@ public:
         return xns::hostName(value);
     }
 };
+
+//
+// Net
+//
+class Net : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+    uint32_t value;
+public :
+    Net() : value(0) {}
+    Net(uint32_t value_) : value(value_) {}
+    operator uint32_t() const {
+        return value;
+    }
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(value);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        bb.write(value);
+        return bb;
+    }
+    std::string toString() const override {
+         return xns::netName(value);
+    }
+};
+
+
 
 }
