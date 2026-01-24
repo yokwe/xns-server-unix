@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2026, Yasuhiro Hasegawa
+ * Copyright (c) 2025, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,34 +28,67 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // IDP.cpp
+ // IDP.h
  //
+
+#pragma once
+
+#include <string>
 
 #include "../util/Util.h"
-static const Logger logger(__FILE__);
-
 #include "../util/ByteBuffer.h"
 
-#include "Server.h"
+#include "../xns/XNS.h"
 
-#include "IDP.h"
 
 namespace xns::server {
 //
 
-void processIDP      (ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx, (void)context;
-    logger.info("%s", __func__);
-}
+class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+public:
+    Net    net;
+    Host   host;
+    Socket socket;
 
-std::string IDP::toString() const {
-    // auto dst = std_sprintf("%s-%s-%s", Net::toString(dstNet), Host::toString(dstHost), Socket::toString(dstSocket));
-    // auto src = std_sprintf("%s-%s-%s", Net::toString(srcNet), Host::toString(srcHost), Socket::toString(srcSocket));
-    // return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-    //     Checksum::toString(checksum), length, control, Type::toString(type), dst, src);
-    logger.info("%s", __func__);
-}
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(net, host, socket);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        bb.write(net, host, socket);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s %s %s}", net.toString(), host.toString(), xns::toString(socket));
+    }
+};
+
+
+
+class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+public:
+    static constexpr int HEADER_LENGTH = 30;
+
+    uint16_t checksum;  // Checksum
+    uint16_t length;
+    uint8_t  control;
+    uint8_t  type;      // Type
+
+    NetworkAddress dst;
+    NetworkAddress src;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(checksum, length, control, type, dst, src);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        bb.write(checksum, length, control, type, dst, src);
+        return bb;
+    }
+    std::string toString() const override;
+
+};
 
 }

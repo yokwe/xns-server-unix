@@ -114,7 +114,7 @@ int main(int, char **) {
             transmitFrame.type   = receiveFrame.type;
 
             // build payload
-            processIDP(rx, payload, context);
+            server::processIDP(rx, payload, context);
             payload.flip();
         }
 
