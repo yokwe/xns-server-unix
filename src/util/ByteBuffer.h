@@ -115,18 +115,6 @@ class ByteBuffer {
     void put32(uint32_t bytePos, uint32_t value) {
         myImpl->put32(myData, bytePos, value);
     }
-    // 48
-    uint64_t get48(uint32_t bytePos) {
-        uint64_t word0 = get16(bytePos + 0); // 0 1
-        uint64_t word1 = get16(bytePos + 2); // 2 3
-        uint64_t word2 = get16(bytePos + 4); // 4 5
-        return word0 << 32 | word1 << 16 | word2;
-    }
-    void put48(uint32_t bytePos, uint64_t value) {
-        put16(bytePos + 0, (uint16_t)(value >> 32)); // 0 1
-        put16(bytePos + 2, (uint16_t)(value >> 16)); // 2 3
-        put16(bytePos + 4, (uint16_t)(value >>  0)); // 4 5 
-    }
 
 public:
     class Mesa {
@@ -316,14 +304,6 @@ public:
         myBytePos += byteSize;
         return ret;
     }
-    uint64_t get48() {
-        const uint32_t byteSize = 6;
-
-        checkBeforeRead(byteSize);
-        auto ret = get48(myBytePos);
-        myBytePos += byteSize;
-        return ret;
-    }
 
     // putX
     void put(std::span<uint8_t> span) {
@@ -359,52 +339,6 @@ public:
         myBytePos += byteSize;
         myByteLimit = myBytePos;
     }
-    void put48(uint32_t value) {
-        const uint32_t byteSize = 6;
-
-        checkBeforeWrite(byteSize);
-        put48(myBytePos, value);
-        myBytePos += byteSize;
-        myByteLimit = myBytePos;
-    }
-
-    template <class T>
-    ByteBuffer& read48(T&& value) {
-        constexpr auto is_enum = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<T>>>;
-        if constexpr(is_enum) {
-            constexpr auto ut_uint64_t = std::is_same_v<uint64_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<T>>>>;
-            if constexpr (ut_uint64_t) {
-                uint64_t t;
-                read48(t);
-                value = static_cast<std::remove_cv_t<std::remove_reference_t<T>>>(t);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(value).name()));
-                ERROR()    
-            }
-        } else {
-            logger.error("Unexpected type  %s", demangle(typeid(value).name()));
-            ERROR()
-        }
-        return *this;
-    }
-    template <class T>
-    ByteBuffer& write48(T&& value) {
-        constexpr auto is_enum = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<T>>>;
-        if constexpr(is_enum) {
-            constexpr auto ut_uint64_t = std::is_same_v<uint64_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<T>>>>;
-            if constexpr (ut_uint64_t) {
-                auto t = static_cast<uint64_t>(value);
-                write48(t);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(value).name()));
-                ERROR()    
-            }
-        } else {
-            logger.error("Unexpected type  %s", demangle(typeid(value).name()));
-            ERROR()
-        }
-        return *this;
-    }
 
     //
     // HasRead and read(...)
@@ -427,7 +361,7 @@ public:
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             read(head);
-        } else if constexpr (!is_class && is_enum) {
+        } else if constexpr (is_enum) {
             constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
             constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
             constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
@@ -502,7 +436,7 @@ public:
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             write(head);
-        } else if constexpr (!is_class && is_enum) {
+        } else if constexpr (is_enum) {
             constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
             constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
             constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
