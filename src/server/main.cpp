@@ -98,8 +98,6 @@ int main(int, char **) {
             xns::ethernet::Frame receiveFrame;
             rx.read(receiveFrame);
     
-            logger.info("ETH  >>  %s  %d", receiveFrame.toString(), rx.remains());
-    
             bool discardPacket = true;
             if (receiveFrame.type == xns::ethernet::Frame::Type::XNS) {
                 if (receiveFrame.dest == context.me || receiveFrame.dest == xns::Host::BROADCAST) {
@@ -108,13 +106,15 @@ int main(int, char **) {
             }
             if (discardPacket) continue;
 
+            logger.info("ETH  >>  %s  %d", receiveFrame.toString(), rx.remains());
+    
             // build transmitFrame
             transmitFrame.dest   = receiveFrame.source;
             transmitFrame.source = context.me;
             transmitFrame.type   = receiveFrame.type;
 
             // build payload
-            server::processIDP(rx, payload, context);
+            processIDP(rx, payload, context);
             payload.flip();
         }
 
