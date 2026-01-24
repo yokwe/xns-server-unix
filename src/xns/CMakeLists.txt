@@ -12,7 +12,7 @@ target_sources(
 		XNS.h
 	PRIVATE
 		Config.cpp
-#		Ethernet.cpp
+		Ethernet.cpp
 		XNS.cpp
 )
 
