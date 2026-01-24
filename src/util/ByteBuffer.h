@@ -200,6 +200,14 @@ public:
         return std::span<uint8_t>{myData, myByteLimit};
     }
 
+    std::string toStringFromPos() {
+        std::string string;
+        for(uint32_t i = myBytePos; i < myByteLimit; i++) {
+            string += std_sprintf("%02X", myData[i]);
+        }
+        return string;
+    }
+
     const char* name() const {
         return myImpl->myName;
     }
