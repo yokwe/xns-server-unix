@@ -37,12 +37,52 @@
 
 #include <string>
 #include <map>
+#include <span>
 
+#include "../util/ThreadQueue.h"
 #include "../util/net.h"
 #include "../util/ByteBuffer.h"
 
+#include "../xns/XNS.h"
 #include "../xns/Config.h"
 
+namespace xns::server {
+//
+struct TransmitData {
+    ByteBuffer tx;
+    TransmitData() : tx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
+};
+struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
+    net::Driver& driver;
+
+    ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<TransmitData>("ThreadTransmit"), driver(driver_) {}
+
+    void process(const TransmitData& data) override {
+        auto span = data.tx.toSpanLimit();
+        driver.transmit(span);
+    }
+};
+
+struct ReceiveData {
+    ByteBuffer rx;
+    ReceiveData() : rx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
+};
+struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
+    net::Driver& driver;
+
+    ThreadReceive(net::Driver& driver_) : thread_queue::ThreadQueueProducer<ReceiveData>("ThreadReceive"), driver(driver_) {}
+
+    // produce return true when data has value
+    bool produce(ReceiveData& data, std::chrono::milliseconds timeout) override{
+        net::Driver::data_type span;
+        int ret = driver.receive(span, timeout);
+        data.rx.clear();
+        // copy data from span to bb
+        if (ret) data.rx.put(span);
+        data.rx.flip();
+        return ret;
+    }
+};
 
 struct Routing {
     uint32_t    net;
@@ -82,3 +122,5 @@ void processSPP      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 void processERROR    (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 
 void processTIME     (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+
+}
