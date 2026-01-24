@@ -45,13 +45,10 @@
 namespace xns::ethernet {
 //
 class Type : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public :
     uint16_t value;
-
+public:
     Type() : value(0) {}
     Type(uint16_t value_) : value(value_) {}
-    Type(int) = delete;
-
     operator uint16_t() const {
         return value;
     }
