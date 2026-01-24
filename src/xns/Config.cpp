@@ -47,31 +47,29 @@ static const Logger logger(__FILE__);
 
 using json = nlohmann::json;
 
-#define simple(name) p.name = j.at(#name);
+#define simple(name)  p.name = j.at(#name);
+#define address(name) p.name = net::fromString(j.at(#name));
+#define number(name)  p.name = toIntMesaNumber(j.at(#name));
 
 namespace xns::config {
 
 void from_json(const json& j, Server& p) {
 	simple(interface)
 	simple(name)
-	
-    const std::string& string = j.at("address");
-    p.address = net::fromString(string);
+	address(address)
 	simple(net)
 }
 void from_json(const json& j, Net& p) {
-    simple(net)
+	number(net)
     simple(delay)
 	simple(name)
 }
 void from_json(const json& j, Host& p) {
-    const std::string& string = j.at("address");
-    p.address = net::fromString(string);
+	address(address)
 	simple(name)
 }
 void from_json(const json& j, PacketType& p) {
-    const std::string& string = j.at("value");
-    p.value = toIntMesaNumber(string);
+	number(value)
 	simple(name)
 }
 void from_json(const json& j, Time& p) {
