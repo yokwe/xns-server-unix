@@ -42,21 +42,45 @@ static const Logger logger(__FILE__);
 
 #include "IDP.h"
 
+#undef  ENUM_NAME_VALUE
+#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
+
 namespace xns::server {
 //
 
 void processIDP      (ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx, (void)context;
-    logger.info("%s", __func__);
+    (void)tx; (void)context;
+    IDP idp;
+    rx.read(idp);
+    auto remain = rx.range(rx.pos(), (idp.length - IDP::HEADER_LENGTH_IN_BYTE) / 2);
+
+    logger.info("IDP  >>  %s  (%d) %s", idp.toString(), remain.byteLimit(), remain.toStringFromPos());
+
 }
 
+std::string IDP::toString(Checksum checksum) {
+    static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Checksum, NOCHECK, 0)
+    };
+    return map.contains(checksum) ? map[checksum] : std_sprintf("%04X", static_cast<uint16_t>(checksum));
+}
+
+std::string IDP::toString(PacketType packetType) {
+    static std::unordered_map<PacketType, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(PacketType, RIP,    1)
+        ENUM_NAME_VALUE(PacketType, ECHO,   2)
+        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
+        ENUM_NAME_VALUE(PacketType, PEX,    4)
+        ENUM_NAME_VALUE(PacketType, SPP,    5)
+        ENUM_NAME_VALUE(PacketType, BOOT,   6)
+    };
+    return map.contains(packetType) ? map[packetType] : std_sprintf("%d", static_cast<uint8_t>(packetType));
+}
+
+
 std::string IDP::toString() const {
-    // auto dst = std_sprintf("%s-%s-%s", Net::toString(dstNet), Host::toString(dstHost), Socket::toString(dstSocket));
-    // auto src = std_sprintf("%s-%s-%s", Net::toString(srcNet), Host::toString(srcHost), Socket::toString(srcSocket));
-    // return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-    //     Checksum::toString(checksum), length, control, Type::toString(type), dst, src);
-    logger.info("%s", __func__);
-    return "** IDP::toString() **";
+    return std_sprintf("{%s  %d  %d  %s  %s  %s}",
+        IDP::toString(checksum), length, control, IDP::toString(packetType), dst.toString(), src.toString());
 }
 
 }

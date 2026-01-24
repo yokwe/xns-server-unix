@@ -48,20 +48,20 @@ namespace xns::server {
 
 class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
-    Net    net;
-    Host   host;
-    Socket socket;
+    Network network;
+    Host    host;
+    Socket  socket;
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(net, host, socket);
+        bb.read(network, host, socket);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(net, host, socket);
+        bb.write(network, host, socket);
         return bb;
     }
     std::string toString() const override {
-        return std_sprintf("{%s %s %s}", net.toString(), host.toString(), xns::toString(socket));
+        return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
     }
 };
 
@@ -69,22 +69,37 @@ public:
 
 class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
-    static constexpr int HEADER_LENGTH = 30;
+    static constexpr int HEADER_LENGTH_IN_BYTE = 30;
 
-    uint16_t checksum;  // Checksum
-    uint16_t length;
-    uint8_t  control;
-    uint8_t  type;      // Type
+    enum class Checksum : uint16_t {
+        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)
+    };
+    static std::string toString(Checksum packetType);
+
+    enum class PacketType : uint8_t {
+        ENUM_NAME_VALUE(PacketType, RIP,    1)
+        ENUM_NAME_VALUE(PacketType, ECHO,   2)
+        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
+        ENUM_NAME_VALUE(PacketType, PEX,    4)
+        ENUM_NAME_VALUE(PacketType, SPP,    5)
+        ENUM_NAME_VALUE(PacketType, BOOT,   6)
+    };
+    static std::string toString(PacketType packetType);
+
+    Checksum       checksum;  // Checksum
+    uint16_t       length;
+    uint8_t        control;
+    PacketType     packetType;      // Type
 
     NetworkAddress dst;
     NetworkAddress src;
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(checksum, length, control, type, dst, src);
+        bb.read(checksum, length, control, packetType, dst, src);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(checksum, length, control, type, dst, src);
+        bb.write(checksum, length, control, packetType, dst, src);
         return bb;
     }
     std::string toString() const override;
