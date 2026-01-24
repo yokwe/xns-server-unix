@@ -6,14 +6,13 @@
 		"net":       1
 	},
 	"net": [
-		{"net": "0x0000", "delay": 16, "name": "UNKNOWN"},
-		{"net": "0xFFFF", "delay": 16, "name" : "ALL"},
-		{"net":      "1", "delay":  0, "name" : "ONE"},
-		{"net":      "2", "delay":  1, "name" : "TWO"},
-		{"net":      "3", "delay":  2, "name" : "THREE"}
+		{"net": "0x00000000", "delay": 16, "name": "UNKNOWN"},
+		{"net": "0xFFFFFFFF", "delay": 16, "name": "ALL"},
+		{"net":          "1", "delay":  0, "name": "ONE"},
+		{"net":          "2", "delay":  1, "name": "TWO"},
+		{"net":          "3", "delay":  2, "name": "THREE"}
 	],
 	"host": [
-		{"address": "00:00:00:00:00:00", "name": "UNKNOWN"},
 		{"address": "ff:ff:ff:ff:ff:ff", "name": "BROADCAST"},
 		{"address": "9c:76:0e:4a:08:f0", "name": "MacStudio2023"},
 		{"address": "001-001-001-001",   "name": "XNSServer"},
