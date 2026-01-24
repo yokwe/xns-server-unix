@@ -54,12 +54,6 @@ std::string hostName(uint64_t address) {
     }
     return net::toHexaDecimalString(address);
 }
-std::string packetTypeName(uint16_t value) {
-    for(const auto& e: myConfig->packetType) {
-        if (e.value == value) return e.name;
-    }
-    return std_sprintf("%d", value);
-}
 std::string netName(uint16_t net) {
     for(const auto& e: myConfig->net) {
         if (e.net == net) return e.name;

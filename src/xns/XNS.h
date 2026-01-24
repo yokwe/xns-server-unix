@@ -46,19 +46,12 @@
 
 namespace xns {
 //
-const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
-const uint64_t UNKNOWN   = 0x0000'0000'0000;
-
-const uint16_t PACKET_TYPE_XNS = 0x0600;
-const uint16_t PACKET_TYPE_IP4 = 0x0800;
-
 const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
 
 void initialize(const config::Config* config);
 
 std::string hostName(uint64_t address);
-std::string packetTypeName(uint16_t packetType);
 std::string netName(uint16_t net);
 
 
@@ -68,6 +61,8 @@ std::string netName(uint16_t net);
 class Host : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
     uint64_t value;
 public:
+    static const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
+
     Host() : value(0) {}
     Host(uint64_t value_) {
         value = value_;
