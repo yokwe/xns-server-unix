@@ -120,5 +120,30 @@ public :
 };
 
 
+//
+// Socket
+//
+
+enum class Socket : uint16_t {
+    ENUM_NAME_VALUE(Socket, RIP,        1)
+    ENUM_NAME_VALUE(Socket, ECHO,       2)
+    ENUM_NAME_VALUE(Socket, ERROR_,     3)
+    ENUM_NAME_VALUE(Socket, ENVOY,      4)
+    ENUM_NAME_VALUE(Socket, COURIER,    5)
+    ENUM_NAME_VALUE(Socket, CHS_OLD,    7)
+    ENUM_NAME_VALUE(Socket, TIME,       8)
+    ENUM_NAME_VALUE(Socket, BOOT,      10)
+    ENUM_NAME_VALUE(Socket, DIAG,      19)
+    ENUM_NAME_VALUE(Socket, CHS,       20)
+    ENUM_NAME_VALUE(Socket, AUTH,      21)
+    ENUM_NAME_VALUE(Socket, MAIL,      22)
+    ENUM_NAME_VALUE(Socket, NET_EXEC,  23)
+    ENUM_NAME_VALUE(Socket, WS_INFO,   24)
+    ENUM_NAME_VALUE(Socket, BINDING,   28)
+    ENUM_NAME_VALUE(Socket, GERM,      35)
+    ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
+};
+std::string toString(Socket socket);
+
 
 }

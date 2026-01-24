@@ -40,6 +40,8 @@ static const Logger logger(__FILE__);
 
 #include "Config.h"
 
+#include "XNS.h"
+
 namespace xns {
 //
 static const config::Config* myConfig = 0;
@@ -59,6 +61,38 @@ std::string netName(uint16_t net) {
         if (e.net == net) return e.name;
     }
     return std_sprintf("%d", net);
+}
+
+#undef  ENUM_NAME_VALUE
+#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
+
+struct SocketHash {
+    template <typename T>
+    std::size_t operator()(T t) const {
+        return static_cast<std::size_t>(t);
+    }
+};
+std::string toString(Socket socket) {
+    static std::unordered_map<Socket, std::string, SocketHash> map = {
+        ENUM_NAME_VALUE(Socket, RIP,        1)
+        ENUM_NAME_VALUE(Socket, ECHO,       2)
+        ENUM_NAME_VALUE(Socket, ERROR_,     3)
+        ENUM_NAME_VALUE(Socket, ENVOY,      4)
+        ENUM_NAME_VALUE(Socket, COURIER,    5)
+        ENUM_NAME_VALUE(Socket, CHS_OLD,    7)
+        ENUM_NAME_VALUE(Socket, TIME,       8)
+        ENUM_NAME_VALUE(Socket, BOOT,      10)
+        ENUM_NAME_VALUE(Socket, DIAG,      19)
+        ENUM_NAME_VALUE(Socket, CHS,       20)
+        ENUM_NAME_VALUE(Socket, AUTH,      21)
+        ENUM_NAME_VALUE(Socket, MAIL,      22)
+        ENUM_NAME_VALUE(Socket, NET_EXEC,  23)
+        ENUM_NAME_VALUE(Socket, WS_INFO,   24)
+        ENUM_NAME_VALUE(Socket, BINDING,   28)
+        ENUM_NAME_VALUE(Socket, GERM,      35)
+        ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
+    };
+    return map.contains(socket) ? map[socket] : std_sprintf("%04X", static_cast<uint16_t>(socket));
 }
 
 }
