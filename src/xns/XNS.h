@@ -95,36 +95,20 @@ public:
 };
 
 //
-// Net
+// Network
 //
-class Net : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-    uint32_t value;
-public :
-    Net() : value(0) {}
-    Net(uint32_t value_) : value(value_) {}
-    operator uint32_t() const {
-        return value;
-    }
-
-    ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(value);
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(value);
-        return bb;
-    }
-    std::string toString() const override {
-         return xns::netName(value);
-    }
+enum class Network : uint32_t {
+    ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
+    ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
 };
+std::string toString(Network socket);
 
 
 //
 // Socket
 //
-
 enum class Socket : uint16_t {
+    ENUM_NAME_VALUE(Socket, UNKNOWN,    0)
     ENUM_NAME_VALUE(Socket, RIP,        1)
     ENUM_NAME_VALUE(Socket, ECHO,       2)
     ENUM_NAME_VALUE(Socket, ERROR_,     3)
@@ -142,6 +126,7 @@ enum class Socket : uint16_t {
     ENUM_NAME_VALUE(Socket, BINDING,   28)
     ENUM_NAME_VALUE(Socket, GERM,      35)
     ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
+    ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
 };
 std::string toString(Socket socket);
 
