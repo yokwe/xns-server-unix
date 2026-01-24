@@ -11,6 +11,7 @@ target_sources(
 	PUBLIC
     Server.h
   PRIVATE
+    IDP.cpp
     main.cpp
 )
 
