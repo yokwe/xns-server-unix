@@ -56,6 +56,7 @@ std::string IDP::toString() const {
     // return std_sprintf("{%s  %d  %d  %s  %s  %s}",
     //     Checksum::toString(checksum), length, control, Type::toString(type), dst, src);
     logger.info("%s", __func__);
+    return "** IDP::toString() **";
 }
 
 }
