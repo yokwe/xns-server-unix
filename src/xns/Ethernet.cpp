@@ -30,44 +30,34 @@
 
 
  //
- // Ethernet.h
+ // Ethernet.cpp
  //
 
-#pragma once
+#include <unordered_map>
+#include <string>
 
-#include <cstdint>
-#include <utility>
 
-#include "../util/ByteBuffer.h"
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include "XNS.h"
-
+#include "Ethernet.h"
 
 namespace xns::ethernet {
 //
-class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public:
-    enum class Type : uint16_t {
-        XNS = 0x0600,
-        IP4 = 0x0800,
-    };
-    static std::string toString(Type type);
 
-    Host dest;
-    Host source;
-    Type type;
-
-    ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(dest, source, type);
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(dest, source, type);
-        return bb;
-    }
-    std::string toString() const override {
-        return std_sprintf("{%s  %s  %s}",dest.toString(), source.toString(), toString(type));
+struct TypeHash {
+    template <typename T>
+    std::size_t operator()(T t) const {
+        return static_cast<std::size_t>(t);
     }
 };
+std::string Frame::toString(Type type) {
+    static std::unordered_map<Frame::Type, std::string, TypeHash> map = {
+        {Frame::Type::XNS, "XNS"},
+        {Frame::Type::IP4, "IP4"},
+    };
+        
+    return map.contains(type) ? map[type] : std_sprintf("%04X", static_cast<uint16_t>(type));
+}
 
 }
