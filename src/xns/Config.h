@@ -72,7 +72,7 @@ struct Time {
 };
 
 struct Config {
-    Server            server;
+    Server                  server;
     std::vector<Net>        net;
     std::vector<Host>       host;
     std::vector<PacketType> packetType;
