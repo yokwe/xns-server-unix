@@ -352,28 +352,49 @@ public:
     }
     template <class Head, class... Tail>
     ByteBuffer& read(Head&& head, Tail&&... tail) {
-        constexpr auto is_uint8_t  = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint8_t>::value;
-        constexpr auto is_uint16_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint16_t>::value;
-        constexpr auto is_uint32_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint32_t>::value;
-        constexpr auto is_class    = std::is_class_v<std::remove_reference_t<Head>>;
+        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_uint16_t = std::is_same_v<uint16_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_uint32_t = std::is_same_v<uint32_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_class    = std::is_class_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr bool is_enum     = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
 
-    //		logger.info("read head  %s!  %d  |  %d  %d  |  %d", demangle(typeid(head).name()), sizeof(head), is_uint16_t, is_uint32_t, is_class);
+//		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             read(head);
-        } else {
-            if constexpr (is_class) {
-                constexpr auto has_read = std::is_base_of_v<HasRead, std::remove_reference_t<Head>>;
-                if constexpr (has_read) {
-                    head.read(*this);
-                } else {
-                    logger.error("Unexptected type  %s", demangle(typeid(head).name()));
-                    ERROR()
-                }
+        } else if constexpr (!is_class && is_enum) {
+            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+
+//    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
+            if constexpr (ut_uint8_t) {
+                uint8_t t;
+                read(t);
+                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
+            } else if constexpr(ut_uint16_t) {
+                uint16_t t;
+                read(t);
+                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
+            } else if constexpr (ut_uint32_t) {
+                uint32_t t;
+                read(t);
+                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
             } else {
-                logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
+                ERROR()    
+            }
+        } else if constexpr (is_class) {
+            constexpr auto has_read = std::is_base_of_v<HasRead, std::remove_reference_t<Head>>;
+            if constexpr (has_read) {
+                head.read(*this);
+            } else {
+                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
                 ERROR()
             }
+        } else {
+            logger.error("Unexpected type  %s", demangle(typeid(head).name()));
+            ERROR()
         }
         return read(std::forward<Tail>(tail)...);
     }
@@ -406,28 +427,46 @@ public:
     }
     template <class Head, class... Tail>
     ByteBuffer& write(Head&& head, Tail&&... tail) {
-        constexpr auto is_uint8_t  = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint8_t>::value;
-        constexpr auto is_uint16_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint16_t>::value;
-        constexpr auto is_uint32_t = std::is_same<std::remove_cv_t<std::remove_reference_t<Head>>, uint32_t>::value;
-        constexpr auto is_class    = std::is_class_v<std::remove_reference_t<Head>>;
+        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_uint16_t = std::is_same_v<uint16_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_uint32_t = std::is_same_v<uint32_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr auto is_class    = std::is_class_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
+        constexpr bool is_enum     = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
 
-    //		logger.info("write head  %s!  %d  |  %d  %d  |  %d", demangle(typeid(head).name()), sizeof(head), is_uint16_t, is_uint32_t, is_class);
+//		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             write(head);
-        } else {
-            if constexpr (is_class) {
-                constexpr auto has_write = std::is_base_of_v<HasWrite, std::remove_reference_t<Head>>;
-                if constexpr (has_write) {
-                    head.write(*this);
-                } else {
-                    logger.error("Unexptected type  %s", demangle(typeid(head).name()));
-                    ERROR()
-                }
+        } else if constexpr (!is_class && is_enum) {
+            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+
+//    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
+            if constexpr (ut_uint8_t) {
+                auto t = static_cast<uint8_t>(head);
+                write(t);
+            } else if constexpr(ut_uint16_t) {
+                auto t = static_cast<uint16_t>(head);
+                write(t);
+            } else if constexpr (ut_uint32_t) {
+                auto t = static_cast<uint32_t>(head);
+                write(t);
             } else {
-                logger.error("Unexptected type  %s", demangle(typeid(head).name()));
+                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
+                ERROR()    
+            }
+        } else if constexpr (is_class) {
+            constexpr auto has_write = std::is_base_of_v<HasWrite, std::remove_reference_t<Head>>;
+            if constexpr (has_write) {
+                head.write(*this);
+            } else {
+                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
                 ERROR()
             }
+        } else {
+            logger.error("Unexpected type  %s", demangle(typeid(head).name()));
+            ERROR()
         }
         return write(std::forward<Tail>(tail)...);
     }
