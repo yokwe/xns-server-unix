@@ -58,11 +58,6 @@ struct Host {
     std::string name;
 };
 
-struct PacketType {
-    uint16_t    value;
-    std::string name;
-};
-
 struct Time {
 	uint16_t offsetDirection;
     uint16_t offsetHours;
@@ -75,7 +70,6 @@ struct Config {
     Server                  server;
     std::vector<Net>        net;
     std::vector<Host>       host;
-    std::vector<PacketType> packetType;
     Time                    time;
 
     static Config getInstance(const std::string& path);

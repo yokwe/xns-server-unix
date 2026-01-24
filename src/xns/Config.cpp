@@ -68,10 +68,6 @@ void from_json(const json& j, Host& p) {
 	address(address)
 	simple(name)
 }
-void from_json(const json& j, PacketType& p) {
-	number(value)
-	simple(name)
-}
 void from_json(const json& j, Time& p) {
 	simple(offsetDirection)
     simple(offsetHours)
@@ -94,9 +90,6 @@ Config Config::getInstance(const std::string& path) {
 	}
 	for(auto e: data["host"]) {
 		ret.host.push_back(e.template get<Host>());
-	}
-	for(auto e: data["packetType"]) {
-		ret.packetType.push_back(e.template get<PacketType>());
 	}
     ret.time = data.at("time").template get<Time>();
     return ret;
