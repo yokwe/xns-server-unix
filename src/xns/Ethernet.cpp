@@ -42,7 +42,7 @@ static const Logger logger(__FILE__);
 
 #include "Ethernet.h"
 
-namespace xns::ethernet {
+namespace xns {
 //
 
 #undef  ENUM_NAME_VALUE

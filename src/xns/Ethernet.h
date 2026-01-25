@@ -42,7 +42,7 @@
 #include "XNS.h"
 
 
-namespace xns::ethernet {
+namespace xns {
 //
 class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
