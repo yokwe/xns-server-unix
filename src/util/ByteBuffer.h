@@ -194,18 +194,22 @@ public:
         myByteMark      = BAD_MARK;
     }
 
-    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const;
+    ByteBuffer byteRange(uint32_t byteOffset, uint32_t byteSize) const;
+    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const {
+        auto byteOffset  = wordValueToByteValue(wordOffset);
+        auto byteSize = wordValueToByteValue(wordSize);
+        return byteRange(byteOffset, byteSize);
+    }
+    ByteBuffer rangeRemains() const {
+        return byteRange(myBytePos, byteRemains());
+    }
 
-    std::span<uint8_t> toSpanLimit() const {
+    std::span<uint8_t> toSpan() const {
         return std::span<uint8_t>{myData, myByteLimit};
     }
 
-    std::string toStringFromPos() {
-        std::string string;
-        for(uint32_t i = myBytePos; i < myByteLimit; i++) {
-            string += std_sprintf("%02X", myData[i]);
-        }
-        return string;
+    std::string toString() {
+        return toHexString(myByteLimit, myData);
     }
 
     const char* name() const {
@@ -273,16 +277,16 @@ public:
     uint32_t limit() const {
         return byteValueToWordValue(byteLimit());
     }
-    bool empty() {
+    bool empty() const {
         return byteLimit() == 0;
     }
     //
     // remains
     //
-    uint32_t byteRemains() {
+    uint32_t byteRemains() const {
         return myByteLimit - myBytePos;
     }
-    uint32_t remains() {
+    uint32_t remains() const {
         return byteValueToWordValue(byteRemains());
     }
 
@@ -321,7 +325,7 @@ public:
         for(auto e: span) {
             put8(myBytePos++, e);
         }
-        myByteLimit = myBytePos;
+        if (myByteLimit < myBytePos) myByteLimit = myBytePos;
     }
     void put8(uint8_t value) {
         const uint32_t byteSize = 1;
@@ -329,7 +333,7 @@ public:
         checkBeforeWrite(byteSize);
         put8(myBytePos, value);
         myBytePos += byteSize;
-        myByteLimit = myBytePos;
+        if (myByteLimit < myBytePos) myByteLimit = myBytePos;
     }
     void put16(uint16_t value) {
         const uint32_t byteSize = 2;
@@ -337,7 +341,7 @@ public:
         checkBeforeWrite(byteSize);
         put16(myBytePos, value);
         myBytePos += byteSize;
-        myByteLimit = myBytePos;
+        if (myByteLimit < myBytePos) myByteLimit = myBytePos;
     }
     void put32(uint32_t value) {
         const uint32_t byteSize = 4;
@@ -345,7 +349,7 @@ public:
         checkBeforeWrite(byteSize);
         put32(myBytePos, value);
         myBytePos += byteSize;
-        myByteLimit = myBytePos;
+        if (myByteLimit < myBytePos) myByteLimit = myBytePos;
     }
 
     //
