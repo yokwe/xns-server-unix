@@ -58,7 +58,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
     ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<TransmitData>("ThreadTransmit"), driver(driver_) {}
 
     void process(const TransmitData& data) override {
-        auto span = data.tx.toSpanLimit();
+        auto span = data.tx.toSpan();
         driver.transmit(span);
     }
 };
@@ -113,14 +113,5 @@ struct Context {
     }
     Context() : config(), driver(0), me(0), net(0) {}
 };
-
-void processIDP      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-void processECHO     (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-void processPEX      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-void processRIP      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-void processSPP      (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-void processERROR    (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-
-void processTIME     (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 
 }
