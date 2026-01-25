@@ -50,7 +50,7 @@ public:
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
     };
-    static std::string toString(Type type);
+    static std::string toString(Type value);
 
     Host dest;
     Host source;

@@ -30,83 +30,44 @@
 
 
  //
- // IDP.h
+ // SPP.h
  //
 
 #pragma once
-
-#include <string>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
 #include "../server/Server.h"
 
-#include "../xns/XNS.h"
-
 namespace xns {
 //
 
-class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class SPP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
-    Network network;
-    Host    host;
-    Socket  socket;
+    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
+
+    uint8_t  control; // Control Bit
+    uint8_t  sst;     // Sub System Type
+    uint16_t idSrc;   // connection id of source
+    uint16_t idDst;   // connection id of destination
+    uint16_t seq;     // sequence
+    uint16_t ack;     // acknowledgment
+    uint16_t alloc;   // allocation
+
+    SPP() : control(0), sst(0), idSrc(0), idDst(0), seq(0), ack(0), alloc(0) {}
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(network, host, socket);
+        bb.read(control, sst, idSrc, idDst, seq, ack, alloc);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(network, host, socket);
+        bb.write(control, sst, idSrc, idDst, seq, ack, alloc);
         return bb;
     }
     std::string toString() const override {
-        return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
+        return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, sst, idSrc, idDst, seq, ack, alloc);
     }
-};
-
-class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public:
-    static constexpr int HEADER_LENGTH_IN_BYTE = 30;
-
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
-
-    enum class Checksum : uint16_t {
-        ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
-        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)  // minus zero
-    };
-    static std::string toString(Checksum value);
-
-    enum class PacketType : uint8_t {
-        ENUM_NAME_VALUE(PacketType, RIP,    1)
-        ENUM_NAME_VALUE(PacketType, ECHO,   2)
-        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
-        ENUM_NAME_VALUE(PacketType, PEX,    4)
-        ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   6)
-    };
-    static std::string toString(PacketType value);
-
-    static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
-
-    Checksum       checksum;  // Checksum
-    uint16_t       length;
-    uint8_t        control;
-    PacketType     packetType;      // Type
-
-    NetworkAddress dst;
-    NetworkAddress src;
-
-    ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(checksum, length, control, packetType, dst, src);
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(checksum, length, control, packetType, dst, src);
-        return bb;
-    }
-    std::string toString() const override;
 
 };
 

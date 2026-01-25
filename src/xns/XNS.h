@@ -101,7 +101,7 @@ enum class Network : uint32_t {
     ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
     ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
 };
-std::string toString(Network socket);
+std::string toString(Network value);
 
 
 //
@@ -128,7 +128,7 @@ enum class Socket : uint16_t {
     ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
     ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
 };
-std::string toString(Socket socket);
+std::string toString(Socket value);
 
 
 }

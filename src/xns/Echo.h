@@ -30,11 +30,12 @@
 
 
  //
- // IDP.h
+ // Echo.h
  //
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "../util/Util.h"
@@ -42,72 +43,33 @@
 
 #include "../server/Server.h"
 
-#include "../xns/XNS.h"
-
 namespace xns {
 //
-
-class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Echo : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
-    Network network;
-    Host    host;
-    Socket  socket;
-
-    ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(network, host, socket);
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(network, host, socket);
-        return bb;
-    }
-    std::string toString() const override {
-        return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
-    }
-};
-
-class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public:
-    static constexpr int HEADER_LENGTH_IN_BYTE = 30;
+    enum class Type : uint16_t {
+        ENUM_NAME_VALUE(Type, REQUEST,  1)
+        ENUM_NAME_VALUE(Type, RESPONSE, 2)    
+    };
+    static std::string toString(Type type);
 
     static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
 
-    enum class Checksum : uint16_t {
-        ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
-        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)  // minus zero
-    };
-    static std::string toString(Checksum value);
+    Type type;
 
-    enum class PacketType : uint8_t {
-        ENUM_NAME_VALUE(PacketType, RIP,    1)
-        ENUM_NAME_VALUE(PacketType, ECHO,   2)
-        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
-        ENUM_NAME_VALUE(PacketType, PEX,    4)
-        ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   6)
-    };
-    static std::string toString(PacketType value);
-
-    static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
-
-    Checksum       checksum;  // Checksum
-    uint16_t       length;
-    uint8_t        control;
-    PacketType     packetType;      // Type
-
-    NetworkAddress dst;
-    NetworkAddress src;
+    Echo() : type(Type::REQUEST) {}
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(checksum, length, control, packetType, dst, src);
+        bb.read(type);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(checksum, length, control, packetType, dst, src);
+        bb.write(type);
         return bb;
     }
-    std::string toString() const override;
-
+    std::string toString() const override {
+        return std_sprintf("{%s}", toString(type));
+    }
 };
 
 }

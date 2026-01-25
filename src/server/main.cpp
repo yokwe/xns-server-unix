@@ -85,7 +85,7 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        Frame transmitFrame;
+        Frame transmit;
         auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
         // build transmitFrame and payload
@@ -95,23 +95,23 @@ int main(int, char **) {
             if (receiveData.rx.empty()) continue;
     
             // build receiveFrame
-            Frame receiveFrame;
-            receiveData.rx.read(receiveFrame);
+            Frame receive;
+            receiveData.rx.read(receive);
     
             bool discardPacket = true;
-            if (receiveFrame.type == Frame::Type::XNS) {
-                if (receiveFrame.dest == context.me || receiveFrame.dest == xns::Host::BROADCAST) {
+            if (receive.type == Frame::Type::XNS) {
+                if (receive.dest == context.me || receive.dest == xns::Host::BROADCAST) {
                     discardPacket = false;
                 }
             }
             if (discardPacket) continue;
 
-            logger.info("ETH  >>  %s  %d", receiveFrame.toString(), receiveData.rx.remains());
+            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.remains());
     
             // build transmitFrame
-            transmitFrame.dest   = receiveFrame.source;
-            transmitFrame.source = context.me;
-            transmitFrame.type   = receiveFrame.type;
+            transmit.dest   = receive.source;
+            transmit.source = context.me;
+            transmit.type   = receive.type;
 
             // build payload
             auto rx = receiveData.rx.rangeRemains();
@@ -124,11 +124,11 @@ int main(int, char **) {
 
         server::TransmitData transmitData;
         {    
-            logger.info("ETH  <<  %s  %d", transmitFrame.toString(), payload.remains());
+            logger.info("ETH  <<  %s  %d", transmit.toString(), payload.remains());
 
             ByteBuffer& tx = transmitData.tx;
             // build transmitData
-            tx.write(transmitFrame);
+            tx.write(transmit);
             tx.write(payload.toSpan());
     
             // add padding if it is smaller than MINIMUM_LENGTH

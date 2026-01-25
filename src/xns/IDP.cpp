@@ -40,21 +40,26 @@ static const Logger logger(__FILE__);
 
 #include "../server/Server.h"
 
+#include "Echo.h"
+#include "Error.h"
 #include "IDP.h"
+#include "PEX.h"
+#include "RIP.h"
+#include "SPP.h"
 
 #undef  ENUM_NAME_VALUE
 #define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
 namespace xns {
 //
-std::string IDP::toString(Checksum checksum) {
+std::string IDP::toString(Checksum value) {
     static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Checksum, NOCHECK, 0)
     };
-    return map.contains(checksum) ? map[checksum] : std_sprintf("%04X", static_cast<uint16_t>(checksum));
+    return map.contains(value) ? map[value] : std_sprintf("%04X", static_cast<uint16_t>(value));
 }
 
-std::string IDP::toString(PacketType packetType) {
+std::string IDP::toString(PacketType value) {
     static std::unordered_map<PacketType, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(PacketType, RIP,    1)
         ENUM_NAME_VALUE(PacketType, ECHO,   2)
@@ -63,7 +68,7 @@ std::string IDP::toString(PacketType packetType) {
         ENUM_NAME_VALUE(PacketType, SPP,    5)
         ENUM_NAME_VALUE(PacketType, BOOT,   6)
     };
-    return map.contains(packetType) ? map[packetType] : std_sprintf("%d", static_cast<uint8_t>(packetType));
+    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint8_t>(value));
 }
 
 std::string IDP::toString() const {
@@ -94,41 +99,48 @@ IDP::Checksum IDP::computeChecksum(const uint8_t* data, int start, int endPlusOn
     return result == Checksum::NOCHECK ? Checksum::ZERO : result;
 }
 
-void IDP::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    IDP transmitIDP;
+void IDP::process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context) {
+    IDP transmit;
     auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
     {
-        IDP receiveIDP;
-        rx.read(receiveIDP);
+        IDP receive;
+        rxRaw.read(receive);
 
-        auto bb = rx.byteRange(0, receiveIDP.length);
-        bb.read(receiveIDP);
+        auto rx = rxRaw.byteRange(0, receive.length);
+        // to adjust pos of rx, read receiveIDP again
+        rx.read(receive);
 
-        auto remains = bb.rangeRemains();
-        logger.info("IDP  >>  %s  (%d) %s", receiveIDP.toString(), remains.byteLimit(), remains.toString());
+        auto remains = rx.rangeRemains();
+        logger.info("IDP  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
 
         // sanity check
-        if (receiveIDP.checksum != IDP::Checksum::NOCHECK) {
-            auto checksum = computeChecksum(bb.data(), 2, bb.byteLimit());
-            if (receiveIDP.checksum != checksum) {
-                logger.warn("checksum error  %s  %s", toString(receiveIDP.checksum), toString(checksum));
+        if (receive.checksum != IDP::Checksum::NOCHECK) {
+            auto checksum = computeChecksum(rx.data(), 2, rx.byteLimit());
+            if (receive.checksum != checksum) {
+                logger.warn("checksum error  %s  %s", toString(receive.checksum), toString(checksum));
                 return;
             }
         }
 
-        switch(receiveIDP.packetType) {
+        switch(receive.packetType) {
         case PacketType::RIP:
+            RIP::process(remains, payload, context);
             break;
         case PacketType::ECHO:
+            Echo::process(remains, payload, context);
             break;
         case PacketType::ERROR_:
+            Error::process(remains, payload, context);
             break;
         case PacketType::PEX:
+            PEX::process(remains, payload, context);
             break;
         case PacketType::SPP:
+            SPP::process(remains, payload, context);
             break;
         case PacketType::BOOT:
+            logger.info("BOOT");
             break;
         default:
             ERROR()
@@ -137,20 +149,20 @@ void IDP::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
         payload.flip();
         if (payload.empty()) return;
 
-        transmitIDP.checksum    = Checksum::NOCHECK;
+        transmit.checksum    = Checksum::NOCHECK;
         // Garbage Byte, which is included in the Checksum, but not in the Length
-        transmitIDP.length      = HEADER_LENGTH_IN_BYTE + payload.byteLimit();
-        transmitIDP.control     = 0;
-        transmitIDP.packetType  = receiveIDP.packetType;
-        transmitIDP.dst.network = receiveIDP.src.network;
-        transmitIDP.dst.host    = receiveIDP.src.host;
-        transmitIDP.dst.socket  = receiveIDP.src.socket;
-        transmitIDP.src.network = static_cast<Network>(context.net);
-        transmitIDP.src.host    = context.me;
-        transmitIDP.src.socket  = receiveIDP.dst.socket;
+        transmit.length      = HEADER_LENGTH_IN_BYTE + payload.byteLimit();
+        transmit.control     = 0;
+        transmit.packetType  = receive.packetType;
+        transmit.dst.network = receive.src.network;
+        transmit.dst.host    = receive.src.host;
+        transmit.dst.socket  = receive.src.socket;
+        transmit.src.network = static_cast<Network>(context.net);
+        transmit.src.host    = context.me;
+        transmit.src.socket  = receive.dst.socket;
     }
 
-    tx.write(transmitIDP);
+    tx.write(transmit);
     tx.write(payload.toSpan());
     // make even length
     if (tx.byteLimit() & 1) tx.put8(0);
