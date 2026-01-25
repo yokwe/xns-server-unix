@@ -295,6 +295,7 @@ struct StringLiteral {
 
 struct HasToString {
     virtual std::string toString() const = 0;
+	virtual ~HasToString() = default;
 };
 template <typename T>
 concept Stringable = std::derived_from<T, HasToString>;
