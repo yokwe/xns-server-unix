@@ -63,7 +63,7 @@ public:
         Network network;
         Delay   delay;
 
-        Entry() : delay(static_cast<Delay>(0)) {}
+        Entry() : delay(Delay::INFINITY_) {}
         virtual ~Entry() = default;
 
         ByteBuffer& read(ByteBuffer& bb) override {
