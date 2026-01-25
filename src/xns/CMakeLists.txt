@@ -9,10 +9,12 @@ target_sources(
 	PUBLIC
 		Config.h
 		Ethernet.h
+		IDP.h
 		XNS.h
 	PRIVATE
 		Config.cpp
 		Ethernet.cpp
+		IDP.cpp
 		XNS.cpp
 )
 

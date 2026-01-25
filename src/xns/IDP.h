@@ -40,10 +40,11 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
+#include "../server/Server.h"
+
 #include "../xns/XNS.h"
 
-
-namespace xns::server {
+namespace xns {
 //
 
 class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
@@ -65,14 +66,15 @@ public:
     }
 };
 
-
-
 class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
 
+    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
+
     enum class Checksum : uint16_t {
-        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)
+        ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
+        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)  // minus zero
     };
     static std::string toString(Checksum packetType);
 
@@ -85,6 +87,8 @@ public:
         ENUM_NAME_VALUE(PacketType, BOOT,   6)
     };
     static std::string toString(PacketType packetType);
+
+    static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
 
     Checksum       checksum;  // Checksum
     uint16_t       length;
