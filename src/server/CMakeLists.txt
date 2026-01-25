@@ -9,10 +9,8 @@ add_executable(
 target_sources(
 	server
 	PUBLIC
-    IDP.h
     Server.h
   PRIVATE
-    IDP.cpp
     main.cpp
 )
 
