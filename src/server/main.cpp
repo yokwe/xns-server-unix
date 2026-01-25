@@ -42,6 +42,7 @@ static const Logger logger(__FILE__);
 #include "../xns/Config.h"
 #include "../xns/XNS.h"
 #include "../xns/Ethernet.h"
+#include "../xns/IDP.h"
 
 #include "Server.h"
 
@@ -84,29 +85,28 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        xns::ethernet::Frame transmitFrame;
+        Frame transmitFrame;
         auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
         // build transmitFrame and payload
         {
             server::ReceiveData receiveData;
             threadReceive.pop(receiveData);
-            ByteBuffer& rx = receiveData.rx;
-            if (rx.empty()) continue;
+            if (receiveData.rx.empty()) continue;
     
             // build receiveFrame
-            xns::ethernet::Frame receiveFrame;
-            rx.read(receiveFrame);
+            Frame receiveFrame;
+            receiveData.rx.read(receiveFrame);
     
             bool discardPacket = true;
-            if (receiveFrame.type == xns::ethernet::Frame::Type::XNS) {
+            if (receiveFrame.type == Frame::Type::XNS) {
                 if (receiveFrame.dest == context.me || receiveFrame.dest == xns::Host::BROADCAST) {
                     discardPacket = false;
                 }
             }
             if (discardPacket) continue;
 
-            logger.info("ETH  >>  %s  %d", receiveFrame.toString(), rx.remains());
+            logger.info("ETH  >>  %s  %d", receiveFrame.toString(), receiveData.rx.remains());
     
             // build transmitFrame
             transmitFrame.dest   = receiveFrame.source;
@@ -114,7 +114,8 @@ int main(int, char **) {
             transmitFrame.type   = receiveFrame.type;
 
             // build payload
-            processIDP(rx, payload, context);
+            auto rx = receiveData.rx.rangeRemains();
+            IDP::process(rx, payload, context);
             payload.flip();
         }
 
@@ -128,7 +129,7 @@ int main(int, char **) {
             ByteBuffer& tx = transmitData.tx;
             // build transmitData
             tx.write(transmitFrame);
-            tx.write(payload.toSpanLimit());
+            tx.write(payload.toSpan());
     
             // add padding if it is smaller than MINIMUM_LENGTH
             auto length = tx.byteLimit();
