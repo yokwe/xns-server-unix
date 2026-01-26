@@ -302,7 +302,7 @@ concept Stringable = std::derived_from<T, HasToString>;
 
 // use this template function to call toString method of the class in std::varinat
 template<class T>
-std::string toString(T a) {
+std::string toStringVariant(T a) {
 	return std::visit([](auto& x) -> std::string { return x.toString(); }, a);
 }
 
