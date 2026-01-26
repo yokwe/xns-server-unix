@@ -39,7 +39,6 @@ static const Logger logger(__FILE__);
 #include "../util/ByteBuffer.h"
 #include "../util/ThreadControl.h"
 
-#include "../xns/Config.h"
 #include "../xns/XNS.h"
 #include "../xns/Ethernet.h"
 
