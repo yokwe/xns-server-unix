@@ -117,7 +117,6 @@ struct Context {
 namespace IDP {
     void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
 }
-void IDP_process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
 
 namespace RIP {
     void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
