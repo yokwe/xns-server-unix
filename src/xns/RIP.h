@@ -42,6 +42,8 @@
 
 #include "../xns/XNS.h"
 
+#undef INFINITY
+
 namespace xns {
 //
 class RIP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
@@ -53,16 +55,16 @@ public:
     static std::string toString(Type type);
 
     enum class Delay : uint16_t {
-        ENUM_NAME_VALUE(Delay, INFINITY_, 16)
+        ENUM_NAME_VALUE(Delay, INFINITY, 16)
     };
     static std::string toString(Delay delay);
 
     class Entry : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
     public:
         Network network;
-        Delay   delay;
+        Delay   delay;        
 
-        Entry() : delay(Delay::INFINITY_) {}
+        Entry() : delay(Delay::INFINITY) {}
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(network, delay);
