@@ -38,35 +38,35 @@
 #include <string>
 #include <vector>
 
-namespace xns::config {
-
-struct Server {
-    std::string interface;
-    std::string name;
-    uint64_t    address;
-    uint32_t    net;
-};
-
-struct Net {
-    uint32_t    net;
-    uint16_t    delay;
-    std::string name;
-};
-
-struct Host {
-    uint64_t    address;
-    std::string name;
-};
-
-struct Time {
-	uint16_t offsetDirection;
-    uint16_t offsetHours;
-    uint16_t offsetMinutes;
-	uint16_t dstStart;
-	uint16_t dstEnd;
-};
+namespace xns {
 
 struct Config {
+    struct Server {
+        std::string interface;
+        std::string name;
+        uint64_t    address;
+        uint32_t    net;
+    };
+    
+    struct Net {
+        uint32_t    net;
+        uint16_t    delay;
+        std::string name;
+    };
+    
+    struct Host {
+        uint64_t    address;
+        std::string name;
+    };
+    
+    struct Time {
+        uint16_t offsetDirection;
+        uint16_t offsetHours;
+        uint16_t offsetMinutes;
+        uint16_t dstStart;
+        uint16_t dstEnd;
+    };
+
     Server                  server;
     std::vector<Net>        net;
     std::vector<Host>       host;

@@ -41,8 +41,6 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 namespace xns {
 //
 class Echo : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
@@ -52,8 +50,6 @@ public:
         ENUM_NAME_VALUE(Type, RESPONSE, 2)    
     };
     static std::string toString(Type type);
-
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
 
     Type type;
 

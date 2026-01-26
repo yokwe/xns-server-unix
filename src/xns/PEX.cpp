@@ -36,10 +36,6 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
-
-#include "../server/Server.h"
-
 #include "PEX.h"
 
 #undef  ENUM_NAME_VALUE
@@ -55,44 +51,6 @@ std::string PEX::toString(ClientType value) {
         ENUM_NAME_VALUE(ClientType, TELEDEBUG, 8)
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
-}
-
-void PEX::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)context;
-    PEX transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        PEX receive;
-        rx.read(receive);
-
-        auto remains = rx.rangeRemains();
-        logger.info("PEX  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
-
-        switch(receive.clientType) {
-        case ClientType::UNSPEC:
-            break;
-        case ClientType::TIME:
-//            processTime(remains, payload, context);
-            break;
-        case ClientType::CHS:
-            break;
-        case ClientType::TELEDEBUG:
-            break;
-        default:
-            ERROR()
-        }
-
-        payload.flip();
-        if (payload.empty()) return;
-
-        transmit.id         = receive.id;
-        transmit.clientType = receive.clientType;
-    }
-
-    tx.write(transmit);
-    tx.write(payload.toSpan());
-    tx.flip();
 }
 
 }

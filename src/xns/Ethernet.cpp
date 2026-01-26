@@ -48,8 +48,8 @@ namespace xns {
 #undef  ENUM_NAME_VALUE
 #define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
-std::string Frame::toString(Type value) {
-    static std::unordered_map<Frame::Type, std::string, ScopedEnumHash> map = {
+std::string Ethernet::toString(Type value) {
+    static std::unordered_map<Ethernet::Type, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
     };

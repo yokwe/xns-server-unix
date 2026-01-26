@@ -38,8 +38,6 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 namespace xns {
 //
 class PEX : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
@@ -51,8 +49,6 @@ public:
         ENUM_NAME_VALUE(ClientType, TELEDEBUG, 8)
     };
     static std::string toString(ClientType value);
-
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
 
     uint32_t   id;
     ClientType clientType;

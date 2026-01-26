@@ -43,8 +43,8 @@
 #include "../util/net.h"
 #include "../util/ByteBuffer.h"
 
-#include "../xns/XNS.h"
 #include "../xns/Config.h"
+#include "../xns/XNS.h"
 
 namespace xns::server {
 //
@@ -94,13 +94,13 @@ struct Routing {
 };
 
 struct Context {
-    xns::config::Config         config;
+    Config                      config;
     net::Driver*                driver;
     uint64_t                    me;
     uint32_t                    net;
     std::map<uint32_t, Routing> routingMap;
 
-    Context(xns::config::Config config_) : config(config_) {
+    Context(Config config_) : config(config_) {
         auto device = net::getDevice(config.server.interface);
         driver = net::getDriver(device);
         me     = config.server.address;
@@ -113,5 +113,7 @@ struct Context {
     }
     Context() : config(), driver(0), me(0), net(0) {}
 };
+
+void IDP_process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context);
 
 }

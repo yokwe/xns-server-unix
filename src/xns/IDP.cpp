@@ -36,16 +36,7 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
-
-#include "../server/Server.h"
-
-#include "Echo.h"
-#include "Error.h"
 #include "IDP.h"
-#include "PEX.h"
-#include "RIP.h"
-#include "SPP.h"
 
 #undef  ENUM_NAME_VALUE
 #define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
@@ -97,79 +88,6 @@ IDP::Checksum IDP::computeChecksum(const uint8_t* data, int start, int endPlusOn
     // it should be converted to "plus zero" (0 octal).
     auto result = static_cast<Checksum>((uint16_t)s);
     return result == Checksum::NOCHECK ? Checksum::ZERO : result;
-}
-
-void IDP::process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context) {
-    IDP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        IDP receive;
-        rxRaw.read(receive);
-
-        auto rx = rxRaw.byteRange(0, receive.length);
-        // to adjust pos of rx, read receiveIDP again
-        rx.read(receive);
-
-        auto remains = rx.rangeRemains();
-        logger.info("IDP  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
-
-        // sanity check
-        if (receive.checksum != IDP::Checksum::NOCHECK) {
-            auto checksum = computeChecksum(rx.data(), 2, rx.byteLimit());
-            if (receive.checksum != checksum) {
-                logger.warn("checksum error  %s  %s", toString(receive.checksum), toString(checksum));
-                return;
-            }
-        }
-
-        switch(receive.packetType) {
-        case PacketType::RIP:
-            RIP::process(remains, payload, context);
-            break;
-        case PacketType::ECHO:
-            Echo::process(remains, payload, context);
-            break;
-        case PacketType::ERROR_:
-            Error::process(remains, payload, context);
-            break;
-        case PacketType::PEX:
-            PEX::process(remains, payload, context);
-            break;
-        case PacketType::SPP:
-            SPP::process(remains, payload, context);
-            break;
-        case PacketType::BOOT:
-            logger.info("BOOT");
-            break;
-        default:
-            ERROR()
-        }
-        
-        payload.flip();
-        if (payload.empty()) return;
-
-        transmit.checksum    = Checksum::NOCHECK;
-        // Garbage Byte, which is included in the Checksum, but not in the Length
-        transmit.length      = HEADER_LENGTH_IN_BYTE + payload.byteLimit();
-        transmit.control     = 0;
-        transmit.packetType  = receive.packetType;
-        transmit.dst.network = receive.src.network;
-        transmit.dst.host    = receive.src.host;
-        transmit.dst.socket  = receive.src.socket;
-        transmit.src.network = static_cast<Network>(context.net);
-        transmit.src.host    = context.me;
-        transmit.src.socket  = receive.dst.socket;
-    }
-
-    tx.write(transmit);
-    tx.write(payload.toSpan());
-    // make even length
-    if (tx.byteLimit() & 1) tx.put8(0);
-    tx.flip();
-    // update checksum
-    auto checksum = computeChecksum(tx.data(), 2, tx.byteLimit());
-    tx.write(checksum);
 }
 
 }

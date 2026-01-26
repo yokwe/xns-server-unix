@@ -54,10 +54,4 @@ std::string Echo::toString(Type value) {
     return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
 }
 
-void Echo::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-    // FIXME
-    logger.info("Echo::process");
-}
-
 }

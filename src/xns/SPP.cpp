@@ -36,10 +36,6 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
-
-#include "../server/Server.h"
-
 #include "SPP.h"
 
 #undef  ENUM_NAME_VALUE
@@ -48,31 +44,5 @@ static const Logger logger(__FILE__);
 namespace xns {
 //
 
-void SPP::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)context;
-    SPP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        SPP receive;
-        rx.read(receive);
-
-        auto remains = rx.rangeRemains();
-        logger.info("SPP  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
-
-        // FIXME
-
-        payload.flip();
-        if (payload.empty()) return;
-
-        // FIXME
-        transmit.idDst = receive.idSrc;
-        transmit.idSrc = receive.idDst;
-    }
-
-    tx.write(transmit);
-    tx.write(payload.toSpan());
-    tx.flip();
-}
 
 }

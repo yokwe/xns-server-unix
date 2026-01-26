@@ -49,7 +49,7 @@ namespace xns {
 const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
 
-void initialize(const config::Config* config);
+void initialize(const Config* config);
 
 std::string hostName(uint64_t address);
 std::string netName(uint16_t net);

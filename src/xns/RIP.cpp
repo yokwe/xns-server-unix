@@ -38,8 +38,6 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 #include "RIP.h"
 
 #undef  ENUM_NAME_VALUE
@@ -85,20 +83,6 @@ std::string RIP::toString() const {
         string += std_sprintf(" %s", e.toString());
     }
     return std_sprintf("{%s  %s}", toString(type), string.substr(1));
-}
-
-void RIP::process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)tx; (void)context;
-
-    RIP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        RIP receive;
-        rx.read(receive);
-
-        logger.info("RIP  >>  %s", receive.toString());
-    }
 }
 
 }

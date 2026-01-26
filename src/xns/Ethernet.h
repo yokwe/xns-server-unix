@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class Frame : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Ethernet : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)

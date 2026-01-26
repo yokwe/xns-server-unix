@@ -40,7 +40,6 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
 #include "../xns/XNS.h"
 
 namespace xns {
@@ -64,7 +63,6 @@ public:
         Delay   delay;
 
         Entry() : delay(Delay::INFINITY_) {}
-        virtual ~Entry() = default;
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(network, delay);
@@ -79,13 +77,10 @@ public:
         }
     };
 
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
-
     Type               type;
     std::vector<Entry> entryList;
 
     RIP() : type(Type::REQUEST) {}
-    virtual ~RIP() = default;
 
     ByteBuffer& read(ByteBuffer& bb) override;
     ByteBuffer& write(ByteBuffer& bb)  const override;

@@ -42,7 +42,6 @@ static const Logger logger(__FILE__);
 #include "../xns/Config.h"
 #include "../xns/XNS.h"
 #include "../xns/Ethernet.h"
-#include "../xns/IDP.h"
 
 #include "Server.h"
 
@@ -57,7 +56,7 @@ int main(int, char **) {
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
 
-    auto config = config::Config::getInstance();
+    auto config = xns::Config::getInstance();
     logger.info("config network interface  %s", config.server.interface);
 
     // register constant of host and net from config
@@ -85,7 +84,7 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        Frame transmit;
+        Ethernet transmit;
         auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
         // build transmitFrame and payload
@@ -95,11 +94,11 @@ int main(int, char **) {
             if (receiveData.rx.empty()) continue;
     
             // build receiveFrame
-            Frame receive;
+            Ethernet receive;
             receiveData.rx.read(receive);
     
             bool discardPacket = true;
-            if (receive.type == Frame::Type::XNS) {
+            if (receive.type == Ethernet::Type::XNS) {
                 if (receive.dest == context.me || receive.dest == xns::Host::BROADCAST) {
                     discardPacket = false;
                 }
@@ -115,7 +114,7 @@ int main(int, char **) {
 
             // build payload
             auto rx = receiveData.rx.rangeRemains();
-            IDP::process(rx, payload, context);
+            IDP_process(rx, payload, context);
             payload.flip();
         }
 

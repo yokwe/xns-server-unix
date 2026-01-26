@@ -38,15 +38,11 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 namespace xns {
 //
 
 class SPP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
-
     uint8_t  control; // Control Bit
     uint8_t  sst;     // Sub System Type
     uint16_t idSrc;   // connection id of source

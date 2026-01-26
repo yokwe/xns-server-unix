@@ -12,6 +12,7 @@ target_sources(
     Server.h
   PRIVATE
     main.cpp
+    Server.cpp
 )
 
 add_dependencies(server xns util)

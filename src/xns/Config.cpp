@@ -51,24 +51,24 @@ using json = nlohmann::json;
 #define address(name) p.name = net::fromString(j.at(#name));
 #define number(name)  p.name = toIntMesaNumber(j.at(#name));
 
-namespace xns::config {
+namespace xns {
 
-void from_json(const json& j, Server& p) {
+void from_json(const json& j, Config::Server& p) {
 	simple(interface)
 	simple(name)
 	address(address)
 	simple(net)
 }
-void from_json(const json& j, Net& p) {
+void from_json(const json& j, Config::Net& p) {
 	number(net)
     simple(delay)
 	simple(name)
 }
-void from_json(const json& j, Host& p) {
+void from_json(const json& j, Config::Host& p) {
 	address(address)
 	simple(name)
 }
-void from_json(const json& j, Time& p) {
+void from_json(const json& j, Config::Time& p) {
 	simple(offsetDirection)
     simple(offsetHours)
     simple(offsetMinutes)

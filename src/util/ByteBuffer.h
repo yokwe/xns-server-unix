@@ -357,6 +357,7 @@ public:
     //
     struct HasRead {
         virtual ByteBuffer& read(ByteBuffer& bb) = 0;
+        virtual ~HasRead() = default;
     };
     ByteBuffer& read() {
         return *this;
@@ -432,6 +433,7 @@ public:
     //
     struct HasWrite {
         virtual ByteBuffer& write(ByteBuffer& bb) const = 0;
+        virtual ~HasWrite() = default;
     };
     ByteBuffer& write() {
         return *this;

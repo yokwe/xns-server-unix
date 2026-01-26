@@ -41,8 +41,6 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 
 namespace xns {
 //
@@ -66,10 +64,8 @@ public:
     
         ENUM_NAME_VALUE(ErrorNumber, CONGESTION_WARNING,   01005)
         ENUM_NAME_VALUE(ErrorNumber, CONGESTION_DISCARD,   01006)
-        };
+    };
     static std::string toString(ErrorNumber value);
-
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
 
     ErrorNumber errorNumber;
     uint16_t    errorParameter;

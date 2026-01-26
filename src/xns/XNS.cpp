@@ -47,9 +47,9 @@ static const Logger logger(__FILE__);
 
 namespace xns {
 //
-static const config::Config* myConfig = 0;
+static const Config* myConfig = 0;
 
-void initialize(const config::Config* config) {
+void initialize(const Config* config) {
     myConfig = config;
 }
 
@@ -59,8 +59,8 @@ std::string hostName(uint64_t address) {
     }
     return net::toHexaDecimalString(address);
 }
-std::string toString(Network value) {
-    auto net = static_cast<uint32_t>(value);
+std::string toString(Network network) {
+    auto net = static_cast<uint32_t>(network);
     for(const auto& e: myConfig->net) {
         if (e.net == net) return e.name;
     }

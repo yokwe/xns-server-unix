@@ -40,8 +40,6 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-#include "../server/Server.h"
-
 #include "../xns/XNS.h"
 
 namespace xns {
@@ -69,8 +67,6 @@ public:
 class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
-
-    static void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context);
 
     enum class Checksum : uint16_t {
         ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
@@ -107,7 +103,6 @@ public:
         return bb;
     }
     std::string toString() const override;
-
 };
 
 }
