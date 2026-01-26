@@ -364,20 +364,22 @@ public:
     }
     template <class Head, class... Tail>
     ByteBuffer& read(Head&& head, Tail&&... tail) {
-        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_uint16_t = std::is_same_v<uint16_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_uint32_t = std::is_same_v<uint32_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_class    = std::is_class_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
+        using T = std::remove_cv_t<std::remove_reference_t<Head>>;
+        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  T>;
+        constexpr auto is_uint16_t = std::is_same_v<uint16_t, T>;
+        constexpr auto is_uint32_t = std::is_same_v<uint32_t, T>;
+        constexpr auto is_class    = std::is_class_v<T>;
+        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
 
 //		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             read(head);
         } else if constexpr (is_enum) {
-            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
-            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
-            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            using U = std::underlying_type_t<T>;
+            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  U>;
+            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, U>;
+            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, U>;
 
 //    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
             if constexpr (ut_uint8_t) {
@@ -440,20 +442,22 @@ public:
     }
     template <class Head, class... Tail>
     ByteBuffer& write(Head&& head, Tail&&... tail) {
-        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_uint16_t = std::is_same_v<uint16_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_uint32_t = std::is_same_v<uint32_t, std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_class    = std::is_class_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<std::remove_cv_t<std::remove_reference_t<Head>>>;
+        using T = std::remove_cv_t<std::remove_reference_t<Head>>;
+        constexpr auto is_uint8_t  = std::is_same_v<uint8_t,  T>;
+        constexpr auto is_uint16_t = std::is_same_v<uint16_t, T>;
+        constexpr auto is_uint32_t = std::is_same_v<uint32_t, T>;
+        constexpr auto is_class    = std::is_class_v<T>;
+        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
 
 //		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
 
         if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
             write(head);
         } else if constexpr (is_enum) {
-            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
-            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
-            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, std::underlying_type_t<std::remove_cv_t<std::remove_reference_t<Head>>>>;
+            using U = std::underlying_type_t<T>;
+            constexpr auto ut_uint8_t  = std::is_same_v<uint8_t,  U>;
+            constexpr auto ut_uint16_t = std::is_same_v<uint16_t, U>;
+            constexpr auto ut_uint32_t = std::is_same_v<uint32_t, U>;
 
 //    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
             if constexpr (ut_uint8_t) {
