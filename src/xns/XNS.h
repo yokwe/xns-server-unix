@@ -52,7 +52,7 @@ const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
 void initialize(const Config* config);
 
 std::string hostName(uint64_t address);
-std::string netName(uint16_t net);
+std::string networkName(uint32_t network);
 
 
 //

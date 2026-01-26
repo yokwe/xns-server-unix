@@ -56,16 +56,13 @@ int main(int, char **) {
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
 
-    auto config = xns::Config::getInstance();
-    logger.info("config network interface  %s", config.server.interface);
+    Context context;
+    xns::initialize(&context.config);
 
-    // register constant of host and net from config
-    xns::initialize(&config);
+	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::hostName(context.driver->device.address), context.driver->device.name);
+	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), xns::hostName(context.me));
+	logger.info("network  %d  %s", context.net, xns::networkName(context.net));
 
-    Context context(config);
-	logger.info("device  %s  %s", net::toHexaDecimalString(context.driver->device.address), context.driver->device.name);
-	logger.info("me      %s  BPF", net::toHexaDecimalString(context.me));
-	logger.info("net     %d", context.net);
 
     auto& driver = *context.driver;
 	driver.open();
@@ -105,7 +102,7 @@ int main(int, char **) {
             }
             if (!myPacket) continue;
 
-//            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.remains());
+            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.byteRemains());
     
             // build transmitFrame
             transmit.dest   = receive.source;
@@ -123,7 +120,7 @@ int main(int, char **) {
 
         TransmitData transmitData;
         {    
-            logger.info("ETH  <<  %s  %d", transmit.toString(), payload.remains());
+            logger.info("ETH  <<  %s  %d", transmit.toString(), payload.byteRemains());
 
             ByteBuffer& tx = transmitData.tx;
             // build transmitData

@@ -100,7 +100,8 @@ struct Context {
     uint32_t                    net;
     std::map<uint32_t, Routing> routingMap;
 
-    Context(Config config_) : config(config_) {
+    Context() {
+        config = xns::Config::getInstance();
         auto device = net::getDevice(config.server.interface);
         driver = net::getDriver(device);
         me     = config.server.address;
@@ -111,30 +112,29 @@ struct Context {
             routingMap[e.net] = routing;
         }
     }
-    Context() : config(), driver(0), me(0), net(0) {}
 };
 
 namespace IDP {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 
 namespace RIP {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace Echo {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace Error {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace PEX {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace SPP {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace Boot {
-    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 
 }

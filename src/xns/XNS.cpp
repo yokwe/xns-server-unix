@@ -59,12 +59,16 @@ std::string hostName(uint64_t address) {
     }
     return net::toHexaDecimalString(address);
 }
-std::string toString(Network network) {
-    auto net = static_cast<uint32_t>(network);
+std::string networkName(uint32_t net) {
     for(const auto& e: myConfig->net) {
         if (e.net == net) return e.name;
     }
     return std_sprintf("%d", net);
+}
+
+std::string toString(Network network) {
+    auto net = static_cast<uint32_t>(network);
+    return networkName(net);
 }
 std::string toString(Socket value) {
     static std::unordered_map<Socket, std::string, ScopedEnumHash> map = {
