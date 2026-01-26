@@ -30,7 +30,7 @@
 
  
  //
- // Server.cpp
+ // IDP.cpp
  //
 
 #include "../util/Util.h"
@@ -38,139 +38,23 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../xns/Echo.h"
-#include "../xns/Error.h"
 #include "../xns/IDP.h"
-#include "../xns/PEX.h"
-#include "../xns/RIP.h"
-#include "../xns/SPP.h"
 
 #include "Server.h"
 
-namespace xns::server {
+namespace xns::server::IDP {
 //
-void ECHO_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-    // FIXME
-    Echo transmit;
+void process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context) {
+    using Checksum   = xns::IDP::Checksum;
+    using PacketType = xns::IDP::PacketType;
+
+    constexpr auto HEADER_LENGTH_IN_BYTE = xns::IDP::HEADER_LENGTH_IN_BYTE;
+    constexpr auto computeChecksum = xns::IDP::computeChecksum;
+    xns::IDP transmit;
     auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
     {
-        Echo receive;
-        rx.read(receive);
-
-    }
-    logger.info("Echo::process");
-}
-
-
-void ERROR_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-    // FIXME
-    Error transmit;
-    logger.info("Echo::process");
-}
-
-
-void PEX_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)context;
-    using ClientType = PEX::ClientType;
-
-    PEX transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        PEX receive;
-        rx.read(receive);
-
-        auto remains = rx.rangeRemains();
-        logger.info("PEX  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
-
-        switch(receive.clientType) {
-        case ClientType::UNSPEC:
-            break;
-        case ClientType::TIME:
-//            processTime(remains, payload, context);
-            break;
-        case ClientType::CHS:
-            break;
-        case ClientType::TELEDEBUG:
-            break;
-        default:
-            ERROR()
-        }
-
-        payload.flip();
-        if (payload.empty()) return;
-
-        transmit.id         = receive.id;
-        transmit.clientType = receive.clientType;
-    }
-
-    tx.write(transmit);
-    tx.write(payload.toSpan());
-    tx.flip();
-}
-
-
-void RIP_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)tx; (void)context;
-
-    RIP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        RIP receive;
-        rx.read(receive);
-
-        logger.info("RIP  >>  %s", receive.toString());
-    }
-}
-
-
-void SPP_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)context;
-    SPP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        SPP receive;
-        rx.read(receive);
-
-        auto remains = rx.rangeRemains();
-        logger.info("SPP  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
-
-        // FIXME
-
-        payload.flip();
-        if (payload.empty()) return;
-
-        // FIXME
-        transmit.idDst = receive.idSrc;
-        transmit.idSrc = receive.idDst;
-    }
-
-    tx.write(transmit);
-    tx.write(payload.toSpan());
-    tx.flip();
-}
-
-
-void BOOT_process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-}
-
-
-void IDP_process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context) {
-    constexpr auto HEADER_LENGTH_IN_BYTE = IDP::HEADER_LENGTH_IN_BYTE;
-    constexpr auto computeChecksum = IDP::computeChecksum;
-    using Checksum = IDP::Checksum;
-    using PacketType = IDP::PacketType;
-    IDP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        IDP receive;
+        xns::IDP receive;
         rxRaw.read(receive);
 
         auto rx = rxRaw.byteRange(0, receive.length);
@@ -181,32 +65,32 @@ void IDP_process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context) {
         logger.info("IDP  >>  %s  (%d) %s", receive.toString(), remains.byteLimit(), remains.toString());
 
         // sanity check
-        if (receive.checksum != IDP::Checksum::NOCHECK) {
+        if (receive.checksum != xns::IDP::Checksum::NOCHECK) {
             auto checksum = computeChecksum(rx.data(), 2, rx.byteLimit());
             if (receive.checksum != checksum) {
-                logger.warn("checksum error  %s  %s", IDP::toString(receive.checksum), IDP::toString(checksum));
+                logger.warn("checksum error  %s  %s", xns::IDP::toString(receive.checksum), xns::IDP::toString(checksum));
                 return;
             }
         }
 
         switch(receive.packetType) {
         case PacketType::RIP:
-            RIP_process(remains, payload, context);
+            RIP::process(remains, payload, context);
             break;
         case PacketType::ECHO:
-            ECHO_process(remains, payload, context);
+            Echo::process(remains, payload, context);
             break;
         case PacketType::ERROR_:
-            ERROR_process(remains, payload, context);
+            Error::process(remains, payload, context);
             break;
         case PacketType::PEX:
-            PEX_process(remains, payload, context);
+            PEX::process(remains, payload, context);
             break;
         case PacketType::SPP:
-            SPP_process(remains, payload, context);
+            SPP::process(remains, payload, context);
             break;
         case PacketType::BOOT:
-            BOOT_process(remains, payload, context);
+            Boot::process(remains, payload, context);
             break;
         default:
             ERROR()

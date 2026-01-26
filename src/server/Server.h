@@ -114,6 +114,28 @@ struct Context {
     Context() : config(), driver(0), me(0), net(0) {}
 };
 
-void IDP_process(ByteBuffer& rxRaw, ByteBuffer& tx, server::Context& context);
+namespace IDP {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+void IDP_process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+
+namespace RIP {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+namespace Echo {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+namespace Error {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+namespace PEX {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+namespace SPP {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
+namespace Boot {
+    void process  (ByteBuffer& rxRaw, ByteBuffer& tx, Context& context);
+}
 
 }

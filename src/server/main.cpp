@@ -45,7 +45,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-using namespace xns;
+using namespace xns::server;
 
 int main(int, char **) {
 
@@ -62,7 +62,7 @@ int main(int, char **) {
     // register constant of host and net from config
     xns::initialize(&config);
 
-    server::Context context(config);
+    Context context(config);
 	logger.info("device  %s  %s", net::toHexaDecimalString(context.driver->device.address), context.driver->device.name);
 	logger.info("me      %s  BPF", net::toHexaDecimalString(context.me));
 	logger.info("net     %d", context.net);
@@ -70,11 +70,11 @@ int main(int, char **) {
     auto& driver = *context.driver;
 	driver.open();
 
-    server::ThreadReceive  threadReceive(driver);
-    server::ThreadTransmit threadTransmit(driver);
+    ThreadReceive  threadReceive(driver);
+    ThreadTransmit threadTransmit(driver);
 
-    std::function<void()> f1 = std::bind(&server::ThreadReceive::run, &threadReceive);
-    std::function<void()> f2 = std::bind(&server::ThreadTransmit::run, &threadTransmit);
+    std::function<void()> f1 = std::bind(&ThreadReceive::run, &threadReceive);
+    std::function<void()> f2 = std::bind(&ThreadTransmit::run, &threadTransmit);
 
 	ThreadControl t1("threadReceive",  f1);
 	ThreadControl t2("threadTransmit", f2);
@@ -84,28 +84,28 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        Ethernet transmit;
+        xns::Ethernet transmit;
         auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
 
-        // build transmitFrame and payload
+        // build trasmit and payload
         {
-            server::ReceiveData receiveData;
+            ReceiveData receiveData;
             threadReceive.pop(receiveData);
             if (receiveData.rx.empty()) continue;
     
             // build receiveFrame
-            Ethernet receive;
+            xns::Ethernet receive;
             receiveData.rx.read(receive);
     
-            bool discardPacket = true;
-            if (receive.type == Ethernet::Type::XNS) {
+            bool myPacket = false;
+            if (receive.type == xns::Ethernet::Type::XNS) {
                 if (receive.dest == context.me || receive.dest == xns::Host::BROADCAST) {
-                    discardPacket = false;
+                    myPacket = true;
                 }
             }
-            if (discardPacket) continue;
+            if (!myPacket) continue;
 
-            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.remains());
+//            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.remains());
     
             // build transmitFrame
             transmit.dest   = receive.source;
@@ -114,14 +114,14 @@ int main(int, char **) {
 
             // build payload
             auto rx = receiveData.rx.rangeRemains();
-            IDP_process(rx, payload, context);
+            IDP::process(rx, payload, context);
             payload.flip();
         }
 
         // logger.info("payload  length  %d", payload.length());
         if (payload.empty()) continue;
 
-        server::TransmitData transmitData;
+        TransmitData transmitData;
         {    
             logger.info("ETH  <<  %s  %d", transmit.toString(), payload.remains());
 
