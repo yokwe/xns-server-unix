@@ -87,7 +87,7 @@ class ByteBuffer {
     void checkBeforeRead(uint32_t byteSize);
     void checkBeforeWrite(uint32_t byteSize);
 
-
+    
     ByteBuffer(std::shared_ptr<Impl> impl, uint8_t* data, uint32_t byteCapacity) :
         myImpl(impl), myData(data), myByteCapacity(byteCapacity), myBytePos(0), myByteLimit(0), myByteMark(BAD_MARK) {}
     ByteBuffer(std::shared_ptr<Impl> impl, uint8_t* data, uint32_t byteCapacity, uint32_t byteLimit) :
@@ -185,7 +185,7 @@ public:
         return (uint8_t)(value >> 0);
     }
 
-
+    ByteBuffer() :  myImpl(0), myData(0), myByteCapacity(0), myBytePos(0), myByteLimit(0), myByteMark(BAD_MARK) {}
     ~ByteBuffer() {
         myData          = 0;
         myByteCapacity  = 0;
@@ -318,11 +318,11 @@ public:
     }
 
     // putX
-    void put(std::span<uint8_t> span) {
+    void putSpan(const std::span<uint8_t>& span) {
         auto byteSize = span.size();
 
         checkBeforeWrite(byteSize);
-        for(auto e: span) {
+        for(const auto e: span) {
             put8(myBytePos++, e);
         }
         if (myByteLimit < myBytePos) myByteLimit = myBytePos;
@@ -503,4 +503,8 @@ public:
     ByteBuffer& write(int64_t  value) = delete;
     ByteBuffer& write(uint64_t value) = delete;
 
+    ByteBuffer& write(std::span<uint8_t> span) {
+        putSpan(span);
+        return *this;
+    }
 };
