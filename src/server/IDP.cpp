@@ -81,6 +81,10 @@ void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
     transmit.header.src.socket  = receive.header.dst.socket;
 
     process(receive, transmit, context);
+    
+    transmit.body.flip();
+    if (transmit.body.empty()) return;
+
     // update length
     // Garbage Byte, which is included in the Checksum, but not in the Length
     transmit.header.length = xns::IDP::HEADER_LENGTH_IN_BYTE + transmit.body.byteLimit();
@@ -94,6 +98,8 @@ void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
     // Garbage Byte, which is included in the Checksum, but not in the Length
     auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
     tx.write(checksum);
+
+    logger.info("IDP  <<  %s  (%d) %s", transmit.header.toString(), transmit.body.byteLimit(), transmit.body.toString());
 }
 
 void MyProcess::process(Param<xns::IDP>& receive, Param<xns::IDP>& transmit, Context& context) {
