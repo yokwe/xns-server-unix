@@ -168,7 +168,7 @@ std::string toDecimalString(uint64_t address) {
         string.insert(0, std_sprintf("-%03d", remainder));
         n = quotient;
     }
-    return string.substr(1);
+    return string.empty() ? "" : string.substr(1);
 }
 std::string toHexaDecimalString(uint64_t address, const std::string& sep) {
     std::string string;
