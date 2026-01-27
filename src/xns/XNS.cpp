@@ -33,6 +33,8 @@
  // XNS.cpp
  //
 
+ #include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -92,7 +94,7 @@ std::string toString(Socket value) {
         ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
         ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%04X", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 }

@@ -33,6 +33,8 @@
  // RIP.cpp
  //
 
+ #include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -50,14 +52,14 @@ std::string RIP::toString(Type value) {
         ENUM_NAME_VALUE(Type, REQUEST,  1)
         ENUM_NAME_VALUE(Type, RESPONSE, 2)    
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 std::string RIP::toString(Delay value) {
     static std::unordered_map<Delay, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Delay, INFINITY, 16)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 ByteBuffer& RIP::read(ByteBuffer& bb) {

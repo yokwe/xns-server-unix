@@ -35,6 +35,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <utility>
 
 
 #include "../util/Util.h"
@@ -54,7 +55,7 @@ std::string Ethernet::toString(Type value) {
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
     };
         
-    return map.contains(value) ? map[value] : std_sprintf("%04X", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 }

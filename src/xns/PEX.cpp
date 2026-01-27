@@ -33,6 +33,8 @@
  // PEX.cpp
  //
 
+#include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -50,7 +52,7 @@ std::string PEX::toString(ClientType value) {
         ENUM_NAME_VALUE(ClientType, CHS,       2)
         ENUM_NAME_VALUE(ClientType, TELEDEBUG, 8)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 }

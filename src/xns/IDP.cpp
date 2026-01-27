@@ -33,6 +33,8 @@
  // IDP.cpp
  //
 
+ #include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -47,7 +49,7 @@ std::string IDP::toString(Checksum value) {
     static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Checksum, NOCHECK, 0)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%04X", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 std::string IDP::toString(PacketType value) {
@@ -59,7 +61,7 @@ std::string IDP::toString(PacketType value) {
         ENUM_NAME_VALUE(PacketType, SPP,    5)
         ENUM_NAME_VALUE(PacketType, BOOT,   6)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint8_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 std::string IDP::toString() const {

@@ -35,6 +35,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -66,7 +67,7 @@ std::string Error::toString(Error::ErrorNumber value) {
         ENUM_NAME_VALUE(ErrorNumber, CONGESTION_WARNING,   01005)
         ENUM_NAME_VALUE(ErrorNumber, CONGESTION_DISCARD,   01006)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", static_cast<uint16_t>(value));
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 }
