@@ -44,19 +44,36 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::PEX {
 //
+using T = xns::PEX;
+struct MyProcess : public Process<T> {
+    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override;
+    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
+};
+
+void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
+    auto receive  = Param<T>::receive(rx);
+    auto transmit = Param<T>::transmit();
+
+    // prepare transmit.header
+    transmit.header.id         = receive.header.id;
+    transmit.header.clientType = receive.header.clientType;
+
+    process(receive, transmit, context);
+
+    transmit.body.flip();
+
+    // output to rx
+    tx.write(transmit.header);
+    tx.write(transmit.body.toSpan());
+}
+void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
+    (void)receive; (void)transmit; (void)context;
+    logger.info("PEX  >>  %s  (%d) %s", receive.header.toString(), receive.body.byteLimit(), receive.body.toString());
+}
+
+static MyProcess myProcess;
 void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-    
-    // FIXME
-    xns::PEX transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        xns::PEX receive;
-        rx.read(receive);
-
-        logger.info("PEX  >>  %s", receive.toString());
-    }
+    myProcess.process(rx, tx, context);
 }
 
 }

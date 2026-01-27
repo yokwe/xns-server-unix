@@ -37,7 +37,6 @@
 
 #include <string>
 #include <map>
-#include <span>
 
 #include "../util/ThreadQueue.h"
 #include "../util/net.h"
@@ -58,8 +57,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
     ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<TransmitData>("ThreadTransmit"), driver(driver_) {}
 
     void process(const TransmitData& data) override {
-        auto span = data.tx.toSpan();
-        driver.transmit(span);
+        driver.transmit(data.tx.toSpan());
     }
 };
 
@@ -78,7 +76,7 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
         int ret = driver.receive(span, timeout);
         data.rx.clear();
         // copy data from span to bb
-        if (ret) data.rx.put(span);
+        if (ret) data.rx.putSpan(span);
         data.rx.flip();
         return ret;
     }
@@ -114,6 +112,44 @@ struct Context {
     }
 };
 
+template<class R, class T = R>
+struct Process {
+    template <class U>
+    struct Param {
+        static Param receive(ByteBuffer& bb) {
+            U header;
+            bb.read(header);
+            return Param(header, bb.rangeRemains());
+        }
+        static Param transmit() {
+            U header;
+            ByteBuffer body = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+            return Param(header, body);
+        }
+        U          header;
+        ByteBuffer body;
+
+        Param(U header_, ByteBuffer body_) : header(header_), body(body_) {}
+    };
+
+    virtual ~Process() = default;
+
+    virtual void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
+        Param<R> receive  = Param<R>::receive(rx);
+        Param<T> transmit = Param<T>::transmit();
+
+        process(receive, transmit, context);
+
+        transmit.body.flip();
+
+        // output to rx
+        tx.write(transmit.header);
+        tx.write(transmit.body.toSpan());
+    }
+
+    virtual void process(Param<R>& receive, Param<T>& transmit, Context& context) = 0;
+};
+
 namespace IDP {
     void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
@@ -131,9 +167,6 @@ namespace PEX {
     void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 namespace SPP {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
-}
-namespace Boot {
     void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
 }
 

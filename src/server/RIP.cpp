@@ -44,19 +44,22 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::RIP {
 //
-void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    (void)rx; (void)tx; (void)context;
-
-    // FIXME
-    xns::RIP transmit;
-    auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-
-    {
-        xns::RIP receive;
-        rx.read(receive);
-
-        logger.info("RIP  >>  %s", receive.toString());
+using T = xns::RIP;
+struct MyProcess : public Process<T> {
+    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override {
+        Process<T>::process(rx, tx, context);
     }
+    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
+};
+
+void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
+    (void)receive; (void)transmit; (void)context;
+    logger.info("RIP  >>  %s", receive.header.toString());
+}
+
+static MyProcess myProcess;
+void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
+    myProcess.process(rx, tx, context);
 }
 
 }
