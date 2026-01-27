@@ -66,6 +66,7 @@ void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
     process(receive, transmit, context);
 
     transmit.body.flip();
+    if (transmit.body.empty()) return;
 
     // output to rx
     tx.write(transmit.header);
