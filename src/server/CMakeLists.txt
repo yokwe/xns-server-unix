@@ -11,7 +11,6 @@ target_sources(
 	PUBLIC
     Server.h
   PRIVATE
-    Boot.cpp
     Echo.cpp
     Error.cpp
     IDP.cpp
