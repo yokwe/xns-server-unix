@@ -43,26 +43,56 @@ namespace xns {
 
 class SPP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
+    enum class SST : uint8_t {
+        ENUM_NAME_VALUE(SST, ZERO,        0)
+        ENUM_NAME_VALUE(SST, END,       254)
+        ENUM_NAME_VALUE(SST, END_REPLY, 255)
+    };
+    static std::string toString(SST value);
+
     uint8_t  control; // Control Bit
-    uint8_t  sst;     // Sub System Type
-    uint16_t idSrc;   // connection id of source
-    uint16_t idDst;   // connection id of destination
+    SST      sst;     // Sub System Type
+    uint16_t srcID;   // connection id of source
+    uint16_t dstID;   // connection id of destination
     uint16_t seq;     // sequence
     uint16_t ack;     // acknowledgment
     uint16_t alloc;   // allocation
 
-    SPP() : control(0), sst(0), idSrc(0), idDst(0), seq(0), ack(0), alloc(0) {}
+    // format of control
+    //   bit 0  system packet
+    //   bit 1  sent acknowledgement
+    //   bit 2  attention
+    //   bit 3  end of message
+    const uint8_t BIT_SYSTEM_PACKET  = 0x80;
+    const uint8_t BIT_SEND_ACK       = 0x40;
+    const uint8_t BIT_ATTENSION      = 0x20;
+    const uint8_t BIT_END_OF_MESSAGE = 0x10;
+    
+    bool sysemPacke() {
+        return control & BIT_SYSTEM_PACKET;
+    }
+    bool sendAck() {
+        return control & BIT_SEND_ACK;
+    }
+    bool attention() {
+        return control & BIT_ATTENSION;
+    }
+    bool endOfMessage() {
+        return control & BIT_END_OF_MESSAGE;
+    }
+
+    SPP() : control(0), sst(SST::ZERO), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
     ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(control, sst, idSrc, idDst, seq, ack, alloc);
+        bb.read(control, sst, srcID, dstID, seq, ack, alloc);
         return bb;
     }
     ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(control, sst, idSrc, idDst, seq, ack, alloc);
+        bb.write(control, sst, srcID, dstID, seq, ack, alloc);
         return bb;
     }
     std::string toString() const override {
-        return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, sst, idSrc, idDst, seq, ack, alloc);
+        return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, toString(sst), srcID, dstID, seq, ack, alloc);
     }
 
 };

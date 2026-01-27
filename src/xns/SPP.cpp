@@ -33,6 +33,8 @@
  // SPP.cpp
  //
 
+ #include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -43,6 +45,14 @@ static const Logger logger(__FILE__);
 
 namespace xns {
 //
+std::string SPP::toString(SST value) {
+    static std::unordered_map<SST, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(SST, ZERO,        0)
+        ENUM_NAME_VALUE(SST, END,       254)
+        ENUM_NAME_VALUE(SST, END_REPLY, 255)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
 
 
 }
