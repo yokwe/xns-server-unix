@@ -119,7 +119,7 @@ int main(int, char **) {
 
         TransmitData transmitData;
         {    
-            logger.info("ETH  <<  %s  %d", transmit.toString(), payload.byteRemains());
+            logger.info("ETH  <<  %s  (%d) %s", transmit.toString(), payload.byteRemains(), payload.toString());
 
             ByteBuffer& tx = transmitData.tx;
             // build transmitData

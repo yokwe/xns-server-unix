@@ -47,14 +47,29 @@ namespace xns::server::RIP {
 using T = xns::RIP;
 struct MyProcess : public Process<T> {
     void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override {
-        Process<T>::process(rx, tx, context);
+        Param<T> receive  = Param<T>::receive(rx);
+        Param<T> transmit = Param<T>::transmit();
+
+        transmit.header.type = xns::RIP::Type::RESPONSE;
+
+        logger.info("RIP  >>  %s  (%d) %s", receive.header.toString(), receive.body.byteLimit(), receive.body.toString());
+        process(receive, transmit, context);
+        logger.info("RIP  <<  %s  (%d) %s", transmit.header.toString(), transmit.body.byteLimit(), transmit.body.toString());
+
+        transmit.body.flip();
+        if (transmit.body.empty()) return;
+
+        // output to rx
+        tx.write(transmit.header);
+        tx.write(transmit.body.toSpan());
     }
     void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
 };
 
 void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
     (void)receive; (void)transmit; (void)context;
-    logger.info("RIP  >>  %s", receive.header.toString());
+
+    // FIX ME Add response in transmit.heade
 }
 
 static MyProcess myProcess;
