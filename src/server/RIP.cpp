@@ -46,26 +46,30 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::RIP {
 //
-using Delay = xns::RIP::Delay;
-using Type  = xns::RIP::Type;
+using RIP     = xns::RIP;
+using Delay   = xns::RIP::Delay;
+using Type    = xns::RIP::Type;
+using Network = xns::Network;
+//
+const auto MAX_PACKET_SIZE = xns::MAX_PACKET_SIZE;
 
-static std::unordered_map<xns::Network, xns::RIP::Delay> map;
+static std::unordered_map<Network, RIP::Delay> map;
 
-static xns::RIP call(xns::RIP& rxHeader, Context& context) {
+static RIP call(RIP& rxHeader, Context& context) {
     if (map.empty()) {
         for(auto& e: context.config.net) {
-            auto net = static_cast<xns::Network>(e.net);
-            auto delay = static_cast<xns::RIP::Delay>(e.delay);
-            if (delay == xns::RIP::Delay::INFINITY) continue;
+            auto net = static_cast<Network>(e.net);
+            auto delay = static_cast<Delay>(e.delay);
+            if (delay == Delay::INFINITY) continue;
             map[net] = delay;
         }
     }
-    xns::RIP txHeader;
+    RIP txHeader;
 
     rxHeader.type = Type::RESPONSE;
 
     for(const auto& e: rxHeader.entryList) {
-        if (e.network == xns::Network::ALL && e.delay == Delay::INFINITY) {
+        if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
             for(const auto [network, delay] : map) {
                 txHeader.entryList.emplace_back(network, delay);
             }
@@ -79,7 +83,7 @@ static xns::RIP call(xns::RIP& rxHeader, Context& context) {
 }
 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    xns::RIP rxHeader;
+    RIP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 
@@ -95,7 +99,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     logger.info("RIP  <<  %s", txHeader.toString());
 
     // build tx
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
     tx.write(txHeader);
 
     return tx;
