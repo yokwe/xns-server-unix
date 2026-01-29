@@ -49,7 +49,7 @@ std::string IDP::toString(Checksum value) {
     static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Checksum, NOCHECK, 0)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
 }
 
 std::string IDP::toString(PacketType value) {
