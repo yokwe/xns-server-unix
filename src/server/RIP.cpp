@@ -53,34 +53,50 @@ using Network = xns::Network;
 //
 const auto MAX_PACKET_SIZE = xns::MAX_PACKET_SIZE;
 
-static std::unordered_map<Network, RIP::Delay> map;
-
-static RIP call(RIP& rxHeader, Context& context) {
-    if (map.empty()) {
-        for(auto& e: context.config.net) {
-            auto net = static_cast<Network>(e.net);
-            auto delay = static_cast<Delay>(e.delay);
-            if (delay == Delay::INFINITY) continue;
-            map[net] = delay;
-        }
-    }
+static RIP request(RIP& rxHeader, Context& context) {
+    logger.info("## %s", __func__);
     RIP txHeader;
-
-    rxHeader.type = Type::RESPONSE;
-
+    txHeader.type = Type::RESPONSE;
     for(const auto& e: rxHeader.entryList) {
         if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
-            for(const auto [network, delay] : map) {
-                txHeader.entryList.emplace_back(network, delay);
+            for(const auto& [key, value] : context.routingMap) {
+                txHeader.entryList.emplace_back(value.net, value.delay);
             }
         } else {
-            if (map.contains(e.network)) {
-                txHeader.entryList.emplace_back(e.network, map[e.network]);
+            if (context.routingMap.contains(e.network)) {
+                const auto& entry = context.routingMap[e.network];
+                txHeader.entryList.emplace_back(entry.net, entry.delay);
             }
         }
     }
     return txHeader;
 }
+RIP response(RIP& rxHeader, Context& context) {
+    logger.info("## %s", __func__);
+    RIP txHeader;
+    // update context.routingMap
+    for(const auto& e: rxHeader.entryList) {
+        auto net = e.network;
+        if (context.routingMap.contains(net)) {
+            if (context.routingMap[net].delay != e.delay) {
+                // update delay
+                context.routingMap[net].delay = e.delay;
+            }
+        } else {
+            // add entry
+            auto name = std_sprintf("NET_%d", static_cast<uint32_t>(e.network));
+            context.routingMap[net] = Routing(e.network, e.delay, name);
+        }
+    }
+
+    return txHeader;
+}
+
+static std::unordered_map<RIP::Type, RIP (*)(RIP&, Context&)> map {
+    {RIP::Type::REQUEST,  request},
+    {RIP::Type::RESPONSE, response},
+};
+
 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     RIP rxHeader;
@@ -90,17 +106,15 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
-    if (rxHeader.type != Type::REQUEST) ERROR()
     if (!rxbb.empty()) ERROR();
 
-    // build response
-    auto txHeader = call(rxHeader, context);
-
-    logger.info("RIP  <<  %s", txHeader.toString());
-
-    // build tx
+    auto txHeader = map[rxHeader.type](rxHeader, context);
     auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
-    tx.write(txHeader);
+
+    if (rxHeader.type == Type::REQUEST) {
+        tx.write(txHeader);
+        logger.info("RIP  <<  %s", txHeader.toString());
+    }
 
     return tx;
 }
