@@ -320,6 +320,7 @@ public:
     // putX
     void putSpan(const std::span<uint8_t>& span) {
         auto byteSize = span.size();
+        if (byteSize == 0) return;
 
         checkBeforeWrite(byteSize);
         for(const auto e: span) {
