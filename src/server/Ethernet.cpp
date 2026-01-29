@@ -52,16 +52,16 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         rx.read(rxHeader);
         auto rxbb = rx.rangeRemains();
 
-        logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-
         bool myPacket = false;
         if (rxHeader.type == xns::Ethernet::Type::XNS) {
-            if (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST) {
+            if (rxHeader.source != context.me && (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST)) {
                 myPacket = true;
             }
         }
         if (!myPacket) return txbb;
     
+        logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
         txbb = IDP::process(rxbb, context);        
         txbb.flip();
         if (txbb.empty()) return txbb;
@@ -74,7 +74,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     // build tx
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-    rx.write(txHeader);
+    tx.write(txHeader);
     tx.write(txbb.toSpan());
     // add padding if it is smaller than MINIMUM_LENGTH
     auto length = tx.byteLimit();
