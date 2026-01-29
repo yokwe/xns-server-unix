@@ -84,7 +84,7 @@ std::string RIP::toString() const {
     for(const auto& e: entryList) {
         string += std_sprintf(" %s", e.toString());
     }
-    return std_sprintf("{%s  %s}", toString(type), string.empty() ? "" : string.substr(1));
+    return std_sprintf("{%-8s  (%d) %s}", toString(type), entryList.size(), string.empty() ? "" : string.substr(1));
 }
 
 }

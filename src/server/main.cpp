@@ -80,58 +80,17 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        xns::Ethernet transmit;
-        auto payload = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+        ReceiveData receiveData;
+        
+        threadReceive.pop(receiveData);
+        if (receiveData.rx.empty()) continue;
 
-        // build trasmit and payload
-        {
-            ReceiveData receiveData;
-            threadReceive.pop(receiveData);
-            if (receiveData.rx.empty()) continue;
-    
-            // build receiveFrame
-            xns::Ethernet receive;
-            receiveData.rx.read(receive);
-    
-            bool myPacket = false;
-            if (receive.type == xns::Ethernet::Type::XNS) {
-                if (receive.dest == context.me || receive.dest == xns::Host::BROADCAST) {
-                    myPacket = true;
-                }
-            }
-            if (!myPacket) continue;
+        auto& rx = receiveData.rx;
 
-            logger.info("ETH  >>  %s  %d", receive.toString(), receiveData.rx.byteRemains());
-    
-            // build transmitFrame
-            transmit.dest   = receive.source;
-            transmit.source = context.me;
-            transmit.type   = receive.type;
-
-            // build payload
-            auto rx = receiveData.rx.rangeRemains();
-            IDP::process(rx, payload, context);
-            payload.flip();
-        }
-
-        // logger.info("payload  length  %d", payload.length());
-        if (payload.empty()) continue;
-
-        TransmitData transmitData;
-        {    
-            logger.info("ETH  <<  %s  (%d) %s", transmit.toString(), payload.byteRemains(), payload.toString());
-
-            ByteBuffer& tx = transmitData.tx;
-            // build transmitData
-            tx.write(transmit);
-            tx.write(payload.toSpan());
-    
-            // add padding if it is smaller than MINIMUM_LENGTH
-            auto length = tx.byteLimit();
-            if (length < xns::MIN_PACKET_SIZE) {
-                for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) tx.put8(0);
-            }    
-        }
+        auto tx = Ethernet::process(rx, context);
+        if (tx.empty()) continue;
+        
+        TransmitData transmitData(tx);
         threadTransmit.push(transmitData);
 	}
 

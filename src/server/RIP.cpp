@@ -33,6 +33,8 @@
  // RIP.cpp
  //
 
+#include <unordered_map>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -44,37 +46,55 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::RIP {
 //
-using T = xns::RIP;
-struct MyProcess : public Process<T> {
-    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override {
-        Param<T> receive  = Param<T>::receive(rx);
-        Param<T> transmit = Param<T>::transmit();
+static std::unordered_map<xns::Network, xns::RIP::Delay> map;
 
-        transmit.header.type = xns::RIP::Type::RESPONSE;
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    using Delay = xns::RIP::Delay;
+    using Type = xns::RIP::Type;
 
-        logger.info("RIP  >>  %s  (%d) %s", receive.header.toString(), receive.body.byteLimit(), receive.body.toString());
-        process(receive, transmit, context);
-        logger.info("RIP  <<  %s  (%d) %s", transmit.header.toString(), transmit.body.byteLimit(), transmit.body.toString());
-
-        transmit.body.flip();
-        if (transmit.body.empty()) return;
-
-        // output to rx
-        tx.write(transmit.header);
-        tx.write(transmit.body.toSpan());
+    if (map.empty()) {
+        for(auto& e: context.config.net) {
+            auto net = static_cast<xns::Network>(e.net);
+            auto delay = static_cast<xns::RIP::Delay>(e.delay);
+            map[net] = delay;
+        }
     }
-    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
-};
 
-void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
-    (void)receive; (void)transmit; (void)context;
+    xns::RIP txHeader;
+    {
+        xns::RIP rxHeader;
+        rx.read(rxHeader);
+        auto rxbb = rx.rangeRemains();
 
-    // FIX ME Add response in transmit.heade
-}
+        logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-static MyProcess myProcess;
-void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    myProcess.process(rx, tx, context);
+        // sanity check
+        if (rxHeader.type != Type::REQUEST) ERROR()
+        if (!rxbb.empty()) ERROR();
+
+        // build response
+        txHeader.type = Type::RESPONSE;
+
+        for(const auto& e: rxHeader.entryList) {
+            if (e.delay == Delay::INFINITY) {
+                for(const auto [network, delay] : map) {
+                    if (delay == Delay::INFINITY) continue;
+                    txHeader.entryList.emplace_back(network, delay);
+                }
+            } else {
+                if (map.contains(e.network)) {
+                    txHeader.entryList.emplace_back(e.network, map[e.network]);
+                }
+            }
+        }
+
+        logger.info("RIP  <<  %s", txHeader.toString());
+    }
+
+    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    tx.write(txHeader);
+
+    return tx;
 }
 
 }

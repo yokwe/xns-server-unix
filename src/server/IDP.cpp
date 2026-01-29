@@ -33,6 +33,8 @@
  // IDP.cpp
  //
 
+#include <unordered_map>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -44,90 +46,69 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::IDP {
 //
-using R = xns::IDP;
-using T = xns::IDP;
-struct MyProcess : public Process<T> {
-    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override;
-    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
+using PacketType = xns::IDP::PacketType;
+static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
+    {PacketType::RIP,    RIP::process},
+    {PacketType::ECHO,   Echo::process},
+    {PacketType::ERROR_, Error::process},
+    {PacketType::PEX,    PEX::process},
+    {PacketType::SPP,    SPP::process},
 };
-
-void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
-    auto receive  = Param<xns::IDP>::receive(rx);
-    auto transmit = Param<xns::IDP>::transmit();
-
-    receive.body = receive.body.byteRange(0, receive.header.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-
-    logger.info("IDP  >>  %s  (%d) %s", receive.header.toString(), receive.body.byteLimit(), receive.body.toString());
-
-    // sanity check
-    if (receive.header.checksum != xns::IDP::Checksum::NOCHECK) {
-        auto checksum = xns::IDP::computeChecksum(rx.data(), 2, receive.header.length);
-        if (receive.header.checksum != checksum) {
-            logger.warn("checksum error  %s  %s", xns::IDP::toString(receive.header.checksum), xns::IDP::toString(checksum));
-            return;
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    xns::IDP txHeader;
+    ByteBuffer txbb;
+    {
+        xns::IDP rxHeader;
+        rx.read(rxHeader);
+        auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
+    
+        logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    
+        // sanity check
+        if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
+            auto checksum = xns::IDP::computeChecksum(rx.data(), 2, rxHeader.length);
+            if (rxHeader.checksum != checksum) {
+                logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
+                return ByteBuffer::Net::getInstance(0);
+            }
         }
+
+        if (map.contains(rxHeader.packetType)) {
+            txbb = map[rxHeader.packetType](rxbb, context);
+        } else {
+            ERROR()
+        }
+        
+        txbb.flip();
+        if (txbb.empty()) return txbb;
+
+        // prepare transmit
+        txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
+        txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
+        txHeader.control     = 0;
+        txHeader.packetType  = rxHeader.packetType;
+        txHeader.dst.network = rxHeader.src.network;
+        txHeader.dst.host    = rxHeader.src.host;
+        txHeader.dst.socket  = rxHeader.src.socket;
+        txHeader.src.network = static_cast<Network>(context.net);
+        txHeader.src.host    = context.me;
+        txHeader.src.socket  = rxHeader.dst.socket;    
     }
 
-    // prepare transmit.header
-    transmit.header.checksum    = xns::IDP::Checksum::NOCHECK;
-    transmit.header.length      = 0;
-    transmit.header.control     = 0;
-    transmit.header.packetType  = receive.header.packetType;
-    transmit.header.dst.network = receive.header.src.network;
-    transmit.header.dst.host    = receive.header.src.host;
-    transmit.header.dst.socket  = receive.header.src.socket;
-    transmit.header.src.network = static_cast<Network>(context.net);
-    transmit.header.src.host    = context.me;
-    transmit.header.src.socket  = receive.header.dst.socket;
-
-    process(receive, transmit, context);
-    
-    transmit.body.flip();
-    if (transmit.body.empty()) return;
-
-    // update length
-    // Garbage Byte, which is included in the Checksum, but not in the Length
-    transmit.header.length = xns::IDP::HEADER_LENGTH_IN_BYTE + transmit.body.byteLimit();
-
-    tx.write(transmit.header);
-    tx.write(transmit.body.toSpan());
+    // build tx
+    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    tx.write(txHeader);
+    tx.write(txbb.toSpan());
     // to make even length data, add Garbage Byte if length is odd.
     if (tx.byteLimit() & 1) tx.put8(0);
     tx.flip();
+
     // update checksum
     // Garbage Byte, which is included in the Checksum, but not in the Length
     auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
     tx.write(checksum);
 
-    logger.info("IDP  <<  %s  (%d) %s", transmit.header.toString(), transmit.body.byteLimit(), transmit.body.toString());
-}
-
-void MyProcess::process(Param<xns::IDP>& receive, Param<xns::IDP>& transmit, Context& context) {
-    using PacketType = xns::IDP::PacketType;
-    switch(receive.header.packetType) {
-        case PacketType::RIP:
-            RIP::process(receive.body, transmit.body, context);
-            break;
-        case PacketType::ECHO:
-            Echo::process(receive.body, transmit.body, context);
-            break;
-        case PacketType::ERROR_:
-            Error::process(receive.body, transmit.body, context);
-            break;
-        case PacketType::PEX:
-            PEX::process(receive.body, transmit.body, context);
-            break;
-        case PacketType::SPP:
-            SPP::process(receive.body, transmit.body, context);
-            break;
-        default:
-            ERROR()
-        }
-}
-
-static MyProcess myProcess;
-void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    myProcess.process(rx, tx, context);
+    return tx;
 }
 
 }

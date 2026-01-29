@@ -13,6 +13,7 @@ target_sources(
   PRIVATE
     Echo.cpp
     Error.cpp
+    Ethernet.cpp
     IDP.cpp
     main.cpp
     PEX.cpp

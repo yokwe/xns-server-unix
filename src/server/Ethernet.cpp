@@ -30,7 +30,7 @@
 
  
  //
- // Error.cpp
+ // Ethernet.cpp
  //
 
 #include "../util/Util.h"
@@ -38,25 +38,51 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../xns/Error.h"
+#include "../xns/Ethernet.h"
 
 #include "Server.h"
 
-namespace xns::server::Error {
-//
+namespace xns::server::Ethernet {
+
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    xns::Error txHeader;
+    xns::Ethernet txHeader;
     ByteBuffer txbb;
     {
-        xns::Error rxHeader;
+        xns::Ethernet rxHeader;
         rx.read(rxHeader);
         auto rxbb = rx.rangeRemains();
+
+        logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+        bool myPacket = false;
+        if (rxHeader.type == xns::Ethernet::Type::XNS) {
+            if (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST) {
+                myPacket = true;
+            }
+        }
+        if (!myPacket) return txbb;
     
-        logger.info("ERROR>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+        txbb = IDP::process(rxbb, context);        
+        txbb.flip();
+        if (txbb.empty()) return txbb;
+
+        // prepare transmit
+        txHeader.dest   = rxHeader.source;
+        txHeader.source = context.me;
+        txHeader.type   = rxHeader.type;
     }
 
+    // build tx
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    rx.write(txHeader);
+    tx.write(txbb.toSpan());
+    // add padding if it is smaller than MINIMUM_LENGTH
+    auto length = tx.byteLimit();
+    for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) tx.put8(0);
+
+    logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+
     return tx;
 }
+
 }

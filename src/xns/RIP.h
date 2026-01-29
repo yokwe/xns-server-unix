@@ -65,6 +65,7 @@ public:
         Delay   delay;        
 
         Entry() : delay(Delay::INFINITY) {}
+        Entry(Network network_, Delay delay_) : network(network_), delay(delay_) {}
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(network, delay);

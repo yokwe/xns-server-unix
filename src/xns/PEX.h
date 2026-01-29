@@ -42,6 +42,17 @@ namespace xns {
 //
 class PEX : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
+    // APilot/15.0.1/NS/Public/PacketExchange.mesa
+    // ExchangeClientType: TYPE = MACHINE DEPENDENT {
+    //     unspecified(0), timeService(1), clearinghouseService(2), teledebug(10B),
+    //     electronicMailFirstPEType(20B), electronicMailLastPEType(27B),
+    //     remoteDebugFirstPEType(30B), remoteDebugLastPEType(37B),
+    //     acceptanceTestRegistration(40B), performanceTestData(41B),
+    //     protocolCertification(50B), voyeur(51B),
+    //     dixieDataPEType(101B), dixieAckPEType(102B),
+    //     dixieBusyPEType(103B), dixieErrorPEType(104B),
+    //     outsideXeroxFirst(100000B), outsideXeroxLast(LAST[CARDINAL])};
+
     enum class ClientType : uint16_t {
         ENUM_NAME_VALUE(ClientType, UNSPEC,    0)
         ENUM_NAME_VALUE(ClientType, TIME,      1)
@@ -64,7 +75,7 @@ public:
         return bb;
     }
     std::string toString() const override {
-        return std_sprintf("{%04X %s}", id, toString(clientType));
+        return std_sprintf("{%08X %s}", id, toString(clientType));
     }
 };
 

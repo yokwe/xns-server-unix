@@ -44,21 +44,34 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::Echo {
 //
-using T = xns::Echo;
-struct MyProcess : public Process<T> {
-    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override {
-        Process<T>::process(rx, tx, context);
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    (void)context;
+    xns::Echo txHeader;
+    ByteBuffer txbb;
+    {
+        xns::Echo rxHeader;
+        rx.read(rxHeader);
+        auto rxbb = rx.rangeRemains();
+    
+        logger.info("ECHO >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+        // sanity check
+        if (rxHeader.type != xns::Echo::Type::REQUEST) ERROR()
+
+        txbb = rxbb;
+
+        txbb.flip();
+        if (txbb.empty()) return txbb;
+    
+        txHeader.type = xns::Echo::Type::RESPONSE;    
     }
-    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
-};
 
-void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
-    (void)receive; (void)transmit; (void)context;
-    logger.info("Echo >>  %s", receive.header.toString());
+    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    tx.write(txHeader);
+    tx.write(txbb.toSpan());
+
+    return tx;
 }
 
-static MyProcess myProcess;
-void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    myProcess.process(rx, tx, context);
-}
+
+
 }

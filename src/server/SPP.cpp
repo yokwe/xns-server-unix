@@ -44,42 +44,33 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::SPP {
 //
-using T = xns::SPP;
-struct MyProcess : public Process<T> {
-    void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) override;
-    void process(Param<T>& receive, Param<T>& transmit, Context& context) override;
-};
-
-void MyProcess::process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
-    auto receive  = Param<T>::receive(rx);
-    auto transmit = Param<T>::transmit();
-
-    // prepare transmit.header
-    transmit.header.control  = receive.header.control;
-    transmit.header.sst      = receive.header.sst;
-    transmit.header.srcID    = receive.header.dstID;
-    transmit.header.dstID    = receive.header.srcID;
-    transmit.header.seq      = receive.header.seq;
-    transmit.header.ack      = receive.header.ack;
-    transmit.header.alloc    = receive.header.alloc;
-
-    process(receive, transmit, context);
-
-    transmit.body.flip();
-    if (transmit.body.empty()) return;
-
-    // output to rx
-    tx.write(transmit.header);
-    tx.write(transmit.body.toSpan());
-}
-void MyProcess::process(Param<T>& receive, Param<T>& transmit, Context& context) {
-    (void)receive; (void)transmit; (void)context;
-    logger.info("PEX  >>  %s  (%d) %s", receive.header.toString(), receive.body.byteLimit(), receive.body.toString());
+void process(xns::SPP& rxHeader, ByteBuffer& rxbb, xns::SPP& txHeader, ByteBuffer& txbb, Context& context) {
+    (void)rxHeader; (void)rxbb; (void)txHeader; (void)txbb; (void)context;
 }
 
-static MyProcess myProcess;
-void process(ByteBuffer& rx, ByteBuffer& tx, server::Context& context) {
-    myProcess.process(rx, tx, context);
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    (void)context;
+    xns::SPP   txHeader;
+    ByteBuffer txbb;
+    {
+        xns::SPP rxHeader;
+        rx.read(rxHeader);
+        auto rxbb = rx.rangeRemains();
+    
+        logger.info("SPP >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+        process(rxHeader, rxbb, txHeader, rxbb, context);
+
+        txbb.flip();
+        if (txbb.empty()) return txbb;
+    }
+
+    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    tx.write(txHeader);
+    tx.write(txbb.toSpan());
+
+    return tx;
 }
+
 
 }

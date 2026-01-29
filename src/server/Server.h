@@ -49,7 +49,7 @@ namespace xns::server {
 //
 struct TransmitData {
     ByteBuffer tx;
-    TransmitData() : tx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
+    TransmitData(ByteBuffer tx_) : tx(tx_) {}
 };
 struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
     net::Driver& driver;
@@ -150,24 +150,26 @@ struct Process {
     virtual void process(Param<R>& receive, Param<T>& transmit, Context& context) = 0;
 };
 
-namespace IDP {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+namespace Ethernet {
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
-
+namespace IDP {
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
+}
 namespace RIP {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 namespace Echo {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 namespace Error {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 namespace PEX {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 namespace SPP {
-    void process  (ByteBuffer& rx, ByteBuffer& tx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 
 }
