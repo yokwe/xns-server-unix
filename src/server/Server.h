@@ -44,9 +44,12 @@
 
 #include "../xns/Config.h"
 #include "../xns/XNS.h"
+#include "../xns/RIP.h"
 
 namespace xns::server {
 //
+using Delay = xns::RIP::Delay;
+
 struct TransmitData {
     ByteBuffer tx;
     TransmitData(ByteBuffer tx_) : tx(tx_) {}
@@ -83,31 +86,33 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
 };
 
 struct Routing {
-    uint32_t    net;
-    uint16_t    delay;
+    Network     net;
+    Delay       delay;
     std::string name;
-
-    Routing(uint32_t net_, uint16_t delay_, const std::string& name_) : net(net_), delay(delay_), name(name_) {}
-    Routing() : net(0), delay(0), name("") {}
 };
 
 struct Context {
-    Config                      config;
-    net::Driver*                driver;
-    uint64_t                    me;
-    uint32_t                    net;
-    std::map<uint32_t, Routing> routingMap;
+    Config                     config;
+    net::Driver*               driver;
+    uint64_t                   me;
+    Network                    net;
+    std::map<Network, Routing> routingMap;
 
     Context() {
         config = xns::Config::getInstance();
         auto device = net::getDevice(config.server.interface);
         driver = net::getDriver(device);
         me     = config.server.address;
-        net    = config.server.net;
+        net    = static_cast<Network>(config.server.net);
         // build routingMap
         for(const auto& e: config.net) {
-            Routing routing = Routing(e.net, e.delay, e.name);
-            routingMap[e.net] = routing;
+            auto net = static_cast<Network>(e.net);
+            auto delay = static_cast<Delay>(e.delay);
+
+            if (delay == Delay::INFINITY) continue;
+
+            Routing routing(net, delay, e.name);
+            routingMap[net] = routing;
         }
     }
 };
