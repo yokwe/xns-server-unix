@@ -40,7 +40,6 @@ static const Logger logger(__FILE__);
 #include "../util/ThreadControl.h"
 
 #include "../xns/XNS.h"
-#include "../xns/Ethernet.h"
 
 #include "Server.h"
 
@@ -89,7 +88,7 @@ int main(int, char **) {
 
         auto tx = Ethernet::process(rx, context);
         if (tx.empty()) continue;
-        
+
         TransmitData transmitData(tx);
         threadTransmit.push(transmitData);
 	}
