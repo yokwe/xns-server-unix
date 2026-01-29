@@ -112,44 +112,6 @@ struct Context {
     }
 };
 
-template<class R, class T = R>
-struct Process {
-    template <class U>
-    struct Param {
-        static Param receive(ByteBuffer& bb) {
-            U header;
-            bb.read(header);
-            return Param(header, bb.rangeRemains());
-        }
-        static Param transmit() {
-            U header;
-            ByteBuffer body = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-            return Param(header, body);
-        }
-        U          header;
-        ByteBuffer body;
-
-        Param(U header_, ByteBuffer body_) : header(header_), body(body_) {}
-    };
-
-    virtual ~Process() = default;
-
-    virtual void process(ByteBuffer& rx, ByteBuffer& tx, Context& context) {
-        Param<R> receive  = Param<R>::receive(rx);
-        Param<T> transmit = Param<T>::transmit();
-
-        process(receive, transmit, context);
-
-        transmit.body.flip();
-
-        // output to rx
-        tx.write(transmit.header);
-        tx.write(transmit.body.toSpan());
-    }
-
-    virtual void process(Param<R>& receive, Param<T>& transmit, Context& context) = 0;
-};
-
 namespace Ethernet {
     ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
