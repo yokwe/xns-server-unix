@@ -101,12 +101,19 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     tx.write(txbb.toSpan());
     // to make even length data, add Garbage Byte if length is odd.
     if (tx.byteLimit() & 1) tx.put8(0);
-    tx.flip();
 
     // update checksum
     // Garbage Byte, which is included in the Checksum, but not in the Length
     auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
-    tx.write(checksum);
+    // don't touch tx
+    {
+        ByteBuffer bb = tx;
+        bb.flip();
+        bb.write(checksum);
+    }
+
+    txHeader.checksum = checksum;
+    logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }
