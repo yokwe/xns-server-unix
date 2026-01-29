@@ -56,6 +56,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         for(auto& e: context.config.net) {
             auto net = static_cast<xns::Network>(e.net);
             auto delay = static_cast<xns::RIP::Delay>(e.delay);
+            if (delay == xns::RIP::Delay::INFINITY) continue;
             map[net] = delay;
         }
     }
@@ -76,9 +77,8 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         txHeader.type = Type::RESPONSE;
 
         for(const auto& e: rxHeader.entryList) {
-            if (e.delay == Delay::INFINITY) {
+            if (e.network == xns::Network::ALL && e.delay == Delay::INFINITY) {
                 for(const auto [network, delay] : map) {
-                    if (delay == Delay::INFINITY) continue;
                     txHeader.entryList.emplace_back(network, delay);
                 }
             } else {
