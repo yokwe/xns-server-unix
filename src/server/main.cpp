@@ -59,7 +59,7 @@ int main(int, char **) {
 
 	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::hostName(context.driver->device.address), context.driver->device.name);
 	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), xns::hostName(context.me));
-	logger.info("network  %d  %s", context.net, xns::networkName(context.net));
+	logger.info("network  %d  %s", context.net, toString(context.net));
 
 
     auto& driver = *context.driver;
