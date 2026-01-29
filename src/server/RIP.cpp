@@ -46,12 +46,12 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::RIP {
 //
+using Delay = xns::RIP::Delay;
+using Type  = xns::RIP::Type;
+
 static std::unordered_map<xns::Network, xns::RIP::Delay> map;
 
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    using Delay = xns::RIP::Delay;
-    using Type = xns::RIP::Type;
-
+static xns::RIP call(xns::RIP& rxHeader, Context& context) {
     if (map.empty()) {
         for(auto& e: context.config.net) {
             auto net = static_cast<xns::Network>(e.net);
@@ -60,37 +60,41 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
             map[net] = delay;
         }
     }
-
     xns::RIP txHeader;
-    {
-        xns::RIP rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
 
-        logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    rxHeader.type = Type::RESPONSE;
 
-        // sanity check
-        if (rxHeader.type != Type::REQUEST) ERROR()
-        if (!rxbb.empty()) ERROR();
-
-        // build response
-        txHeader.type = Type::RESPONSE;
-
-        for(const auto& e: rxHeader.entryList) {
-            if (e.network == xns::Network::ALL && e.delay == Delay::INFINITY) {
-                for(const auto [network, delay] : map) {
-                    txHeader.entryList.emplace_back(network, delay);
-                }
-            } else {
-                if (map.contains(e.network)) {
-                    txHeader.entryList.emplace_back(e.network, map[e.network]);
-                }
+    for(const auto& e: rxHeader.entryList) {
+        if (e.network == xns::Network::ALL && e.delay == Delay::INFINITY) {
+            for(const auto [network, delay] : map) {
+                txHeader.entryList.emplace_back(network, delay);
+            }
+        } else {
+            if (map.contains(e.network)) {
+                txHeader.entryList.emplace_back(e.network, map[e.network]);
             }
         }
-
-        logger.info("RIP  <<  %s", txHeader.toString());
     }
+    return txHeader;
+}
 
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    xns::RIP rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+
+    logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    // sanity check
+    if (rxHeader.type != Type::REQUEST) ERROR()
+    if (!rxbb.empty()) ERROR();
+
+    // build response
+    auto txHeader = call(rxHeader, context);
+
+    logger.info("RIP  <<  %s", txHeader.toString());
+
+    // build tx
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
     tx.write(txHeader);
 
