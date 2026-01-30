@@ -44,33 +44,15 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::SPP {
 //
-void process(xns::SPP& rxHeader, ByteBuffer& rxbb, xns::SPP& txHeader, ByteBuffer& txbb, Context& context) {
-    (void)rxHeader; (void)rxbb; (void)txHeader; (void)txbb; (void)context;
-}
-
+using SPP   = xns::SPP;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
-    xns::SPP   txHeader;
-    ByteBuffer txbb;
-    {
-        xns::SPP rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("SPP >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    SPP rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+    logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-        process(rxHeader, rxbb, txHeader, rxbb, context);
-
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-    }
-
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-    tx.write(txHeader);
-    tx.write(txbb.toSpan());
-
-    return tx;
+    return ByteBuffer{};
 }
-
 
 }

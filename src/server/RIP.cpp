@@ -54,9 +54,8 @@ using Network = xns::Network;
 const auto MAX_PACKET_SIZE = xns::MAX_PACKET_SIZE;
 
 static RIP request(RIP& rxHeader, Context& context) {
-    logger.info("## %s", __func__);
-    RIP txHeader;
-    txHeader.type = Type::RESPONSE;
+//    logger.info("## %s", __PRETTY_FUNCTION__);
+    RIP txHeader{Type::RESPONSE};
     for(const auto& e: rxHeader.entryList) {
         if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
             for(const auto& [key, value] : context.routingMap) {
@@ -72,8 +71,8 @@ static RIP request(RIP& rxHeader, Context& context) {
     return txHeader;
 }
 RIP response(RIP& rxHeader, Context& context) {
-    logger.info("## %s", __func__);
-    RIP txHeader;
+//    logger.info("## %s", __PRETTY_FUNCTION__);
+    RIP txHeader{Type::REQUEST};
     // update context.routingMap
     for(const auto& e: rxHeader.entryList) {
         auto net = e.network;
@@ -108,8 +107,8 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     // sanity check
     if (!rxbb.empty()) ERROR();
 
-    auto txHeader = map[rxHeader.type](rxHeader, context);
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    auto txHeader = map.at(rxHeader.type)(rxHeader, context);
+    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);    
 
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);

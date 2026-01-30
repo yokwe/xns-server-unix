@@ -73,12 +73,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
             }
         }
 
-        if (map.contains(rxHeader.packetType)) {
-            txbb = map[rxHeader.packetType](rxbb, context);
-        } else {
-            ERROR()
-        }
-        
+        txbb = map.at(rxHeader.packetType)(rxbb, context);
         txbb.flip();
         if (txbb.empty()) return txbb;
 

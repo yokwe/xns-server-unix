@@ -44,19 +44,15 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::Error {
 //
+using Error   = xns::Error;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
-    xns::Error txHeader;
-    ByteBuffer txbb;
-    {
-        xns::Error rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("ERROR>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-    }
+    Error rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+    logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-    return tx;
+    return ByteBuffer{};
 }
+
 }

@@ -44,34 +44,46 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::Echo {
 //
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    xns::Echo txHeader;
+using Echo   = xns::Echo;
+using Type   = xns::Echo::Type;
+using Result = HeaderBody<Echo>;
+
+Result request(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
+    logger.info("## %s", __PRETTY_FUNCTION__);
+    (void)rxHeader; (void)context;
+    Echo txHeader{Type::RESPONSE};
+    ByteBuffer txbb = rxbb;
+    return Result{txHeader, txbb};
+}
+Result response(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
+    logger.info("## %s", __PRETTY_FUNCTION__);
+    (void)rxHeader; (void)rxbb; (void)context;
+    Echo txHeader;
     ByteBuffer txbb;
-    {
-        xns::Echo rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("ECHO >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-        // sanity check
-        if (rxHeader.type != xns::Echo::Type::REQUEST) ERROR()
+    return Result{txHeader, txbb};
+}
 
-        txbb = rxbb;
+static std::unordered_map<Type, Result (*)(Echo&, ByteBuffer&, Context&)> map {
+    {Type::REQUEST,  request},
+    {Type::RESPONSE, response},
+};
 
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-    
-        txHeader.type = xns::Echo::Type::RESPONSE;    
+ByteBuffer process  (ByteBuffer& rx, Context& context) {
+    Echo rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+    logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);
+    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+
+    if (rxHeader.type == Type::REQUEST) {
+        tx.write(txHeader);
+        tx.write(txbb.toSpan());
+        logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
     }
-
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-    tx.write(txHeader);
-    tx.write(txbb.toSpan());
 
     return tx;
 }
-
-
 
 }

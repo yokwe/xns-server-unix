@@ -48,25 +48,25 @@ namespace xns::server::PEX {
 //
 ByteBuffer processUNSPEC(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
-    logger.info("## %s", __func__);
+    logger.info("## %s", __PRETTY_FUNCTION__);
     ByteBuffer tx;
     return tx;
 }
 ByteBuffer processTIME(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
-    logger.info("## %s", __func__);
+    logger.info("## %s", __PRETTY_FUNCTION__);
     ByteBuffer tx;
     return tx;
 }
 ByteBuffer processCHS(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
-    logger.info("## %s", __func__);
+    logger.info("## %s", __PRETTY_FUNCTION__);
     ByteBuffer tx;
     return tx;
 }
 ByteBuffer processTELEDEBUG(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
-    logger.info("## %s", __func__);
+    logger.info("## %s", __PRETTY_FUNCTION__);
     ByteBuffer tx;
     return tx;
 }
@@ -88,11 +88,8 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         auto rxbb = rx.rangeRemains();
     
         logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-        // sanity check
-        if (map.contains(rxHeader.clientType)) {
-            txbb = map[rxHeader.clientType](rxbb, context);
-        } else ERROR()
 
+        txbb = map.at(rxHeader.clientType)(rxbb, context);
         txbb.flip();
         if (txbb.empty()) return txbb;
     
