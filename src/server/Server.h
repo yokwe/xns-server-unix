@@ -142,8 +142,16 @@ namespace Error {
 }
 namespace PEX {
     ByteBuffer process  (ByteBuffer& rx, Context& context);
+
+    ByteBuffer unspec   (ByteBuffer& rx, Context& context);
+    ByteBuffer chs      (ByteBuffer& rx, Context& context);
+    ByteBuffer teledebug(ByteBuffer& rx, Context& context);
 }
 namespace SPP {
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
+}
+
+namespace Time {
     ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 

@@ -30,73 +30,57 @@
 
  
  //
- // PEX.cpp
+ // Time.cpp
  //
-
-#include <unordered_map>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../xns/PEX.h"
+#include "../courier/Time.h"
 
 #include "Server.h"
 
-namespace xns::server::PEX {
+namespace xns::server::Time {
 //
-using ClientType = xns::PEX::ClientType;
-static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
-    {ClientType::UNSPEC,    unspec},
-    {ClientType::TIME,      Time::process},
-    {ClientType::CHS,       chs},
-    {ClientType::TELEDEBUG, teledebug},
-};
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    xns::PEX   txHeader;
-    ByteBuffer txbb;
-    {
-        xns::PEX rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+using namespace xns::courier::Time;
 
-        txbb = map.at(rxHeader.clientType)(rxbb, context);
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-    
-        txHeader.id         = rxHeader.id;
-        txHeader.clientType = rxHeader.clientType;
-    }
+static Response call(Request request, Context& context) {
+    // sanity check
+    if (request.version != Version::CURRENT) ERROR()
+    if (request.type    != Type::REQUEST)    ERROR()
 
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    Response response;
+
+    response.version         = Version::CURRENT;
+    response.type            = Type::RESPONSE;
+    response.time            = Util::getMesaTime();
+    response.offsetDirection = static_cast<Direction>(context.config.time.offsetDirection);
+    response.offsetHours     = context.config.time.offsetHours;
+    response.offsetMinutes   = context.config.time.offsetMinutes;
+    response.dstStart        = static_cast<DST>(context.config.time.dstStart);
+    response.dstEnd          = static_cast<DST>(context.config.time.dstEnd);
+    response.tolerance       = Tolerance::KNOWN;
+    response.toleranceValue  = 10;
+
+    return response;
+}
+
+ByteBuffer process(ByteBuffer& rx, Context& context) {
+    Request rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+
+    logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    if (rx.remains()) ERROR()
+
+    auto txHeader = call(rxHeader, context);
+    logger.info("TIME <<  %s", txHeader.toString());
+
+    ByteBuffer tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
     tx.write(txHeader);
-    tx.write(txbb.toSpan());
-
-    logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
-
-    return tx;
-}
-
-ByteBuffer unspec(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
-    return tx;
-}
-ByteBuffer chs(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
-    return tx;
-}
-ByteBuffer teledebug(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
     return tx;
 }
 

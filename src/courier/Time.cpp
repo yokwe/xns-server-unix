@@ -30,74 +30,53 @@
 
  
  //
- // PEX.cpp
+ // Time.cpp
  //
 
-#include <unordered_map>
+ #include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
+#include "Time.h"
 
-#include "../xns/PEX.h"
+#undef  ENUM_NAME_VALUE
+#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
-#include "Server.h"
-
-namespace xns::server::PEX {
+namespace xns::courier::Time {
 //
-using ClientType = xns::PEX::ClientType;
-static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
-    {ClientType::UNSPEC,    unspec},
-    {ClientType::TIME,      Time::process},
-    {ClientType::CHS,       chs},
-    {ClientType::TELEDEBUG, teledebug},
-};
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    xns::PEX   txHeader;
-    ByteBuffer txbb;
-    {
-        xns::PEX rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-
-        txbb = map.at(rxHeader.clientType)(rxbb, context);
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-    
-        txHeader.id         = rxHeader.id;
-        txHeader.clientType = rxHeader.clientType;
-    }
-
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
-    tx.write(txHeader);
-    tx.write(txbb.toSpan());
-
-    logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
-
-    return tx;
+std::string toString(Version value) {
+    static std::unordered_map<Version, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Version, CURRENT, 2)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-
-ByteBuffer unspec(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
-    return tx;
+std::string toString(Type value) {
+    static std::unordered_map<Type, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Type, REQUEST,  1)
+        ENUM_NAME_VALUE(Type, RESPONSE, 2)    
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-ByteBuffer chs(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
-    return tx;
+std::string toString(Direction value) {
+    static std::unordered_map<Direction, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Direction, WEST, 0)
+        ENUM_NAME_VALUE(Direction, EAST, 1)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-ByteBuffer teledebug(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
-    return tx;
+std::string toString(Tolerance value) {
+    static std::unordered_map<Tolerance, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Tolerance, UNKNOWN, 0)
+        ENUM_NAME_VALUE(Tolerance, KNOWN,   1)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
+std::string toString(DST value) {
+    static std::unordered_map<DST, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(DST, NO, 0)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 }
