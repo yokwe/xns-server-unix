@@ -57,12 +57,12 @@ static Response call(Request request, Context& context) {
     response.version         = Version::CURRENT;
     response.type            = Type::RESPONSE;
     response.time            = Util::getMesaTime();
-    response.offsetDirection = static_cast<Direction>(context.config.time.offsetDirection);
+    response.offsetDirection = static_cast<Response::Direction>(context.config.time.offsetDirection);
     response.offsetHours     = context.config.time.offsetHours;
     response.offsetMinutes   = context.config.time.offsetMinutes;
-    response.dstStart        = static_cast<DST>(context.config.time.dstStart);
-    response.dstEnd          = static_cast<DST>(context.config.time.dstEnd);
-    response.tolerance       = Tolerance::KNOWN;
+    response.dstStart        = static_cast<Response::DST>(context.config.time.dstStart);
+    response.dstEnd          = static_cast<Response::DST>(context.config.time.dstEnd);
+    response.tolerance       = Response::Tolerance::KNOWN;
     response.toleranceValue  = 10;
 
     return response;

@@ -51,24 +51,6 @@ enum class Type : uint16_t {
 };
 std::string toString(Type value);
 
-enum class Direction : uint16_t {
-    ENUM_NAME_VALUE(Direction, WEST, 0)
-    ENUM_NAME_VALUE(Direction, EAST, 1)
-};
-std::string toString(Direction value);
-
-enum class Tolerance : uint16_t {
-    ENUM_NAME_VALUE(Tolerance, UNKNOWN, 0)
-    ENUM_NAME_VALUE(Tolerance, KNOWN,   1)
-};
-std::string toString(Tolerance value);
-
-enum class DST : uint16_t {
-    ENUM_NAME_VALUE(DST, NO, 0)
-};
-std::string toString(DST value);
-
-
 class Request : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     Version version;
@@ -89,6 +71,23 @@ public:
 
 class Response : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
+    enum class Direction : uint16_t {
+        ENUM_NAME_VALUE(Direction, WEST, 0)
+        ENUM_NAME_VALUE(Direction, EAST, 1)
+    };
+    static std::string toString(Direction value);
+
+    enum class Tolerance : uint16_t {
+        ENUM_NAME_VALUE(Tolerance, UNKNOWN, 0)
+        ENUM_NAME_VALUE(Tolerance, KNOWN,   1)
+    };
+    static std::string toString(Tolerance value);
+
+    enum class DST : uint16_t {
+        ENUM_NAME_VALUE(DST, NO, 0)
+    };
+    static std::string toString(DST value);
+
     Version   version;
     Type      type;
     uint32_t  time;             // current time between 12:00:00, 1 Jan. 1968 and 6:28:23, 6 Feb. 2104 inclusive
@@ -114,8 +113,8 @@ public:
 
         return std_sprintf("{%s  %s  %s  %s  %dh%dm  %d-%d  %s-%d}",
             Time::toString(version), Time::toString(type), timeString,
-            Time::toString(offsetDirection), offsetHours, offsetMinutes, dstStart, dstEnd,
-            Time::toString(tolerance), toleranceValue);
+            toString(offsetDirection), offsetHours, offsetMinutes, dstStart, dstEnd,
+            toString(tolerance), toleranceValue);
     }
 };
 

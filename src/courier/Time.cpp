@@ -58,21 +58,21 @@ std::string toString(Type value) {
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-std::string toString(Direction value) {
+std::string Response::toString(Direction value) {
     static std::unordered_map<Direction, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Direction, WEST, 0)
         ENUM_NAME_VALUE(Direction, EAST, 1)
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-std::string toString(Tolerance value) {
+std::string Response::toString(Tolerance value) {
     static std::unordered_map<Tolerance, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Tolerance, UNKNOWN, 0)
         ENUM_NAME_VALUE(Tolerance, KNOWN,   1)
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
-std::string toString(DST value) {
+std::string Response::toString(DST value) {
     static std::unordered_map<DST, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(DST, NO, 0)
     };
