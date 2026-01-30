@@ -35,6 +35,7 @@
 
 #include <unordered_map>
 
+#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -46,8 +47,6 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::IDP {
 //
-const constexpr bool SHOW_PACKET = false;
-
 using PacketType = xns::IDP::PacketType;
 static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
     {PacketType::RIP,    RIP::process},
@@ -60,7 +59,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::IDP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-    if (SHOW_PACKET) logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
@@ -106,7 +105,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     }
 
     txHeader.checksum = checksum;
-    if (SHOW_PACKET) logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

@@ -33,6 +33,7 @@
  // pex.cpp
  //
 
+#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -50,7 +51,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     SPP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
-    logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     return ByteBuffer{};
 }

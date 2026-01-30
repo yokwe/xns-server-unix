@@ -35,10 +35,6 @@
 
 #pragma once
 
-#include "../server/Server.h"
-
 namespace xns::courier {
 //
-using Context = server::Context;
-
 }

@@ -33,6 +33,7 @@
  // Time.cpp
  //
 
+#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -72,14 +73,14 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 
-    logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_TIME) logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     if (rx.remains()) ERROR()
 
     auto txHeader = call(rxHeader, context);
-    logger.info("TIME <<  %s", txHeader.toString());
+    if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
-    ByteBuffer tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
     tx.write(txHeader);
     return tx;
 }

@@ -35,6 +35,7 @@
 
 #include <unordered_map>
 
+#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -55,28 +56,25 @@ static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map 
 };
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
-    xns::PEX   txHeader;
-    ByteBuffer txbb;
-    {
-        xns::PEX rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
-    
-        logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    xns::PEX rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
 
-        txbb = map.at(rxHeader.clientType)(rxbb, context);
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-    
-        txHeader.id         = rxHeader.id;
-        txHeader.clientType = rxHeader.clientType;
-    }
+    if (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    auto txbb = map.at(rxHeader.clientType)(rxbb, context);
+    txbb.flip();
+    if (txbb.empty()) return ByteBuffer{};
+
+    xns::PEX txHeader;
+    txHeader.id         = rxHeader.id;
+    txHeader.clientType = rxHeader.clientType;
 
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
     tx.write(txHeader);
     tx.write(txbb.toSpan());
 
-    logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

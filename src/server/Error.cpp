@@ -33,6 +33,7 @@
  // Error.cpp
  //
 
+ #include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -50,7 +51,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Error rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
-    logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     return ByteBuffer{};
 }

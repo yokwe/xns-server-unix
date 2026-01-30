@@ -35,6 +35,7 @@
 
 #include <unordered_map>
 
+#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -51,8 +52,6 @@ using Delay   = xns::RIP::Delay;
 using Type    = xns::RIP::Type;
 using Network = xns::Network;
 //
-const auto MAX_PACKET_SIZE = xns::MAX_PACKET_SIZE;
-
 static RIP request(RIP& rxHeader, Context& context) {
 //    logger.info("## %s", __PRETTY_FUNCTION__);
     RIP txHeader{Type::RESPONSE};
@@ -102,7 +101,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 
-    logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (!rxbb.empty()) ERROR();
@@ -112,7 +111,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
-        logger.info("RIP  <<  %s", txHeader.toString());
+        if (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", txHeader.toString());
     }
 
     return tx;

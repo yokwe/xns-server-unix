@@ -33,7 +33,8 @@
  // Ethernet.cpp
  //
 
-#include "../util/Util.h"
+ #include "../util/Debug.h"
+ #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -44,8 +45,6 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::Ethernet {
 //
-const constexpr bool SHOW_PACKET = false;
-
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::Ethernet rxHeader;
     rx.read(rxHeader);
@@ -59,7 +58,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     }
     if (!myPacket) return ByteBuffer{};
 
-    if (SHOW_PACKET) logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = IDP::process(rxbb, context);        
     txbb.flip();
@@ -79,7 +78,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     auto length = tx.byteLimit();
     for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) tx.put8(0);
 
-    if (SHOW_PACKET) logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET_ETHERNET) logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

@@ -33,7 +33,8 @@
  // Echo.cpp
  //
 
-#include "../util/Util.h"
+ #include "../util/Debug.h"
+ #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -72,7 +73,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Echo rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
-    logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);
     auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
@@ -80,7 +81,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
         tx.write(txbb.toSpan());
-        logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+        if (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
     }
 
     return tx;
