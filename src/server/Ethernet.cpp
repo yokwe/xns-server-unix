@@ -43,34 +43,33 @@ static const Logger logger(__FILE__);
 #include "Server.h"
 
 namespace xns::server::Ethernet {
+//
+const constexpr bool SHOW_PACKET = false;
 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    xns::Ethernet txHeader;
-    ByteBuffer txbb;
-    {
-        xns::Ethernet rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.rangeRemains();
+    xns::Ethernet rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
 
-        bool myPacket = false;
-        if (rxHeader.type == xns::Ethernet::Type::XNS) {
-            if (rxHeader.source != context.me && (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST)) {
-                myPacket = true;
-            }
+    bool myPacket = false;
+    if (rxHeader.type == xns::Ethernet::Type::XNS) {
+        if (rxHeader.source != context.me && (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST)) {
+            myPacket = true;
         }
-        if (!myPacket) return txbb;
-    
-        logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-
-        txbb = IDP::process(rxbb, context);        
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-
-        // prepare transmit
-        txHeader.dest   = rxHeader.source;
-        txHeader.source = context.me;
-        txHeader.type   = rxHeader.type;
     }
+    if (!myPacket) return ByteBuffer{};
+
+    if (SHOW_PACKET) logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    auto txbb = IDP::process(rxbb, context);        
+    txbb.flip();
+    if (txbb.empty()) return ByteBuffer{};
+
+    // prepare transmit
+    xns::Ethernet txHeader;
+    txHeader.dest   = rxHeader.source;
+    txHeader.source = context.me;
+    txHeader.type   = rxHeader.type;
 
     // build tx
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
@@ -80,7 +79,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     auto length = tx.byteLimit();
     for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) tx.put8(0);
 
-    logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET) logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

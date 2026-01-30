@@ -46,6 +46,8 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::IDP {
 //
+const constexpr bool SHOW_PACKET = false;
+
 using PacketType = xns::IDP::PacketType;
 static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
     {PacketType::RIP,    RIP::process},
@@ -55,40 +57,36 @@ static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map 
     {PacketType::SPP,    SPP::process},
 };
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    xns::IDP txHeader;
-    ByteBuffer txbb;
-    {
-        xns::IDP rxHeader;
-        rx.read(rxHeader);
-        auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-    
-        logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-    
-        // sanity check
-        if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
-            auto checksum = xns::IDP::computeChecksum(rx.data(), 2, rxHeader.length);
-            if (rxHeader.checksum != checksum) {
-                logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
-                return ByteBuffer::Net::getInstance(0);
-            }
+    xns::IDP rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
+    if (SHOW_PACKET) logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    // sanity check
+    if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
+        auto checksum = xns::IDP::computeChecksum(rx.data(), 2, rxHeader.length);
+        if (rxHeader.checksum != checksum) {
+            logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
+            return ByteBuffer::Net::getInstance(0);
         }
-
-        txbb = map.at(rxHeader.packetType)(rxbb, context);
-        txbb.flip();
-        if (txbb.empty()) return txbb;
-
-        // prepare transmit
-        txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
-        txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
-        txHeader.control     = 0;
-        txHeader.packetType  = rxHeader.packetType;
-        txHeader.dst.network = rxHeader.src.network;
-        txHeader.dst.host    = rxHeader.src.host;
-        txHeader.dst.socket  = rxHeader.src.socket;
-        txHeader.src.network = static_cast<Network>(context.net);
-        txHeader.src.host    = context.me;
-        txHeader.src.socket  = rxHeader.dst.socket;    
     }
+
+    auto txbb = map.at(rxHeader.packetType)(rxbb, context);
+    txbb.flip();
+    if (txbb.empty()) return ByteBuffer{};
+
+    // prepare transmit
+    xns::IDP txHeader;
+    txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
+    txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
+    txHeader.control     = 0;
+    txHeader.packetType  = rxHeader.packetType;
+    txHeader.dst.network = rxHeader.src.network;
+    txHeader.dst.host    = rxHeader.src.host;
+    txHeader.dst.socket  = rxHeader.src.socket;
+    txHeader.src.network = static_cast<Network>(context.net);
+    txHeader.src.host    = context.me;
+    txHeader.src.socket  = rxHeader.dst.socket;    
 
     // build tx
     auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
@@ -108,7 +106,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     }
 
     txHeader.checksum = checksum;
-    logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET) logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }
