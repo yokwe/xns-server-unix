@@ -66,7 +66,7 @@ std::string IDP::toString(PacketType value) {
 
 std::string IDP::toString() const {
     return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-        IDP::toString(checksum), length, control, IDP::toString(packetType), dst.toString(), src.toString());
+        toString(checksum), length, control, toString(packetType), dst.toString(), src.toString());
 }
 
 IDP::Checksum IDP::computeChecksum(const uint8_t* data, int start, int endPlusOne) {

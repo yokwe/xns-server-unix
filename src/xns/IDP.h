@@ -44,26 +44,6 @@
 
 namespace xns {
 //
-
-class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
-public:
-    Network network;
-    Host    host;
-    Socket  socket;
-
-    ByteBuffer& read(ByteBuffer& bb) override {
-        bb.read(network, host, socket);
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) const override {
-        bb.write(network, host, socket);
-        return bb;
-    }
-    std::string toString() const override {
-        return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
-    }
-};
-
 class IDP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
@@ -84,6 +64,25 @@ public:
     };
     static std::string toString(PacketType value);
 
+    class NetworkAddress : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+    public:
+        Network network;
+        Host    host;
+        Socket  socket;
+    
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(network, host, socket);
+            return bb;
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(network, host, socket);
+            return bb;
+        }
+        std::string toString() const override {
+            return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
+        }
+    };
+    
     static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
 
     Checksum       checksum;  // Checksum
