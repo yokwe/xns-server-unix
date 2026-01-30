@@ -50,6 +50,14 @@ namespace xns::server {
 //
 using Delay = xns::RIP::Delay;
 
+template <class T>
+struct HeaderBody {
+    T          header;
+    ByteBuffer body;
+
+    HeaderBody(const T& header_, ByteBuffer& body_) : header(header_), body(body_) {}
+};
+
 struct TransmitData {
     ByteBuffer tx;
     TransmitData(ByteBuffer tx_) : tx(tx_) {}
