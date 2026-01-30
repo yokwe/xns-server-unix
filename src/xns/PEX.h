@@ -75,7 +75,7 @@ public:
         return bb;
     }
     std::string toString() const override {
-        return std_sprintf("{%08X %s}", id, toString(clientType));
+        return std_sprintf("{%08X %-4s}", id, toString(clientType));
     }
 };
 
