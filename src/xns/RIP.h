@@ -84,6 +84,7 @@ public:
     std::vector<Entry> entryList;
 
     RIP() : type(Type::REQUEST) {}
+    RIP(Type type_) : type(type_) {}
 
     ByteBuffer& read(ByteBuffer& bb) override;
     ByteBuffer& write(ByteBuffer& bb)  const override;

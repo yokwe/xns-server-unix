@@ -54,6 +54,7 @@ public:
     Type type;
 
     Echo() : type(Type::REQUEST) {}
+    Echo(Type type_) : type(type_) {}
 
     ByteBuffer& read(ByteBuffer& bb) override {
         bb.read(type);
