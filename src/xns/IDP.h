@@ -101,7 +101,10 @@ public:
         bb.write(checksum, length, control, packetType, dst, src);
         return bb;
     }
-    std::string toString() const override;
+    std::string toString() const override {
+        return std_sprintf("{%s  %d  %d  %s  %s  %s}",
+            toString(checksum), length, control, toString(packetType), dst.toString(), src.toString());    
+    }
 };
 
 }
