@@ -641,16 +641,16 @@ public class Compiler {
 		String typeString;
 		switch(type.type.kind) {
 		case BYTE:
-			typeString = "quint8";
+			typeString = "uint8_t";
 			break;
 		case UNSPECIFIED:
-			typeString = "quint16";
+			typeString = "uint16_t";
 			break;
 		case UNSPECIFIED2:
-			typeString = "quint32";
+			typeString = "uint32_t";
 			break;
 		case UNSPECIFIED3:
-			typeString = "quint64";
+			typeString = "uint64_t";
 			break;
 		default:
 			throw new CompilerException(String.format("Unexpected type %s", type.type.toString()));
@@ -1029,13 +1029,13 @@ public class Compiler {
 	private static String toEnumTypeString(Type type) {
 		switch(type.getConcreteType().kind) {
 		case BYTE:
-			return "quint8";
+			return "uint8_t";
 		case UNSPECIFIED:
-			return "quint16";
+			return "uint16_t";
 		case UNSPECIFIED2:
-			return "quint32";
+			return "uint32_t";
 		case UNSPECIFIED3:
-			return "quint64";
+			return "uint64_t";
 		default:
 			throw new CompilerException(String.format("Unexpected type %s", type));
 		}
@@ -1814,9 +1814,9 @@ public class Compiler {
 			outh.format("namespace %s {", program.info.getProgramVersion());
 			if (program.info.version != 0) {
 				outh.line();
-				outh.format("constexpr const char*   PROGRAM_NAME = \"%s\";", program.info.name);
-				outh.format("constexpr const quint32 PROGRAM_CODE = %d;", program.info.program);
-				outh.format("constexpr const quint32 VERSION_CODE = %d;", program.info.version);
+				outh.format("constexpr const char*    PROGRAM_NAME = \"%s\";", program.info.name);
+				outh.format("constexpr const uint32_t PROGRAM_CODE = %d;", program.info.program);
+				outh.format("constexpr const uint32_t VERSION_CODE = %d;", program.info.version);
 			}
 
 			// for outc
