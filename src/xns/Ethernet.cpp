@@ -53,6 +53,7 @@ std::string Ethernet::toString(Type value) {
     static std::unordered_map<Ethernet::Type, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
+        ENUM_NAME_VALUE(Type, PUP, 0x0A00)
     };
         
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));

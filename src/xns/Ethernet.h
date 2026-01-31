@@ -49,6 +49,7 @@ public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
+        ENUM_NAME_VALUE(Type, PUP, 0x0A00)
     };
     static std::string toString(Type value);
 
