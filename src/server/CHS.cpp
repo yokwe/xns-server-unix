@@ -39,7 +39,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../courier/CHS.h"
+#include "../courier/Courier.h"
 
 #include "Server.h"
 

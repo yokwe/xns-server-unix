@@ -330,6 +330,7 @@ struct MessageType : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, pu
             default:
                 ERROR()
             }
+            return bb;
         }
         ByteBuffer& write(ByteBuffer& bb) const override {
             bb.write(type);
@@ -345,6 +346,7 @@ struct MessageType : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, pu
             default:
                 ERROR()
             }
+            return bb;
         }
         std::string toString() const override {
             switch(type) {
@@ -375,6 +377,7 @@ struct MessageType : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, pu
         ByteBuffer& write(ByteBuffer& bb) const override {
             bb.write(transactionID);
             bb.write(arg.toSpan());
+            return bb;
         }
         std::string toString() const override {
             return std_sprintf("{%04X  (%d) %s}",
@@ -394,6 +397,7 @@ struct MessageType : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, pu
         ByteBuffer& write(ByteBuffer& bb) const override {
             bb.write(transactionID, errorValue);
             bb.write(arg.toSpan());
+            return bb;
         }
         std::string toString() const override {
             return std_sprintf("{%04X  %d  (%d) %s}",
