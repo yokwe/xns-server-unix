@@ -208,7 +208,7 @@ public:
         return std::span<uint8_t>{myData, myByteLimit};
     }
 
-    std::string toString() {
+    std::string toString() const {
         return toHexString(myByteLimit, myData);
     }
 
