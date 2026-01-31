@@ -37,6 +37,7 @@
 
 #include <string>
 #include <cstdint>
+#include <variant>
 #include <vector>
 
 #include "../util/Util.h"
@@ -95,6 +96,9 @@ public:
     }
 };
 
+//
+// ARRAY
+//
 template <class T, uint32_t N>
 class ARRAY : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString  {
     static_assert(N <= 65535, "N is more than 65535");
@@ -162,7 +166,9 @@ public:
     }
 };
 
-
+//
+// SEQUENCE
+//
 template <class T>
 class SEQUENCE : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString  {
     static const constexpr uint32_t MAX_LENGTH = 65535;
@@ -199,7 +205,7 @@ public:
         vector = that;
         return *this;
     }
-    
+
     uint32_t size() const {
         return vector.size();
     }
@@ -231,4 +237,239 @@ public:
         return std_sprintf("(%d) [%s]", vector.size(), string.substr(1));
     }
 };
+
+//
+// MessageType
+//
+struct MessageType : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+    enum class Type : uint16_t {
+        ENUM_NAME_VALUE(Type, CALL,    0)
+        ENUM_NAME_VALUE(Type, REJECT,  1)
+        ENUM_NAME_VALUE(Type, RETURN,  2)
+        ENUM_NAME_VALUE(Type, ABORT,   3)
+    };
+    static std::string toString(Type value);
+
+    struct CallMessage : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+        uint16_t transactionID;
+        uint32_t programNumber;
+        uint16_t versionNumber;
+        uint16_t procedureValue;
+        ByteBuffer arg;
+
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(transactionID, programNumber, versionNumber, procedureValue);
+            arg = bb.rangeRemains();
+            return bb;
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(transactionID, programNumber, versionNumber, procedureValue);
+            bb.write(arg.toSpan());
+            return bb;
+        }
+        std::string toString() const override {
+            return std_sprintf("{%04X  %d  %d  %d  (%d) %s}",
+                transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
+        }
+    };
+    struct RejectMessage : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+        enum class Type : uint16_t {
+            ENUM_NAME_VALUE(Type, NO_SUCH_PROGRAM_NUMBER,  0)
+            ENUM_NAME_VALUE(Type, NO_SUCH_VERSION_NUMBER,  1)
+            ENUM_NAME_VALUE(Type, NO_SUCH_PROCEDURE_VALUE, 2)
+            ENUM_NAME_VALUE(Type, INALID_ARGUMENT,         3)
+            ENUM_NAME_VALUE(Type, UNSPECIFIED_ERROR,  0xFFFF)
+        };
+        static std::string toString(Type value);
+
+        struct ImplementedVersionNumbers: public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+            uint16_t lowest;
+            uint16_t highest;
+
+            ByteBuffer& read(ByteBuffer& bb) override {
+                return bb.read(lowest, highest);
+            }
+            ByteBuffer& write(ByteBuffer& bb) const override {
+                return bb.write(lowest, highest);
+            }
+            std::string toString() const override {
+                return std_sprintf("{%d %d}", lowest, highest);
+            }
+        };
+
+        Type type;
+        std::variant<std::monostate, ImplementedVersionNumbers> variant;
+
+        RejectMessage() : type(Type::UNSPECIFIED_ERROR) {}
+        RejectMessage(Type type_) : type(type_) {}
+        RejectMessage(const ImplementedVersionNumbers& variant_) : type(Type::NO_SUCH_VERSION_NUMBER), variant(variant_) {}
+
+        bool isNO_SUCH_VERSION_NUMBER() {
+            return type == Type::NO_SUCH_VERSION_NUMBER;
+        }
+        const ImplementedVersionNumbers& toImplementedVersionNumbers() {
+            return std::get<ImplementedVersionNumbers>(variant);
+        }
+
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(type);
+            switch(type) {
+            case Type::NO_SUCH_VERSION_NUMBER:
+            {
+                ImplementedVersionNumbers implementedVersionNumbers;
+                bb.read(implementedVersionNumbers);
+                variant = implementedVersionNumbers;
+            }
+                break;
+            case Type::NO_SUCH_PROGRAM_NUMBER:
+            case Type::NO_SUCH_PROCEDURE_VALUE:
+            case Type::INALID_ARGUMENT:
+            case Type::UNSPECIFIED_ERROR:
+                variant = std::monostate();
+                break;
+            default:
+                ERROR()
+            }
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(type);
+            switch(type) {
+            case Type::NO_SUCH_VERSION_NUMBER:
+                bb.write(std::get<ImplementedVersionNumbers>(variant));
+                break;
+            case Type::NO_SUCH_PROGRAM_NUMBER:
+            case Type::NO_SUCH_PROCEDURE_VALUE:
+            case Type::INALID_ARGUMENT:
+            case Type::UNSPECIFIED_ERROR:
+                break;
+            default:
+                ERROR()
+            }
+        }
+        std::string toString() const override {
+            switch(type) {
+            case Type::NO_SUCH_VERSION_NUMBER:
+            {
+                auto t = std::get<ImplementedVersionNumbers>(variant);
+                return std_sprintf("{%s  %s}", toString(type), t.toString());
+            }
+            case Type::NO_SUCH_PROGRAM_NUMBER:
+            case Type::NO_SUCH_PROCEDURE_VALUE:
+            case Type::INALID_ARGUMENT:
+            case Type::UNSPECIFIED_ERROR:
+                return std_sprintf("{%s}", toString(type));
+            default:
+                ERROR()
+            }
+        }
+    };
+    struct ReturnMessage : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+        uint16_t transactionID;
+        ByteBuffer arg;
+
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(transactionID);
+            arg = bb.rangeRemains();
+            return bb;
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(transactionID);
+            bb.write(arg.toSpan());
+        }
+        std::string toString() const override {
+            return std_sprintf("{%04X  (%d) %s}",
+                transactionID, arg.byteLimit(), arg.toString());
+        }
+    };
+    struct AbortMessage : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+        uint16_t transactionID;
+        uint16_t errorValue;
+        ByteBuffer arg;
+
+        ByteBuffer& read(ByteBuffer& bb) override {
+            bb.read(transactionID, errorValue);
+            arg = bb.rangeRemains();
+            return bb;
+        }
+        ByteBuffer& write(ByteBuffer& bb) const override {
+            bb.write(transactionID, errorValue);
+            bb.write(arg.toSpan());
+        }
+        std::string toString() const override {
+            return std_sprintf("{%04X  %d  (%d) %s}",
+                transactionID, errorValue, arg.byteLimit(), arg.toString());
+        }
+    };
+
+    Type type;
+    std::variant<CallMessage, RejectMessage, ReturnMessage, AbortMessage> variant;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(type);
+        switch(type) {
+            case Type::CALL:
+            {
+                CallMessage body;
+                bb.read(body);
+                variant = body;
+            }
+                break;
+            case Type::REJECT:
+            {
+                RejectMessage body;
+                bb.read(body);
+                variant = body;
+            }
+                break;
+            case Type::RETURN:
+            {
+                ReturnMessage body;
+                bb.read(body);
+                variant = body;
+            }
+            break;
+            case Type::ABORT:
+            {
+                AbortMessage body;
+                bb.read(body);
+                variant = body;
+            }
+            break;
+        }
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) const override {
+        bb.write(type);
+        switch(type) {
+        case Type::CALL:
+        {
+            auto body = std::get<CallMessage>(variant);
+            bb.write(body);
+        }
+            break;
+        case Type::REJECT:
+        {
+            auto body = std::get<RejectMessage>(variant);
+            bb.write(body);
+        }
+            break;
+        case Type::RETURN:
+        {
+            auto body = std::get<ReturnMessage>(variant);
+            bb.write(body);
+        }
+        break;
+        case Type::ABORT:
+        {
+            auto body = std::get<AbortMessage>(variant);
+            bb.write(body);
+        }
+            break;
+        default:
+            ERROR()
+        }
+        return bb;
+    }
+};
+
 }
