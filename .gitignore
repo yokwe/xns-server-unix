@@ -4,6 +4,7 @@
 /.cproject
 /.project
 /.settings
+/.classpath
 /target/
 /maven-build.xml
 /maven-build.properties
