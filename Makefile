@@ -76,6 +76,8 @@ gen-stub:
 #	rm   -rf src/courier-stub/*.{cpp,h}
 	ant gen-stub
 
+build-java:
+	mvn ant:ant install
 
 #
 # run-XXX
