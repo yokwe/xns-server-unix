@@ -44,9 +44,10 @@ namespace xns {
 class SPP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
 public:
     enum class SST : uint8_t {
-        ENUM_NAME_VALUE(SST, ZERO,        0)
-        ENUM_NAME_VALUE(SST, END,       254)
-        ENUM_NAME_VALUE(SST, END_REPLY, 255)
+        ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
+        ENUM_NAME_VALUE(SST, BULK,          1) // for bulk data
+        ENUM_NAME_VALUE(SST, CLOSE,       254) // for closing connection
+        ENUM_NAME_VALUE(SST, CLOSE_REPLY, 255) // for reply of closing connection (handshake)
     };
     static std::string toString(SST value);
 
@@ -81,7 +82,7 @@ public:
         return control & BIT_END_OF_MESSAGE;
     }
 
-    SPP() : control(0), sst(SST::ZERO), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
+    SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
     ByteBuffer& read(ByteBuffer& bb) override {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
