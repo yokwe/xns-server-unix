@@ -28,23 +28,24 @@
 		<java module="yokwe.gen_stub/yokwe.gen_stub.app.GenStub" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
-			<arg line="Ethernet IDP" />
-			<arg line="Echo Error PacketExchange Routing Boot SequencedPacket Time" />
+			<arg line="Time2 Authentication3 BulkData1 Clearinghouse3" />
 			<arg line="Protocol ExpeditedCourier" />
+			<!--
 			<arg line="Time2 Authentication1 Authentication2 Authentication3 BulkData1 CHEntries0 Clearinghouse2 Clearinghouse3" />
+			-->
 		</java>
 	</target>
 
 	<!-- antlr-v4-tool -->
 	<target name="antlr-v4-tool">
 		<java classname="org.antlr.v4.Tool" fork="true" failonerror="true">
-				<classpath refid="build.classpath" />
-				<modulepath refid="target.jar" />
-				<arg line="-o tmp/antlr" />
-				<arg line="-package yokwe.gen_stub.courier.antlr" />
-				<arg line="-no-listener" />
-				<arg line="-visitor" />
-				<arg value="src/main/java/yokwe/gen_stub/courier/antlr/Courier.g" />
+			<classpath refid="build.classpath" />
+			<modulepath refid="target.jar" />
+			<arg line="-o tmp/antlr" />
+			<arg line="-package yokwe.gen_stub.courier.antlr" />
+			<arg line="-no-listener" />
+			<arg line="-visitor" />
+			<arg value="src/main/java/yokwe/gen_stub/courier/antlr/Courier.g" />
 		</java>
 	</target>
 
