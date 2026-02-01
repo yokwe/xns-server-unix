@@ -57,14 +57,14 @@ static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
     xns::PEX rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
 
     if (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = map.at(rxHeader.clientType)(rxbb, context);
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
+    if (txbb.empty()) return ByteBuffer::Net::getInstance();
 
     xns::PEX txHeader;
     txHeader.id         = rxHeader.id;
@@ -82,19 +82,19 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 ByteBuffer unspec(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
     logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
+    ByteBuffer tx = ByteBuffer::Net::getInstance();
     return tx;
 }
 ByteBuffer chs(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
     logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
+    ByteBuffer tx = ByteBuffer::Net::getInstance();
     return tx;
 }
 ByteBuffer teledebug(ByteBuffer& rx, Context& context) {
     (void)rx; (void)context;
     logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx;
+    ByteBuffer tx = ByteBuffer::Net::getInstance();
     return tx;
 }
 

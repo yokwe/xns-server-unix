@@ -60,7 +60,7 @@ Result response(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
     logger.info("## %s", __PRETTY_FUNCTION__);
     (void)rxHeader; (void)rxbb; (void)context;
     Echo txHeader;
-    ByteBuffer txbb;
+    ByteBuffer txbb = ByteBuffer::Net::getInstance();
     return Result{txHeader, txbb};
 }
 
@@ -71,8 +71,8 @@ static std::unordered_map<Type, Result (*)(Echo&, ByteBuffer&, Context&)> map {
 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Echo rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
     if (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);

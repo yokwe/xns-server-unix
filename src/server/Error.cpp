@@ -49,11 +49,11 @@ using Error   = xns::Error;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
     Error rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
     if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    return ByteBuffer{};
+    return ByteBuffer::Net::getInstance();
 }
 
 }

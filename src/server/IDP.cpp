@@ -72,7 +72,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     auto txbb = map.at(rxHeader.packetType)(rxbb, context);
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
+    if (txbb.empty()) return ByteBuffer::Net::getInstance();
 
     // prepare transmit
     xns::IDP txHeader;

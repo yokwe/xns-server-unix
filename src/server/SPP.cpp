@@ -49,11 +49,11 @@ using SPP   = xns::SPP;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
     SPP rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
     if (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    return ByteBuffer{};
+    return ByteBuffer::Net::getInstance();
 }
 
 }

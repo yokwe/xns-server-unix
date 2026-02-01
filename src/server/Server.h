@@ -53,13 +53,13 @@ using Delay = xns::RIP::Delay;
 template <class T>
 struct HeaderBody {
     T          header;
-    ByteBuffer body;
+    ByteBuffer body = ByteBuffer::Net::getInstance();
 
     HeaderBody(const T& header_, ByteBuffer& body_) : header(header_), body(body_) {}
 };
 
 struct TransmitData {
-    ByteBuffer tx;
+    ByteBuffer tx = ByteBuffer::Net::getInstance();
     TransmitData(ByteBuffer tx_) : tx(tx_) {}
 };
 struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
@@ -73,7 +73,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
 };
 
 struct ReceiveData {
-    ByteBuffer rx;
+    ByteBuffer rx = ByteBuffer::Net::getInstance();
     ReceiveData() : rx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
 };
 struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {

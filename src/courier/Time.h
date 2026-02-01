@@ -51,7 +51,7 @@ enum class Type : uint16_t {
 };
 std::string toString(Type value);
 
-class Request : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Request : public HasRead, public HasWrite, public HasToString {
 public:
     Version version;
     Type    type;
@@ -60,7 +60,7 @@ public:
         bb.read(version, type);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb)  const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(version, type);
         return bb;
     }
@@ -69,7 +69,7 @@ public:
     }
 };
 
-class Response : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Response : public HasRead, public HasWrite, public HasToString {
 public:
     enum class Direction : uint16_t {
         ENUM_NAME_VALUE(Direction, WEST, 0)
@@ -103,7 +103,7 @@ public:
         bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb)  const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
         return bb;
     }

@@ -47,8 +47,8 @@ namespace xns::server::Ethernet {
 //
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::Ethernet rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
 
     bool myPacket = false;
     if (rxHeader.type == xns::Ethernet::Type::XNS) {
@@ -56,13 +56,13 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
             myPacket = true;
         }
     }
-    if (!myPacket) return ByteBuffer{};
+    if (!myPacket) return ByteBuffer::Net::getInstance();
 
     if (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = IDP::process(rxbb, context);        
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
+    if (txbb.empty()) return ByteBuffer::Net::getInstance();
 
     // prepare transmit
     xns::Ethernet txHeader;
