@@ -169,9 +169,9 @@ public:
 //
 // SEQUENCE
 //
-template <class T>
+template <class T, uint32_t N = 65535>
 class SEQUENCE : public HasRead, public HasWrite, public HasToString  {
-    static const constexpr uint32_t MAX_LENGTH = 65535;
+    static const constexpr uint32_t MAX_LENGTH = N;
     mutable std::vector<T> vector;
 
 public:
@@ -203,6 +203,11 @@ public:
     SEQUENCE& operator =(const std::vector<T>& that) {
         if (MAX_LENGTH < that.size()) ERROR()
         vector = that;
+        return *this;
+    }
+    SEQUENCE& operator +=(const T& that) {
+        if (MAX_LENGTH < that.size()) ERROR()
+        vector += that;
         return *this;
     }
 
