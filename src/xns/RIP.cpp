@@ -72,9 +72,9 @@ ByteBuffer& RIP::read(ByteBuffer& bb) {
     }
     return bb;
 }
-ByteBuffer& RIP::write(ByteBuffer& bb) const {
+ByteBuffer& RIP::write(ByteBuffer& bb) {
     bb.write(type);
-    for(const auto& e: entryList) {
+    for(auto& e: entryList) {
         bb.write(e);
     }
     return bb;

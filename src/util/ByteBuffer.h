@@ -37,13 +37,22 @@
 
 #include <cstdint>
 #include <memory>
-#include <type_traits>
 #include <span>
 
 #include "Util.h"
 
+class ByteBuffer;
+struct HasRead {
+    virtual ByteBuffer& read(ByteBuffer& bb) = 0;
+    virtual ~HasRead() = default;
+};
 
-class ByteBuffer {
+struct HasWrite {
+    virtual ByteBuffer& write(ByteBuffer& bb) = 0;
+    virtual ~HasWrite() = default;
+};
+
+class ByteBuffer : public HasRead, public HasWrite, public HasToString {
     static const int bytesPerWord = 2;
 
     static uint32_t byteValueToWordValue(uint32_t byteValue) {
@@ -69,7 +78,7 @@ class ByteBuffer {
         }
 
         // 32
-        virtual uint32_t get32(uint8_t* data, uint32_t pos) = 0;
+        virtual uint32_t get32(uint8_t* data, uint32_t pos)                 = 0;
         virtual void     put32(uint8_t* data, uint32_t pos, uint32_t value) = 0;
     };
     
@@ -97,14 +106,14 @@ class ByteBuffer {
     uint8_t get8(uint32_t bytePos) {
         return myData[bytePos];
     }
-    void put8(uint32_t bytePos, uint8_t value) const {
+    void put8(uint32_t bytePos, uint8_t value) {
         myData[bytePos] = value;
     }
     // 16
     uint16_t get16(uint32_t bytePos) {
         return (myData[bytePos + 0] << 8) | (myData[bytePos + 1] << 0);
     }
-    void put16(uint32_t bytePos, uint16_t value) const {
+    void put16(uint32_t bytePos, uint16_t value) {
         myData[bytePos + 0] = value >> 8;
         myData[bytePos + 1] = value >> 0;
     }
@@ -194,29 +203,34 @@ public:
         myByteMark      = BAD_MARK;
     }
 
-    ByteBuffer byteRange(uint32_t byteOffset, uint32_t byteSize) const;
-    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const {
+    ByteBuffer byteRange(uint32_t byteOffset, uint32_t byteSize);
+    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) {
+        if (myImpl == 0) ERROR()
         auto byteOffset  = wordValueToByteValue(wordOffset);
         auto byteSize = wordValueToByteValue(wordSize);
         return byteRange(byteOffset, byteSize);
     }
-    ByteBuffer rangeRemains() const {
-        return byteRange(myBytePos, byteRemains());
+    ByteBuffer rangeRemains() {
+        auto byteSize = byteRemains();
+        return ByteBuffer(myImpl, myData + myBytePos, byteSize, byteSize);
     }
 
     std::span<uint8_t> toSpan() const {
         return std::span<uint8_t>{myData, myByteLimit};
     }
+    std::span<uint8_t> toSpanRemains() {
+        return std::span<uint8_t>{myData + myBytePos, byteRemains()};
+    }
 
-    std::string toString() const {
+    std::string toString() const override {
         return toHexString(myByteLimit, myData);
     }
 
-    const char* name() const {
+    const char* name() {
         return myImpl->myName;
     }
 
-    const uint8_t* data() const {
+    const uint8_t* data() {
         return myData;
     }
 
@@ -253,19 +267,19 @@ public:
     //
     // capacity
     //
-    uint32_t byteCapacity() const {
+    uint32_t byteCapacity() {
         return myByteCapacity;
     }
-    uint32_t capacity() const {
+    uint32_t capacity() {
         return byteValueToWordValue(byteCapacity());
     }
     //
     // pos
     //
-    uint32_t bytePos() const {
+    uint32_t bytePos() {
         return myBytePos;
     }
-    uint32_t pos() const {
+    uint32_t pos() {
         return byteValueToWordValue(bytePos());
     }
     //
@@ -274,24 +288,29 @@ public:
     uint32_t byteLimit() const {
         return myByteLimit;
     }
-    uint32_t limit() const {
+    uint32_t limit() {
         return byteValueToWordValue(byteLimit());
     }
-    bool empty() const {
+    bool empty() {
         return byteLimit() == 0;
     }
     //
     // remains
     //
-    uint32_t byteRemains() const {
+    uint32_t byteRemains() {
         return myByteLimit - myBytePos;
     }
-    uint32_t remains() const {
+    uint32_t remains() {
         return byteValueToWordValue(byteRemains());
     }
 
     
     // getX
+    std::span<uint8_t> getSpan() {
+        std::span<uint8_t> ret = toSpanRemains();
+        myBytePos = myByteLimit;
+        return ret;
+    }
     uint8_t get8() {
         const uint32_t byteSize = 1;
 
@@ -356,10 +375,11 @@ public:
     //
     // HasRead and read(...)
     //
-    struct HasRead {
-        virtual ByteBuffer& read(ByteBuffer& bb) = 0;
-        virtual ~HasRead() = default;
-    };
+    ByteBuffer& read(ByteBuffer& value) override {
+        value = rangeRemains();
+        return *this;
+    }
+    // read() for template function read
     ByteBuffer& read() {
         return *this;
     }
@@ -400,7 +420,7 @@ public:
                 ERROR()    
             }
         } else if constexpr (is_class) {
-            constexpr auto has_read = std::is_base_of_v<HasRead, std::remove_reference_t<Head>>;
+            constexpr auto has_read = std::is_base_of_v<HasRead, T>;
             if constexpr (has_read) {
                 head.read(*this);
             } else {
@@ -434,10 +454,11 @@ public:
     //
     // HasWrite and write(...)
     //
-    struct HasWrite {
-        virtual ByteBuffer& write(ByteBuffer& bb) const = 0;
-        virtual ~HasWrite() = default;
-    };
+   ByteBuffer& write(ByteBuffer& value) override {
+        putSpan(value.toSpan());
+        return *this;
+    }
+    // write() for temlate function write
     ByteBuffer& write() {
         return *this;
     }
@@ -475,7 +496,7 @@ public:
                 ERROR()    
             }
         } else if constexpr (is_class) {
-            constexpr auto has_write = std::is_base_of_v<HasWrite, std::remove_reference_t<Head>>;
+            constexpr auto has_write = std::is_base_of_v<HasWrite, T>;
             if constexpr (has_write) {
                 head.write(*this);
             } else {

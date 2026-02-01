@@ -69,7 +69,7 @@ void ByteBuffer::checkBeforeWrite(uint32_t byteSize) {
     ERROR()
 }
 
-ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) const {
+ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) {
     if (myByteCapacity < (byteOffset + byteSize)) {
         // fix readSize
         auto newByteSize = myByteCapacity - byteOffset;

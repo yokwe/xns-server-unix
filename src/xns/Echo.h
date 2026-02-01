@@ -43,7 +43,7 @@
 
 namespace xns {
 //
-class Echo : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Echo : public HasRead, public HasWrite, public HasToString {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, REQUEST,  1)
@@ -60,7 +60,7 @@ public:
         bb.read(type);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(type);
         return bb;
     }
