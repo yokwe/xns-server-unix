@@ -59,7 +59,7 @@ struct HeaderBody {
 };
 
 struct TransmitData {
-    ByteBuffer tx = ByteBuffer::Net::getInstance();
+    ByteBuffer tx;
     TransmitData(ByteBuffer tx_) : tx(tx_) {}
 };
 struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> {
@@ -73,7 +73,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
 };
 
 struct ReceiveData {
-    ByteBuffer rx = ByteBuffer::Net::getInstance();
+    ByteBuffer rx;
     ReceiveData() : rx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
 };
 struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
@@ -152,6 +152,9 @@ namespace SPP {
 }
 
 namespace Time {
+    ByteBuffer process  (ByteBuffer& rx, Context& context);
+}
+namespace CHS {
     ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
 

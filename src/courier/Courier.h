@@ -239,8 +239,80 @@ public:
 };
 
 //
-// MessageType
+// Message
 //
+enum class Type : uint16_t {
+    ENUM_NAME_VALUE(Type, CALL,    0)
+    ENUM_NAME_VALUE(Type, REJECT,  1)
+    ENUM_NAME_VALUE(Type, RETURN,  2)
+    ENUM_NAME_VALUE(Type, ABORT,   3)
+};
+std::string toString(Type value);
+
+namespace protocol3{
+//
+struct CallMessage : public HasRead, public HasWrite, public HasToString {
+    Type       type;
+    uint16_t   transactionID;
+    uint32_t   programNumber;
+    uint16_t   versionNumber;
+    uint16_t   procedureValue;
+    ByteBuffer arg;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(type, transactionID, programNumber, versionNumber, procedureValue, arg);
+        if (type != Type::CALL) ERROR()
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(type, transactionID, programNumber, versionNumber, procedureValue, arg);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %04X  %d  %d  %d  (%d) %s}",
+            courier::toString(type), transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
+    }
+};
+struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
+    Type       type;
+    uint16_t   transactionID;
+    ByteBuffer arg;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(type, transactionID, arg);
+        if (type != Type::RETURN) ERROR()
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(type, transactionID, arg);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %04X  (%d) %s}",
+            courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
+    }
+};
+struct AborrMessage : public HasRead, public HasWrite, public HasToString {
+    Type       type;
+    uint16_t   transactionID;
+    uint16_t   errorValue;
+    ByteBuffer arg;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(type, transactionID, errorValue, arg);
+        if (type != Type::ABORT) ERROR()
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(type, transactionID, errorValue, arg);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %04X  (%d) %s}",
+            courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
+    }
+};
+
 struct MessageType : public HasRead, public HasWrite, public HasToString {
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, CALL,    0)
@@ -475,5 +547,100 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
         return bb;
     }
 };
+
+}
+
+//
+// Protocol
+//
+enum class Protocol : uint16_t {
+    ENUM_NAME_VALUE(Protocol, PROTOCOL_2,    2)
+    ENUM_NAME_VALUE(Protocol, PROTOCOL_3,    3)
+};
+std::string toString(Protocol value);
+
+//
+// ProtocolRange
+//
+struct ProtocolRange : public HasRead, public HasWrite, public HasToString {
+    Protocol low;
+    Protocol high;
+
+    ProtocolRange() : low(Protocol::PROTOCOL_3), high(Protocol::PROTOCOL_3) {}
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(low, high);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(low, high);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %s}", courier::toString(low), courier::toString(high));
+    }
+};
+
+//
+// VersionRange
+//
+struct VersionRange : public HasRead, public HasWrite, public HasToString {
+    uint16_t low;
+    uint16_t high;
+
+    VersionRange() : low(0), high() {}
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(low, high);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(low, high);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%d  %d}", low, high);
+    }
+};
+
+//
+// ExpeditedMessage
+//
+namespace expedited {
+//
+struct CallMessage : public HasRead, public HasWrite, public HasToString {
+    ProtocolRange          range;
+    protocol3::CallMessage message;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(range, message);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(range, message);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %s}", range.toString(), message.toString());
+    }
+};
+struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
+    ProtocolRange            range;
+    protocol3::ReturnMessage message;
+
+    ByteBuffer& read(ByteBuffer& bb) override {
+        bb.read(range, message);
+        return bb;
+    }
+    ByteBuffer& write(ByteBuffer& bb) override {
+        bb.write(range, message);
+        return bb;
+    }
+    std::string toString() const override {
+        return std_sprintf("{%s  %s}", range.toString(), message.toString());
+    }
+};
+
+}
 
 }

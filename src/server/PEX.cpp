@@ -47,16 +47,16 @@ static const Logger logger(__FILE__);
 
 namespace xns::server::PEX {
 //
-using ClientType = xns::PEX::ClientType;
+using PEX = xns::PEX;
+
+using ClientType = PEX::ClientType;
 static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
-    {ClientType::UNSPEC,    unspec},
     {ClientType::TIME,      Time::process},
-    {ClientType::CHS,       chs},
-    {ClientType::TELEDEBUG, teledebug},
+    {ClientType::CHS,       CHS::process},
 };
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;
-    xns::PEX rxHeader;
+    PEX rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
 
@@ -66,35 +66,14 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     txbb.flip();
     if (txbb.empty()) return ByteBuffer::Net::getInstance();
 
-    xns::PEX txHeader;
-    txHeader.id         = rxHeader.id;
-    txHeader.clientType = rxHeader.clientType;
+    PEX txHeader{rxHeader};
 
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
     tx.write(txHeader);
     tx.write(txbb.toSpan());
 
     if (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
-    return tx;
-}
-
-ByteBuffer unspec(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx = ByteBuffer::Net::getInstance();
-    return tx;
-}
-ByteBuffer chs(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx = ByteBuffer::Net::getInstance();
-    return tx;
-}
-ByteBuffer teledebug(ByteBuffer& rx, Context& context) {
-    (void)rx; (void)context;
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    ByteBuffer tx = ByteBuffer::Net::getInstance();
     return tx;
 }
 

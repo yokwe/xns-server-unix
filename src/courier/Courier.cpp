@@ -30,49 +30,37 @@
 
  
  //
- // CHS.cpp
+ // Courier.cpp
  //
 
-#include "../util/Debug.h"
+ #include <utility>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
+#include "Courier.h"
 
-#include "../courier/Courier.h"
+#undef  ENUM_NAME_VALUE
+#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
-#include "Server.h"
-
-namespace xns::server::CHS {
+namespace xns::courier {
 //
-
-// RetrieveAddresses: PROCEDURE
-// RETURNS [address: NetworkAddressList]
-// REPORTS [CallError] = 0;
-
-// NetworkAddress: TYPE = RECORD [
-// 	network: ARRAY 2 OF UNSPECIFIED,
-// 	host: ARRAY 3 OF UNSPECIFIED,
-// 	socket: UNSPECIFIED ];
-// NetworkAddressList: TYPE = SEQUENCE 40 OF NetworkAddress;
-
-using namespace courier::expedited;
-
-ByteBuffer process(ByteBuffer& rx, Context& context) {
-    (void)context;
-    CallMessage rxHeader;
-    rx.read(rxHeader);
-
-    if (SHOW_PACKET_TIME) logger.info("CHS  >>  %s", rxHeader.toString());
-    if (rx.remains()) ERROR()
-
-    // auto txHeader = call(rxHeader, context);
-    // if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
-
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
-    // tx.write(txHeader);
-    return tx;
+std::string toString(Type value) {
+    static std::unordered_map<Type, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Type, CALL,    0)
+        ENUM_NAME_VALUE(Type, REJECT,  1)
+        ENUM_NAME_VALUE(Type, RETURN,  2)
+        ENUM_NAME_VALUE(Type, ABORT,   3)
+            };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
+std::string toString(Protocol value) {
+    static std::unordered_map<Protocol, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Protocol, PROTOCOL_2,    2)
+        ENUM_NAME_VALUE(Protocol, PROTOCOL_3,    3)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
 
 }

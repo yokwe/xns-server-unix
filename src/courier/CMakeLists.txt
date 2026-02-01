@@ -10,6 +10,7 @@ target_sources(
 		Courier.h
 		Time.h
 	PRIVATE
+		Courier.cpp
 		Time.cpp
 )
 
