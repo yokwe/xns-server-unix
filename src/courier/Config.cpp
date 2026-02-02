@@ -28,76 +28,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // main.cpp
+ // Config.cpp
  //
+
+#include <string>
+#include <fstream>
+
+#include <nlohmann/json.hpp>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
-#include "../util/ThreadControl.h"
+#include "Config.h"
 
-#include "../xns/XNS.h"
+using json = nlohmann::json;
 
-#include "Server.h"
+#define simple(name)  p.name = j.at(#name);
 
-using namespace xns::server;
+namespace xns::courier {
+//
+void from_json(const json& j, Config::Procedure& p) {
+    simple(name)
+    simple(procedure)
+}
+void from_json(const json& j, Config::Program& p) {
+    simple(name)
+    simple(program)
+    simple(version)
 
-int main(int, char **) {
+    for(auto e: j["procedures"]) {
+        auto procedure = e.template get<Config::Procedure>();
+        auto key = procedure.procedure;
+        p.procedureMap[key] = procedure;
+    }
+}
 
-	logger.info("START");
-
-    setSignalHandler(SIGINT);
-	setSignalHandler(SIGTERM);
-	setSignalHandler(SIGHUP);
-	setSignalHandler(SIGSEGV);
-
-    Context context;
-
-    xns::initialize(&context.config);
-
-	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::hostName(context.driver->device.address), context.driver->device.name);
-	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), xns::hostName(context.me));
-	logger.info("network  %d  %s", context.net, toString(context.net));
-
-
-    auto& driver = *context.driver;
-	driver.open();
-
-    ThreadReceive  threadReceive(driver);
-    ThreadTransmit threadTransmit(driver);
-
-    std::function<void()> f1 = std::bind(&ThreadReceive::run, &threadReceive);
-    std::function<void()> f2 = std::bind(&ThreadTransmit::run, &threadTransmit);
-
-	ThreadControl t1("threadReceive",  f1);
-	ThreadControl t2("threadTransmit", f2);
-
-    driver.clear();
-    t1.start();
-    t2.start();
-
-    for(;;) {
-        ReceiveData receiveData;
-        
-        threadReceive.pop(receiveData);
-        if (receiveData.rx.empty()) continue;
-
-        auto& rx = receiveData.rx;
-
-        auto tx = Ethernet::process(rx, context);
-        if (tx.empty()) continue;
-
-        TransmitData transmitData(tx);
-        threadTransmit.push(transmitData);
-	}
-
-    threadReceive.stop();
-    threadTransmit.stop();
-    t1.join();
-    t2.join();
-
-	logger.info("STOP");
+Config Config::getInstance(const std::string& path) {
+    //	logger.info("path  %s", path);
+        std::ifstream f(path);
+        json data = json::parse(f);
+    
+        Config ret;
+        for(auto e: data["programs"]) {
+            Program program = e.template get<Config::Program>();
+            Key     key{program};
+            ret.programMap[key] = program;
+        }
+        return ret;
+    }
+    
 }

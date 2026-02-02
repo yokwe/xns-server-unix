@@ -28,76 +28,70 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // main.cpp
+ // Config.h
  //
 
-#include "../util/Util.h"
-static const Logger logger(__FILE__);
+#pragma once
+
+#include <compare>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <unordered_map>
 
 #include "../util/ByteBuffer.h"
-#include "../util/ThreadControl.h"
 
-#include "../xns/XNS.h"
+namespace xns::courier {
+//
+struct Config {
+    using CallProc = std::function<ByteBuffer(ByteBuffer&)>;
 
-#include "Server.h"
+    struct Procedure {
+        std::string name;
+        uint16_t    procedure;
+        CallProc    callProc;
+    };
 
-using namespace xns::server;
+    struct Program {
+        std::string name;
+        uint32_t    program;
+        uint16_t    version;
+    
+        std::unordered_map<uint16_t, Procedure> procedureMap;
+        //                 procedure
+    };
 
-int main(int, char **) {
-
-	logger.info("START");
-
-    setSignalHandler(SIGINT);
-	setSignalHandler(SIGTERM);
-	setSignalHandler(SIGHUP);
-	setSignalHandler(SIGSEGV);
-
-    Context context;
-
-    xns::initialize(&context.config);
-
-	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::hostName(context.driver->device.address), context.driver->device.name);
-	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), xns::hostName(context.me));
-	logger.info("network  %d  %s", context.net, toString(context.net));
-
-
-    auto& driver = *context.driver;
-	driver.open();
-
-    ThreadReceive  threadReceive(driver);
-    ThreadTransmit threadTransmit(driver);
-
-    std::function<void()> f1 = std::bind(&ThreadReceive::run, &threadReceive);
-    std::function<void()> f2 = std::bind(&ThreadTransmit::run, &threadTransmit);
-
-	ThreadControl t1("threadReceive",  f1);
-	ThreadControl t2("threadTransmit", f2);
-
-    driver.clear();
-    t1.start();
-    t2.start();
-
-    for(;;) {
-        ReceiveData receiveData;
+    struct Key : public HasToString {
+        struct Hash {
+            std::size_t operator()(const Key& value) const {
+                return value.program << 16 | value.version;
+            }
+        };
         
-        threadReceive.pop(receiveData);
-        if (receiveData.rx.empty()) continue;
+        uint32_t program;
+        uint16_t version;
+    
+        Key(uint32_t program_, uint16_t version_) : program(program_), version(version_) {}
+        Key(const Program& program) : program(program.program), version(program.version) {}
 
-        auto& rx = receiveData.rx;
+        std::string toString() const override {
+            return std_sprintf("{%d  %d}", program, version);
+        }
+    
+        bool operator == (const Key& that) const {
+            return program == that.program && version == that.version;
+        }
+    };
+    
+    std::unordered_map<Key, Program, Key::Hash> programMap;
 
-        auto tx = Ethernet::process(rx, context);
-        if (tx.empty()) continue;
+    static Config getInstance(const std::string& path);
+    static Config getInstance() {
+        return getInstance("data/courier-config.json");
+    }
+};
 
-        TransmitData transmitData(tx);
-        threadTransmit.push(transmitData);
-	}
 
-    threadReceive.stop();
-    threadTransmit.stop();
-    t1.join();
-    t2.join();
-
-	logger.info("STOP");
 }

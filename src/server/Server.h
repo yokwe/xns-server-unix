@@ -46,6 +46,8 @@
 #include "../xns/XNS.h"
 #include "../xns/RIP.h"
 
+#include "../courier/Config.h"
+
 namespace xns::server {
 //
 using Delay = xns::RIP::Delay;
@@ -100,13 +102,16 @@ struct Routing {
 };
 
 struct Context {
-    Config                     config;
+    courier::Config            courier;
+    xns::Config                config;
     net::Driver*               driver;
     uint64_t                   me;
     Network                    net;
     std::map<Network, Routing> routingMap;
 
+
     Context() {
+        courier = courier::Config::getInstance();
         config = xns::Config::getInstance();
         auto device = net::getDevice(config.server.interface);
         driver = net::getDriver(device);

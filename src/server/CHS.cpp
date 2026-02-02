@@ -61,10 +61,19 @@ using namespace courier::expedited;
 ByteBuffer process(ByteBuffer& rx, Context& context) {
     (void)context;
     CallMessage rxHeader;
-    rx.read(rxHeader);
 
+    rx.read(rxHeader);
     if (SHOW_PACKET_TIME) logger.info("CHS  >>  %s", rxHeader.toString());
     if (rx.remains()) ERROR()
+
+    auto program = rxHeader.message.programNumber;
+    auto version = rxHeader.message.versionNumber;
+    auto procedure = rxHeader.message.procedureValue;
+
+    xns::courier::Config::Key key{program, version};
+    auto prog = context.courier.programMap.at(key);
+    auto proc = prog.procedureMap.at(procedure);
+    logger.info("%s  %s", prog.name, proc.name);
 
     // auto txHeader = call(rxHeader, context);
     // if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
