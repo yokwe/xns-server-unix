@@ -15,11 +15,10 @@ import yokwe.gen_stub.courier.program.Constant.*;
 import yokwe.gen_stub.courier.program.Program.Info;
 import yokwe.gen_stub.courier.program.Type.*;
 
-import org.antlr.v4.runtime.ANTLRFileStream;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,17 +86,16 @@ public class ProgramBuilder {
 	}
 
 	private static CourierProgramContext getTree(String path) {
-		ANTLRInputStream input;
 		try {
-			input = new ANTLRFileStream(path);
+			CharStream        stream  = CharStreams.fromFileName(path);
+			CourierLexer      lexer   = new CourierLexer(stream);
+			CommonTokenStream tokens  = new CommonTokenStream(lexer);
+			CourierParser     parser  = new CourierParser(tokens);
+			
+			return parser.courierProgram();
 		} catch (IOException e) {
 			throw new ProgramException("IOException", e);
 		}
-		CourierLexer          lexer   = new CourierLexer(input);
-		CommonTokenStream     tokens  = new CommonTokenStream(lexer);
-		CourierParser         parser  = new CourierParser(tokens);
-		
-		return parser.courierProgram();
 	}	
 	
 	
@@ -151,12 +149,12 @@ public class ProgramBuilder {
 		
 		// don't visit in declarationList
 		@Override
-		public Void visitDeclarationList(@NotNull DeclarationListContext context) {
+		public Void visitDeclarationList(DeclarationListContext context) {
 			return null;
 		}
 		
 		@Override
-		public Void visitProgramHeader(@NotNull ProgramHeaderContext context) {
+		public Void visitProgramHeader(ProgramHeaderContext context) {
 			String name      = context.name.getText();
 			int    programNo = (int)Util.parseLong(context.program.getText());
 			int    versionNo = (int)Util.parseLong(context.version.getText());
@@ -165,7 +163,7 @@ public class ProgramBuilder {
 		}
 
 		@Override
-		public Void visitReferencedProgram(@NotNull ReferencedProgramContext context) {
+		public Void visitReferencedProgram(ReferencedProgramContext context) {
 			String name    = context.program.getText();
 			int    number  = (int)Util.parseLong(context.number.getText());
 			int    version = (int)Util.parseLong(context.version.getText());
@@ -178,53 +176,53 @@ public class ProgramBuilder {
 	private class TypeVisitor extends CourierBaseVisitor<Type> {
 		// Primitive
 		@Override
-		public Type visitTypeBoolean(@NotNull TypeBooleanContext context) {
+		public Type visitTypeBoolean(TypeBooleanContext context) {
 			return new TypePredefined(Type.Kind.BOOLEAN);
 		}
 		@Override
-		public Type visitTypeBlock(@NotNull TypeBlockContext context) {
+		public Type visitTypeBlock(TypeBlockContext context) {
 			return new TypePredefined(Type.Kind.BLOCK);
 		}
 		@Override
-		public Type visitTypeByte(@NotNull TypeByteContext context) {
+		public Type visitTypeByte(TypeByteContext context) {
 			return new TypePredefined(Type.Kind.BYTE);
 		}
 		@Override
-		public Type visitTypeCardinal(@NotNull TypeCardinalContext context) {
+		public Type visitTypeCardinal(TypeCardinalContext context) {
 			return new TypePredefined(Type.Kind.CARDINAL);
 		}
 		@Override
-		public Type visitTypeLongCardinal(@NotNull TypeLongCardinalContext context) {
+		public Type visitTypeLongCardinal(TypeLongCardinalContext context) {
 			return new TypePredefined(Type.Kind.LONG_CARDINAL);
 		}
 //		@Override
-//		public Type visitTypeInteger(@NotNull TypeIntegerContext context) {
+//		public Type visitTypeInteger(TypeIntegerContext context) {
 //			return new TypePredefined(Type.Kind.INTEGER);
 //		}
 //		@Override
-//		public Type visitTypeLongInteger(@NotNull TypeLongIntegerContext context) {
+//		public Type visitTypeLongInteger(TypeLongIntegerContext context) {
 //			return new TypePredefined(Type.Kind.LONG_INTEGER);
 //		}
 		@Override
-		public Type visitTypeString(@NotNull TypeStringContext context) {
+		public Type visitTypeString(TypeStringContext context) {
 			return new TypePredefined(Type.Kind.STRING);
 		}
 		@Override
-		public Type visitTypeUnspecified(@NotNull TypeUnspecifiedContext context) {
+		public Type visitTypeUnspecified(TypeUnspecifiedContext context) {
 			return new TypePredefined(Type.Kind.UNSPECIFIED);
 		}
 		@Override
-		public Type visitTypeUnspecified2(@NotNull TypeUnspecified2Context context) {
+		public Type visitTypeUnspecified2(TypeUnspecified2Context context) {
 			return new TypePredefined(Type.Kind.UNSPECIFIED2);
 		}
 		@Override
-		public Type visitTypeUnspecified3(@NotNull TypeUnspecified3Context context) {
+		public Type visitTypeUnspecified3(TypeUnspecified3Context context) {
 			return new TypePredefined(Type.Kind.UNSPECIFIED3);
 		}
 
 		// Constructed
 		@Override
-		public Type visitTypeEmptyEnum(@NotNull TypeEmptyEnumContext context) {
+		public Type visitTypeEmptyEnum(TypeEmptyEnumContext context) {
 			TypeEnum typeEnum = new TypeEnum(new TypePredefined(Type.Kind.UNSPECIFIED));
 
 			for(CorrespondenceContext e: context.correspondenceList().elements) {
@@ -235,7 +233,7 @@ public class ProgramBuilder {
 			return typeEnum;
 		}
 		@Override
-		public Type visitTypeEnum(@NotNull TypeEnumContext context) {
+		public Type visitTypeEnum(TypeEnumContext context) {
 			EnumTypeContext enumType = context.enumType();
 			
 			Type type;
@@ -260,13 +258,13 @@ public class ProgramBuilder {
 			return typeEnum;
 		}
 		@Override
-		public Type visitTypeArray(@NotNull TypeArrayContext context) {
+		public Type visitTypeArray(TypeArrayContext context) {
 			long  numericValue = Util.parseLong(context.numericValue().getText());
 			Type  type         = typeVisitor.visit(context.type());
 			return new TypeArray(numericValue, type);
 		}
 		@Override
-		public Type visitTypeSequence(@NotNull TypeSequenceContext context) {
+		public Type visitTypeSequence(TypeSequenceContext context) {
 			long  numericValue;
 			if (context.maximumNumber().getChildCount() == 0) {
 				numericValue = TypeSequence.MAX_SIZE;
@@ -279,7 +277,7 @@ public class ProgramBuilder {
 		}
 
 		@Override
-		public Type visitTypeRecord(@NotNull TypeRecordContext context) {
+		public Type visitTypeRecord(TypeRecordContext context) {
 			TypeRecord ret = new TypeRecord();
 			for(FieldContext field: context.fieldList().elements) {
 				Type type = typeVisitor.visit(field.type());
@@ -291,11 +289,11 @@ public class ProgramBuilder {
 			return ret;
 		}
 		@Override
-		public Type visitTypeEmptyRecord(@NotNull TypeEmptyRecordContext context) {
+		public Type visitTypeEmptyRecord(TypeEmptyRecordContext context) {
 			return new TypeRecord();
 		}
 		@Override
-		public Type visitTypeChoiceTyped(@NotNull TypeChoiceTypedContext context) {
+		public Type visitTypeChoiceTyped(TypeChoiceTypedContext context) {
 			TypeChoice.Typed ret;
 			
 			{
@@ -319,7 +317,7 @@ public class ProgramBuilder {
 			return ret;
 		}
 		@Override
-		public Type visitTypeChoiceAnon(@NotNull TypeChoiceAnonContext context) {
+		public Type visitTypeChoiceAnon(TypeChoiceAnonContext context) {
 			TypeChoice.Anon ret = new TypeChoice.Anon();
 			
 			for(AnonCandidateContext candidateContext: context.anonCandidateList().elements) {
@@ -340,7 +338,7 @@ public class ProgramBuilder {
 			return ret;
 		}
 		@Override
-		public Type visitTypeProcedure(@NotNull TypeProcedureContext context) {
+		public Type visitTypeProcedure(TypeProcedureContext context) {
 			TypeProcedure ret = new TypeProcedure();
 			
 			if (context.argumentList().getChildCount() != 0) {
@@ -367,7 +365,7 @@ public class ProgramBuilder {
 			return ret;
 		}
 		@Override
-		public Type visitTypeError(@NotNull TypeErrorContext context) {
+		public Type visitTypeError(TypeErrorContext context) {
 			TypeError ret = new TypeError();
 			
 			if (context.argumentList().getChildCount() != 0) {
@@ -381,7 +379,7 @@ public class ProgramBuilder {
 			return ret;
 		}
 		@Override
-		public Type visitTypeMachine(@NotNull TypeMachineContext context) {
+		public Type visitTypeMachine(TypeMachineContext context) {
 			TypeMachine ret;
 			int posMax;
 			{
@@ -439,11 +437,11 @@ public class ProgramBuilder {
 
 
 		// Referenced
-		public Type visitTypeRef(@NotNull TypeRefContext context) {
+		public Type visitTypeRef(TypeRefContext context) {
 			// Use program name with version number
 			return new TypeReference(program.info.getProgramVersion(), context.name.getText());
 		}
-		public Type visitTypeRefQ(@NotNull TypeRefQContext context) {
+		public Type visitTypeRefQ(TypeRefQContext context) {
 			// Use program name with version number
 			Info info = program.getDepend(context.program.getText());
 			return new TypeReference(info.getProgramVersion(), context.name.getText());
@@ -451,11 +449,11 @@ public class ProgramBuilder {
 	}
 	private class ReferencedTypeVisitor extends CourierBaseVisitor<TypeReference> {
 		// Referenced
-		public TypeReference visitTypeRef(@NotNull TypeRefContext context) {
+		public TypeReference visitTypeRef(TypeRefContext context) {
 			// Use program name with version number
 			return new TypeReference(program.info.getProgramVersion(), context.name.getText());
 		}
-		public TypeReference visitTypeRefQ(@NotNull TypeRefQContext context) {
+		public TypeReference visitTypeRefQ(TypeRefQContext context) {
 			// Use program name with version number
 			Info info = program.getDepend(context.program.getText());
 			return new TypeReference(info.getProgramVersion(), context.name.getText());
@@ -464,23 +462,23 @@ public class ProgramBuilder {
 
 	private class ConstVisitor extends CourierBaseVisitor<Constant> {
 		// predefinedConstant
-		public Constant visitConstTrue(@NotNull ConstTrueContext context) {
+		public Constant visitConstTrue(ConstTrueContext context) {
 			return new ConstantBoolean(true);
 		}
-		public Constant visitConstFalse(@NotNull ConstFalseContext context) {
+		public Constant visitConstFalse(ConstFalseContext context) {
 			return new ConstantBoolean(false);
 		}
-		public Constant visitConstNumber(@NotNull ConstNumberContext context) {
+		public Constant visitConstNumber(ConstNumberContext context) {
 			return new ConstantNumber(Util.parseLong(context.NUMBER().getText()));
 		}
-		public Constant visitConstNumberNegative(@NotNull ConstNumberNegativeContext context) {
+		public Constant visitConstNumberNegative(ConstNumberNegativeContext context) {
 			return new ConstantNumber((Util.parseLong(context.NUMBER().getText())) * -1L);
 		}
-		public Constant visitConstString(@NotNull ConstStringContext context) {
+		public Constant visitConstString(ConstStringContext context) {
 			return new ConstantString(context.STR().getText());
 		}
 		// constructedConstant
-		public Constant visitConstArray(@NotNull ConstArrayContext context) {
+		public Constant visitConstArray(ConstArrayContext context) {
 			ConstantArray ret = new ConstantArray();
 			for(ConstantContext e: context.elementList().elements) {
 				Constant constant = constVisitor.visit(e);
@@ -489,7 +487,7 @@ public class ProgramBuilder {
 
 			return ret;
 		}
-		public Constant visitConstRecord(@NotNull ConstRecordContext context) {
+		public Constant visitConstRecord(ConstRecordContext context) {
 			ConstantRecord ret = new ConstantRecord();
 			for(ComponentContext e: context.componentList().elements) {
 				Constant constant = constVisitor.visit(e.constant());
@@ -500,22 +498,22 @@ public class ProgramBuilder {
 			}
 			return ret;
 		}
-		public Constant visitConstEmpty(@NotNull ConstEmptyContext context) {
+		public Constant visitConstEmpty(ConstEmptyContext context) {
 			ConstantArray ret = new ConstantArray();
 			return ret;
 		}
-		public Constant visitConstChoice(@NotNull ConstChoiceContext context) {
+		public Constant visitConstChoice(ConstChoiceContext context) {
 			String   id       = context.ID().getText();
 			Constant constant = constVisitor.visit(context.constant());
 			return new ConstantChoice(id, constant);
 		}
 		// referencedConstant
-		public Constant visitConstRef(@NotNull ConstRefContext context) {
+		public Constant visitConstRef(ConstRefContext context) {
 			// Assume local reference to constant or enum element.
 			// Cannot distinguish local reference and enum element. So don't supply current program name as program
 			return new ConstantReference(context.name.getText());
 		}
-		public Constant visitConstRefQ(@NotNull ConstRefQContext context) {
+		public Constant visitConstRefQ(ConstRefQContext context) {
 			// Use program name with version number
 			Info info = program.getDepend(context.program.getText());
 			return new ConstantReference(info.getProgramVersion(), context.name.getText());
