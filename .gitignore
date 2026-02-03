@@ -1,6 +1,7 @@
 /tmp/
 /build/
 /.cache/
+/.classpath
 /.cproject
 /.project
 /.settings
