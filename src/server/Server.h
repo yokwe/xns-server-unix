@@ -46,6 +46,8 @@
 
 #include "../xns/XNS.h"
 #include "../xns/RIP.h"
+#include "../xns/Ethernet.h"
+#include "../xns/IDP.h"
 
 #include "../courier/Config.h"
 
@@ -63,6 +65,20 @@ const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 inline ByteBuffer getByteBuffer() {
     return ByteBuffer(MAX_PACKET_SIZE);
 }
+
+std::string toStringNetwork(uint32_t value);
+inline std::string toStringNetwork(Network value) {
+    return toStringNetwork(std::to_underlying(value));
+}
+
+std::string toStringHost(uint64_t value);
+inline std::string toStringHost(Host value) {
+    return toStringHost((uint64_t)value);
+}
+
+std::string toString(const xns::Ethernet& value);
+std::string toString(const xns::RIP& value);
+std::string toString(const xns::IDP& value);
 
 struct Routing {
     Network     net;
@@ -87,17 +103,6 @@ struct Context {
 
     Context();
 };
-
-std::string toStringNetwork(uint32_t value);
-inline std::string toStringNetwork(Network value) {
-    return toStringNetwork(std::to_underlying(value));
-}
-
-std::string toStringHost(uint64_t value);
-inline std::string toStringHost(Host value) {
-    return toStringHost((uint64_t)value);
-}
-
 
 
 template <class T>

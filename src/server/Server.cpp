@@ -34,6 +34,8 @@
  //
 
 
+#include <string>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -82,6 +84,45 @@ std::string toStringHost(uint64_t value) {
     if (context == 0) ERROR()
     auto& map = context->hostNameMap;
     return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
+}
+
+
+std::string toString(const xns::Ethernet& value) {
+    return std_sprintf("{%s  %s  %s}",
+        toStringHost(value.dest),
+        toStringHost(value.source),
+        xns::Ethernet::toString(value.type));
+}
+
+static std::string toString(const xns::RIP::Entry& value) {
+    return std_sprintf("{%s  %s}",
+        toStringNetwork(value.network),
+        xns::RIP::toString(value.delay));
+}
+std::string toString(const xns::RIP& value) {
+    std::string string;
+    for(const auto& e: value.entryList) {
+        string += std_sprintf(" %s", toString(e));
+    }
+    return std_sprintf("{%-8s  (%d) %s}",
+        xns::RIP::toString(value.type),
+        value.entryList.size(),
+        string.empty() ? "" : string.substr(1));
+}
+
+static std::string toString(const xns::IDP::NetworkAddress& value) {
+    return std_sprintf("%s-%s-%s",
+        toStringNetwork(value.network),
+        toStringHost(value.host),
+        xns::toString(value.socket));
+}
+std::string toString(const xns::IDP& value) {
+    return std_sprintf("{%s  %d  %d  %s  %s  %s}",
+        xns::IDP::toString(value.checksum),
+        value.length,
+        value.control,
+        xns::IDP::toString(value.packetType),
+        toString(value.dst), toString(value.src));    
 }
 
 }
