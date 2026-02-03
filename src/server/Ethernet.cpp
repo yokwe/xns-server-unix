@@ -56,13 +56,13 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
             myPacket = true;
         }
     }
-    if (!myPacket) return ByteBuffer::Net::getInstance();
+    if (!myPacket) return ByteBuffer{};
 
     if (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = IDP::process(rxbb, context);        
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer::Net::getInstance();
+    if (txbb.empty()) return ByteBuffer{};
 
     // prepare transmit
     xns::Ethernet txHeader;

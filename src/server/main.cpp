@@ -78,9 +78,8 @@ int main(int, char **) {
         ReceiveData receiveData;
         
         threadReceive.pop(receiveData);
-        if (receiveData.rx.empty()) continue;
-
         auto& rx = receiveData.rx;
+        if (rx.empty()) continue;
 
         auto tx = Ethernet::process(rx, context);
         if (tx.empty()) continue;

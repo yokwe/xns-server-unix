@@ -66,13 +66,13 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         auto checksum = xns::IDP::computeChecksum(rx.data(), 2, rxHeader.length);
         if (rxHeader.checksum != checksum) {
             logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
-            return ByteBuffer::Net::getInstance(0);
+            return ByteBuffer{};
         }
     }
 
     auto txbb = map.at(rxHeader.packetType)(rxbb, context);
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer::Net::getInstance();
+    if (txbb.empty()) return ByteBuffer{};
 
     // prepare transmit
     xns::IDP txHeader;

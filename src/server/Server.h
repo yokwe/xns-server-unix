@@ -61,7 +61,7 @@ const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 
 inline ByteBuffer getByteBuffer() {
-    return ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    return ByteBuffer(MAX_PACKET_SIZE);
 }
 
 struct Routing {
@@ -137,7 +137,7 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
         int ret = driver.receive(span, timeout);
         data.rx.clear();
         // copy data from span to bb
-        if (ret) data.rx.putSpan(span);
+        data.rx.putSpan(span);
         data.rx.flip();
         return ret;
     }

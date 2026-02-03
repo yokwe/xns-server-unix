@@ -332,7 +332,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
         uint32_t programNumber;
         uint16_t versionNumber;
         uint16_t procedureValue;
-        ByteBuffer arg = ByteBuffer::Net::getInstance();
+        ByteBuffer arg;
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(transactionID, programNumber, versionNumber, procedureValue);
@@ -444,7 +444,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
     };
     struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
         uint16_t transactionID;
-        ByteBuffer arg = ByteBuffer::Net::getInstance();
+        ByteBuffer arg;
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(transactionID);
@@ -464,7 +464,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
     struct AbortMessage : public HasRead, public HasWrite, public HasToString {
         uint16_t transactionID;
         uint16_t errorValue;
-        ByteBuffer arg = ByteBuffer::Net::getInstance();
+        ByteBuffer arg;
 
         ByteBuffer& read(ByteBuffer& bb) override {
             bb.read(transactionID, errorValue);

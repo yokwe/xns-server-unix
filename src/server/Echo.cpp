@@ -60,7 +60,7 @@ Result response(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
     logger.info("## %s", __PRETTY_FUNCTION__);
     (void)rxHeader; (void)rxbb; (void)context;
     Echo txHeader;
-    ByteBuffer txbb = ByteBuffer::Net::getInstance();
+    ByteBuffer txbb;
     return Result{txHeader, txbb};
 }
 

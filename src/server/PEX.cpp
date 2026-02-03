@@ -64,7 +64,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     auto txbb = map.at(rxHeader.clientType)(rxbb, context);
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer::Net::getInstance();
+    if (txbb.empty()) return ByteBuffer{};
 
     PEX txHeader{rxHeader};
 

@@ -53,7 +53,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     rx.read(rxHeader, rxbb);
     if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    return ByteBuffer::Net::getInstance();
+    return ByteBuffer{};
 }
 
 }
