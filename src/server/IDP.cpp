@@ -59,7 +59,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::IDP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-    if (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
@@ -97,15 +97,17 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     // update checksum
     // Garbage Byte, which is included in the Checksum, but not in the Length
     auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
-    // don't touch tx
-    {
-        ByteBuffer bb = tx;
-        bb.flip();
-        bb.write(checksum);
-    }
+    // IMPORTANT position of tx is imporant
+    // because caller flip tx to set limit
+    // save position of tx
+    tx.mark();
+    tx.rewind();
+    tx.write(checksum);
+    // restore position of tx
+    tx.reset();
 
     txHeader.checksum = checksum;
-    if (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }
