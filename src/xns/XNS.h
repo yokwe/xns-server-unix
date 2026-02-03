@@ -40,21 +40,9 @@
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
-#include "../util/net.h"
-
-#include "Config.h"
 
 namespace xns {
 //
-const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
-const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
-
-void initialize(const Config* config);
-
-std::string hostName(uint64_t address);
-std::string networkName(uint32_t network);
-
-
 //
 // Host
 //
@@ -89,9 +77,7 @@ public:
         bb.write(word1, word2, word3);
         return bb;
     }
-    std::string toString() const override {
-        return xns::hostName(value);
-    }
+    std::string toString() const override;
 };
 
 //
@@ -129,6 +115,5 @@ enum class Socket : uint16_t {
     ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
 };
 std::string toString(Socket value);
-
 
 }

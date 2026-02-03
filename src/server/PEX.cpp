@@ -45,7 +45,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::PEX {
+namespace server::PEX {
 //
 using PEX = xns::PEX;
 
@@ -68,7 +68,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     PEX txHeader{rxHeader};
 
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    auto tx = getByteBuffer();
     tx.write(txHeader);
     tx.write(txbb.toSpan());
 

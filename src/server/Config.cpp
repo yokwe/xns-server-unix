@@ -51,7 +51,7 @@ using json = nlohmann::json;
 #define address(name) p.name = net::fromString(j.at(#name));
 #define number(name)  p.name = toIntMesaNumber(j.at(#name));
 
-namespace xns {
+namespace server {
 
 void from_json(const json& j, Config::Server& p) {
 	simple(interface)

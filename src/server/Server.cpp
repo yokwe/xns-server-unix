@@ -28,55 +28,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
+ 
  //
- // Config.h
+ // Server.cpp
  //
 
-#pragma once
 
-#include <string>
-#include <vector>
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-namespace xns {
+#include "Server.h"
 
-struct Config {
-    struct Server {
-        std::string interface;
-        std::string name;
-        uint64_t    address;
-        uint32_t    net;
-    };
-    
-    struct Net {
-        uint32_t    net;
-        uint16_t    delay;
-        std::string name;
-    };
-    
-    struct Host {
-        uint64_t    address;
-        std::string name;
-    };
-    
-    struct Time {
-        uint16_t offsetDirection;
-        uint16_t offsetHours;
-        uint16_t offsetMinutes;
-        uint16_t dstStart;
-        uint16_t dstEnd;
-    };
+namespace server {
+//
 
-    Server                  server;
-    std::vector<Net>        net;
-    std::vector<Host>       host;
-    Time                    time;
+static Context* context = 0;
 
-    static Config getInstance(const std::string& path);
-    static Config getInstance() {
-        return getInstance("data/xns-config.json");
+Context::Context() {
+    courier = courier::Config::getInstance();
+    config = Config::getInstance();
+    auto device = net::getDevice(config.server.interface);
+    driver = net::getDriver(device);
+    // delieved values
+    me     = config.server.address;
+    net    = static_cast<Network>(config.server.net);
+    // build routingMap
+    for(const auto& e: config.net) {
+        auto net = static_cast<Network>(e.net);
+        auto delay = static_cast<Delay>(e.delay);
+
+        if (delay == Delay::INFINITY) continue;
+        Routing routing(net, delay, e.name);
+        routingMap[net] = routing;
     }
-};
+    // build networdkNameMap
+    for(const auto& e: config.net) {
+        networkNameMap[e.net] = e.name;
+    }
+    // build hostNameMap
+    for(const auto& e: config.host) {
+        hostNameMap[e.address] = e.name;
+    }
+    // set static uglobal variable context
+    context = this;
+}
 
+std::string toStringNetwork(uint32_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->networkNameMap;
+    return map.contains(value) ? map[value] : std_sprintf("%u", value);
+}
+std::string toStringHost(uint64_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->hostNameMap;
+    return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
+}
 
 }

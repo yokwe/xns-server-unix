@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::SPP {
+namespace server::SPP {
 //
 using SPP   = xns::SPP;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {

@@ -38,7 +38,7 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-namespace xns::courier::Time {
+namespace courier::Time {
 //
 enum class Version : uint16_t {
     ENUM_NAME_VALUE(Version, CURRENT, 2)

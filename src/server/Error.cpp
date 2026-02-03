@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::Error {
+namespace server::Error {
 //
 using Error   = xns::Error;
 ByteBuffer process  (ByteBuffer& rx, Context& context) {

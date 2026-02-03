@@ -43,7 +43,7 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
-namespace xns::courier {
+namespace courier {
 //
 
 //
@@ -297,7 +297,7 @@ struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
             courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
     }
 };
-struct AborrMessage : public HasRead, public HasWrite, public HasToString {
+struct AbortMessage : public HasRead, public HasWrite, public HasToString {
     Type       type;
     uint16_t   transactionID;
     uint16_t   errorValue;

@@ -39,13 +39,10 @@ static const Logger logger(__FILE__);
 #include "../util/ByteBuffer.h"
 #include "../util/ThreadControl.h"
 
-#include "../xns/XNS.h"
-
 #include "Server.h"
 
-using namespace xns::server;
-
 int main(int, char **) {
+    using namespace server;
 
 	logger.info("START");
 
@@ -56,11 +53,9 @@ int main(int, char **) {
 
     Context context;
 
-    xns::initialize(&context.config);
-
-	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::hostName(context.driver->device.address), context.driver->device.name);
-	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), xns::hostName(context.me));
-	logger.info("network  %d  %s", context.net, toString(context.net));
+	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), toStringHost(context.driver->device.address), context.driver->device.name);
+	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), toStringHost(context.me));
+	logger.info("network  %d  %s", context.net, toStringNetwork(context.net));
 
 
     auto& driver = *context.driver;

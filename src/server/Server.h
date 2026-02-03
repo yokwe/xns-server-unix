@@ -35,27 +35,75 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <map>
+#include <utility>
 
 #include "../util/ThreadQueue.h"
 #include "../util/net.h"
 #include "../util/ByteBuffer.h"
 
-#include "../xns/Config.h"
 #include "../xns/XNS.h"
 #include "../xns/RIP.h"
 
 #include "../courier/Config.h"
 
-namespace xns::server {
+#include "Config.h"
+
+namespace server {
 //
-using Delay = xns::RIP::Delay;
+using Delay   = xns::RIP::Delay;
+using Host    = xns::Host;
+using Network = xns::Network;
+
+const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
+const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
+
+inline ByteBuffer getByteBuffer() {
+    return ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+}
+
+struct Routing {
+    Network     net;
+    Delay       delay;
+    std::string name;
+};
+
+struct Context {
+    using RoutingMap     = std::map<Network, Routing>;
+    using NetworkNameMap = std::map<uint32_t, std::string>;
+    using HostNameMap    = std::map<uint64_t, std::string>;
+
+    Config          config;
+    courier::Config courier;
+    net::Driver*    driver;
+    // delieved values
+    uint64_t        me;
+    Network         net;
+    RoutingMap      routingMap;
+    NetworkNameMap  networkNameMap;
+    HostNameMap     hostNameMap;
+
+    Context();
+};
+
+std::string toStringNetwork(uint32_t value);
+inline std::string toStringNetwork(Network value) {
+    return toStringNetwork(std::to_underlying(value));
+}
+
+std::string toStringHost(uint64_t value);
+inline std::string toStringHost(Host value) {
+    return toStringHost((uint64_t)value);
+}
+
+
 
 template <class T>
 struct HeaderBody {
     T          header;
-    ByteBuffer body = ByteBuffer::Net::getInstance();
+    ByteBuffer body;
 
     HeaderBody(const T& header_, ByteBuffer& body_) : header(header_), body(body_) {}
 };
@@ -76,7 +124,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
 
 struct ReceiveData {
     ByteBuffer rx;
-    ReceiveData() : rx(ByteBuffer::Net::getInstance(MAX_PACKET_SIZE)) {}
+    ReceiveData() : rx(getByteBuffer()) {}
 };
 struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     net::Driver& driver;
@@ -95,40 +143,6 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     }
 };
 
-struct Routing {
-    Network     net;
-    Delay       delay;
-    std::string name;
-};
-
-struct Context {
-    courier::Config            courier;
-    xns::Config                config;
-    net::Driver*               driver;
-    uint64_t                   me;
-    Network                    net;
-    std::map<Network, Routing> routingMap;
-
-
-    Context() {
-        courier = courier::Config::getInstance();
-        config = xns::Config::getInstance();
-        auto device = net::getDevice(config.server.interface);
-        driver = net::getDriver(device);
-        me     = config.server.address;
-        net    = static_cast<Network>(config.server.net);
-        // build routingMap
-        for(const auto& e: config.net) {
-            auto net = static_cast<Network>(e.net);
-            auto delay = static_cast<Delay>(e.delay);
-
-            if (delay == Delay::INFINITY) continue;
-
-            Routing routing(net, delay, e.name);
-            routingMap[net] = routing;
-        }
-    }
-};
 
 namespace Ethernet {
     ByteBuffer process  (ByteBuffer& rx, Context& context);

@@ -45,7 +45,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::IDP {
+namespace server::IDP {
 //
 using PacketType = xns::IDP::PacketType;
 static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
@@ -88,7 +88,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     txHeader.src.socket  = rxHeader.dst.socket;    
 
     // build tx
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    auto tx = getByteBuffer();
     tx.write(txHeader);
     tx.write(txbb.toSpan());
     // to make even length data, add Garbage Byte if length is odd.

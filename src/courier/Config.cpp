@@ -47,7 +47,7 @@ using json = nlohmann::json;
 
 #define simple(name)  p.name = j.at(#name);
 
-namespace xns::courier {
+namespace courier {
 //
 void from_json(const json& j, Config::Procedure& p) {
     simple(name)

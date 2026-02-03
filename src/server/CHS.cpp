@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::CHS {
+namespace server::CHS {
 //
 
 // RetrieveAddresses: PROCEDURE
@@ -70,7 +70,7 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     auto version = rxHeader.message.versionNumber;
     auto procedure = rxHeader.message.procedureValue;
 
-    xns::courier::Config::Key key{program, version};
+    courier::Config::Key key{program, version};
     auto prog = context.courier.programMap.at(key);
     auto proc = prog.procedureMap.at(procedure);
     logger.info("%s  %s", prog.name, proc.name);
@@ -78,7 +78,7 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     // auto txHeader = call(rxHeader, context);
     // if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    auto tx = getByteBuffer();
     // tx.write(txHeader);
     return tx;
 }

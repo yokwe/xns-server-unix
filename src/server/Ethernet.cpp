@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::Ethernet {
+namespace server::Ethernet {
 //
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::Ethernet rxHeader;
@@ -71,12 +71,12 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     txHeader.type   = rxHeader.type;
 
     // build tx
-    auto tx = ByteBuffer::Net::getInstance(xns::MAX_PACKET_SIZE);
+    auto tx = getByteBuffer();
     tx.write(txHeader);
     tx.write(txbb.toSpan());
     // add padding if it is smaller than MINIMUM_LENGTH
     auto length = tx.byteLimit();
-    for(uint32_t i = length; i < xns::MIN_PACKET_SIZE; i++) tx.put8(0);
+    for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
 
     if (SHOW_PACKET_ETHERNET) logger.info("ETH  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
