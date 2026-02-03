@@ -28,32 +28,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // Error.cpp
+ // Config.h
  //
 
- #include "../util/Debug.h"
-#include "../util/Util.h"
-static const Logger logger(__FILE__);
+#pragma once
 
-#include "../util/ByteBuffer.h"
+#include <string>
+#include <vector>
 
-#include "../xns/Error.h"
+namespace server {
 
-#include "Server.h"
+struct Config {
+    struct Server {
+        std::string interface;
+        std::string name;
+        uint64_t    address;
+        uint32_t    net;
+    };
+    
+    struct Net {
+        uint32_t    net;
+        uint16_t    delay;
+        std::string name;
+    };
+    
+    struct Host {
+        uint64_t    address;
+        std::string name;
+    };
+    
+    struct Time {
+        uint16_t offsetDirection;
+        uint16_t offsetHours;
+        uint16_t offsetMinutes;
+        uint16_t dstStart;
+        uint16_t dstEnd;
+    };
 
-namespace server::Error {
-//
-using Error   = xns::Error;
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    Error rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    Server                  server;
+    std::vector<Net>        net;
+    std::vector<Host>       host;
+    Time                    time;
 
-    return ByteBuffer{};
-}
+    static Config getInstance(const std::string& path);
+    static Config getInstance() {
+        return getInstance("data/xns-config.json");
+    }
+};
+
 
 }

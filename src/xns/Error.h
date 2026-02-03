@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class Error : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Error : public HasRead, public HasWrite, public HasToString {
 public:
     enum class ErrorNumber : uint16_t {
         ENUM_NAME_VALUE(ErrorNumber, UNSPEC,               0)
@@ -76,7 +76,7 @@ public:
         bb.read(errorNumber, errorParameter);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(errorNumber, errorParameter);
         return bb;
     }

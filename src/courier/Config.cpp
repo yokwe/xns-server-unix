@@ -28,32 +28,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // Error.cpp
+ // Config.cpp
  //
 
- #include "../util/Debug.h"
+#include <string>
+#include <fstream>
+
+#include <nlohmann/json.hpp>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
+#include "Config.h"
 
-#include "../xns/Error.h"
+using json = nlohmann::json;
 
-#include "Server.h"
+#define simple(name)  p.name = j.at(#name);
 
-namespace server::Error {
+namespace courier {
 //
-using Error   = xns::Error;
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    Error rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+void from_json(const json& j, Config::Procedure& p) {
+    simple(name)
+    simple(procedure)
+}
+void from_json(const json& j, Config::Program& p) {
+    simple(name)
+    simple(program)
+    simple(version)
 
-    return ByteBuffer{};
+    for(auto e: j["procedures"]) {
+        auto procedure = e.template get<Config::Procedure>();
+        auto key = procedure.procedure;
+        p.procedureMap[key] = procedure;
+    }
 }
 
+Config Config::getInstance(const std::string& path) {
+    //	logger.info("path  %s", path);
+        std::ifstream f(path);
+        json data = json::parse(f);
+    
+        Config ret;
+        for(auto e: data["programs"]) {
+            Program program = e.template get<Config::Program>();
+            Key     key{program};
+            ret.programMap[key] = program;
+        }
+        return ret;
+    }
+    
 }

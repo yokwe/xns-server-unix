@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::Echo {
+namespace server::Echo {
 //
 using Echo   = xns::Echo;
 using Type   = xns::Echo::Type;
@@ -71,13 +71,13 @@ static std::unordered_map<Type, Result (*)(Echo&, ByteBuffer&, Context&)> map {
 
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Echo rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
     if (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
-
+    auto tx = getByteBuffer();
+    
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
         tx.write(txbb.toSpan());

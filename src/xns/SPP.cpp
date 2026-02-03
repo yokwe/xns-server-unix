@@ -47,9 +47,10 @@ namespace xns {
 //
 std::string SPP::toString(SST value) {
     static std::unordered_map<SST, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(SST, ZERO,        0)
-        ENUM_NAME_VALUE(SST, END,       254)
-        ENUM_NAME_VALUE(SST, END_REPLY, 255)
+        ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
+        ENUM_NAME_VALUE(SST, BULK,          1) // for bulk data
+        ENUM_NAME_VALUE(SST, CLOSE,       254) // for closing connection
+        ENUM_NAME_VALUE(SST, CLOSE_REPLY, 255) // for reply of closing connection (handshake)
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }

@@ -40,8 +40,6 @@ static const Logger logger(__FILE__);
 
 #include "../util/net.h"
 
-#include "Config.h"
-
 #include "XNS.h"
 
 #undef  ENUM_NAME_VALUE
@@ -49,28 +47,17 @@ static const Logger logger(__FILE__);
 
 namespace xns {
 //
-static const Config* myConfig = 0;
-
-void initialize(const Config* config) {
-    myConfig = config;
+std::string Host::toString() const {
+    if (value == BROADCAST) return "BROADCAST";
+    return net::toHexaDecimalString(value);
 }
 
-std::string hostName(uint64_t address) {
-    for(const auto& e: myConfig->host) {
-        if (e.address == address) return e.name;
-    }
-    return net::toHexaDecimalString(address);
-}
-std::string networkName(uint32_t net) {
-    for(const auto& e: myConfig->net) {
-        if (e.net == net) return e.name;
-    }
-    return std_sprintf("%d", net);
-}
-
-std::string toString(Network network) {
-    auto net = static_cast<uint32_t>(network);
-    return networkName(net);
+std::string toString(Network value) {
+    static std::unordered_map<Network, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
+        ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 std::string toString(Socket value) {
     static std::unordered_map<Socket, std::string, ScopedEnumHash> map = {
@@ -78,7 +65,6 @@ std::string toString(Socket value) {
         ENUM_NAME_VALUE(Socket, RIP,        1)
         ENUM_NAME_VALUE(Socket, ECHO,       2)
         ENUM_NAME_VALUE(Socket, ERROR_,     3)
-        ENUM_NAME_VALUE(Socket, ENVOY,      4)
         ENUM_NAME_VALUE(Socket, COURIER,    5)
         ENUM_NAME_VALUE(Socket, CHS_OLD,    7)
         ENUM_NAME_VALUE(Socket, TIME,       8)

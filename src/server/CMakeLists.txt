@@ -9,8 +9,10 @@ add_executable(
 target_sources(
 	server
 	PUBLIC
+    Config.h
     Server.h
   PRIVATE
+    Config.cpp
     CHS.cpp
     Echo.cpp
     Error.cpp
@@ -19,6 +21,7 @@ target_sources(
     main.cpp
     PEX.cpp
     RIP.cpp
+    Server.cpp
     SPP.cpp
     Time.cpp
 )

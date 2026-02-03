@@ -40,7 +40,7 @@
 
 namespace xns {
 //
-class PEX : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class PEX : public HasRead, public HasWrite, public HasToString {
 public:
     // APilot/15.0.1/NS/Public/PacketExchange.mesa
     // ExchangeClientType: TYPE = MACHINE DEPENDENT {
@@ -70,7 +70,7 @@ public:
         bb.read(id, clientType);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(id, clientType);
         return bb;
     }

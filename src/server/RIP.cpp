@@ -45,7 +45,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::RIP {
+namespace server::RIP {
 //
 using RIP     = xns::RIP;
 using Delay   = xns::RIP::Delay;
@@ -107,7 +107,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     if (!rxbb.empty()) ERROR();
 
     auto txHeader = map.at(rxHeader.type)(rxHeader, context);
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);    
+    auto tx = getByteBuffer();
 
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);

@@ -46,7 +46,7 @@
 
 namespace xns {
 //
-class RIP : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class RIP : public HasRead, public HasWrite, public HasToString {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, REQUEST,  1)
@@ -59,7 +59,7 @@ public:
     };
     static std::string toString(Delay delay);
 
-    class Entry : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+    class Entry : public HasRead, public HasWrite, public HasToString {
     public:
         Network network;
         Delay   delay;        
@@ -71,7 +71,7 @@ public:
             bb.read(network, delay);
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) const override {
+        ByteBuffer& write(ByteBuffer& bb) override {
             bb.write(network, delay);
             return bb;
         }
@@ -87,7 +87,7 @@ public:
     RIP(Type type_) : type(type_) {}
 
     ByteBuffer& read(ByteBuffer& bb) override;
-    ByteBuffer& write(ByteBuffer& bb)  const override;
+    ByteBuffer& write(ByteBuffer& bb) override;
     std::string toString() const override;
 };
 

@@ -40,25 +40,13 @@
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
-#include "../util/net.h"
-
-#include "Config.h"
 
 namespace xns {
 //
-const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
-const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;;
-
-void initialize(const Config* config);
-
-std::string hostName(uint64_t address);
-std::string networkName(uint32_t network);
-
-
 //
 // Host
 //
-class Host : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Host : public HasRead, public HasWrite, public HasToString {
     uint64_t value;
 public:
     static const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
@@ -81,7 +69,7 @@ public:
         value = (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         uint16_t word1 = (uint16_t)(value >> 32);
         uint16_t word2 = (uint16_t)(value >> 16);
         uint16_t word3 = (uint16_t)(value >>  0);
@@ -89,9 +77,7 @@ public:
         bb.write(word1, word2, word3);
         return bb;
     }
-    std::string toString() const override {
-        return xns::hostName(value);
-    }
+    std::string toString() const override;
 };
 
 //
@@ -129,6 +115,5 @@ enum class Socket : uint16_t {
     ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
 };
 std::string toString(Socket value);
-
 
 }

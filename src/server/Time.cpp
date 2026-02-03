@@ -43,9 +43,9 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace xns::server::Time {
+namespace server::Time {
 //
-using namespace xns::courier::Time;
+using namespace courier::Time;
 
 static Response call(Request request, Context& context) {
     // sanity check
@@ -80,7 +80,7 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     auto txHeader = call(rxHeader, context);
     if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
-    auto tx = ByteBuffer::Net::getInstance(MAX_PACKET_SIZE);
+    auto tx = getByteBuffer();
     tx.write(txHeader);
     return tx;
 }

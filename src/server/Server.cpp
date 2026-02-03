@@ -30,30 +30,58 @@
 
  
  //
- // Error.cpp
+ // Server.cpp
  //
 
- #include "../util/Debug.h"
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../util/ByteBuffer.h"
-
-#include "../xns/Error.h"
-
 #include "Server.h"
 
-namespace server::Error {
+namespace server {
 //
-using Error   = xns::Error;
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    Error rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    return ByteBuffer{};
+static Context* context = 0;
+
+Context::Context() {
+    courier = courier::Config::getInstance();
+    config = Config::getInstance();
+    auto device = net::getDevice(config.server.interface);
+    driver = net::getDriver(device);
+    // delieved values
+    me     = config.server.address;
+    net    = static_cast<Network>(config.server.net);
+    // build routingMap
+    for(const auto& e: config.net) {
+        auto net = static_cast<Network>(e.net);
+        auto delay = static_cast<Delay>(e.delay);
+
+        if (delay == Delay::INFINITY) continue;
+        Routing routing(net, delay, e.name);
+        routingMap[net] = routing;
+    }
+    // build networdkNameMap
+    for(const auto& e: config.net) {
+        networkNameMap[e.net] = e.name;
+    }
+    // build hostNameMap
+    for(const auto& e: config.host) {
+        hostNameMap[e.address] = e.name;
+    }
+    // set static uglobal variable context
+    context = this;
+}
+
+std::string toStringNetwork(uint32_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->networkNameMap;
+    return map.contains(value) ? map[value] : std_sprintf("%u", value);
+}
+std::string toStringHost(uint64_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->hostNameMap;
+    return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
 }
 
 }

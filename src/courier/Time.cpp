@@ -43,7 +43,7 @@ static const Logger logger(__FILE__);
 #undef  ENUM_NAME_VALUE
 #define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
-namespace xns::courier::Time {
+namespace courier::Time {
 //
 std::string toString(Version value) {
     static std::unordered_map<Version, std::string, ScopedEnumHash> map = {

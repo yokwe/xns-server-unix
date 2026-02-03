@@ -35,46 +35,60 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <unordered_map>
 
-namespace xns {
+#include "../util/ByteBuffer.h"
 
+namespace courier {
+//
 struct Config {
-    struct Server {
-        std::string interface;
+    using CallProc = std::function<ByteBuffer(ByteBuffer&)>;
+
+    struct Procedure {
         std::string name;
-        uint64_t    address;
-        uint32_t    net;
-    };
-    
-    struct Net {
-        uint32_t    net;
-        uint16_t    delay;
-        std::string name;
-    };
-    
-    struct Host {
-        uint64_t    address;
-        std::string name;
-    };
-    
-    struct Time {
-        uint16_t offsetDirection;
-        uint16_t offsetHours;
-        uint16_t offsetMinutes;
-        uint16_t dstStart;
-        uint16_t dstEnd;
+        uint16_t    procedure;
+        CallProc    callProc;
     };
 
-    Server                  server;
-    std::vector<Net>        net;
-    std::vector<Host>       host;
-    Time                    time;
+    struct Program {
+        std::string name;
+        uint32_t    program;
+        uint16_t    version;
+    
+        std::unordered_map<uint16_t, Procedure> procedureMap;
+        //                 procedure
+    };
+
+    struct Key : public HasToString {
+        struct Hash {
+            std::size_t operator()(const Key& value) const {
+                return value.program << 16 | value.version;
+            }
+        };
+        
+        uint32_t program;
+        uint16_t version;
+    
+        Key(uint32_t program_, uint16_t version_) : program(program_), version(version_) {}
+        Key(const Program& program) : program(program.program), version(program.version) {}
+
+        std::string toString() const override {
+            return std_sprintf("{%d  %d}", program, version);
+        }
+    
+        bool operator == (const Key& that) const {
+            return program == that.program && version == that.version;
+        }
+    };
+    
+    std::unordered_map<Key, Program, Key::Hash> programMap;
 
     static Config getInstance(const std::string& path);
     static Config getInstance() {
-        return getInstance("data/xns-config.json");
+        return getInstance("data/courier-config.json");
     }
 };
 

@@ -44,11 +44,12 @@
 
 namespace xns {
 //
-class Ethernet : public ByteBuffer::HasRead, public ByteBuffer::HasWrite, public HasToString {
+class Ethernet : public HasRead, public HasWrite, public HasToString {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
         ENUM_NAME_VALUE(Type, IP4, 0x0800)
+        ENUM_NAME_VALUE(Type, PUP, 0x0A00)
     };
     static std::string toString(Type value);
 
@@ -60,7 +61,7 @@ public:
         bb.read(dest, source, type);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) const override {
+    ByteBuffer& write(ByteBuffer& bb) override {
         bb.write(dest, source, type);
         return bb;
     }
