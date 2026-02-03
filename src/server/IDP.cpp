@@ -97,12 +97,14 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     // update checksum
     // Garbage Byte, which is included in the Checksum, but not in the Length
     auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
-    // don't touch tx
-    {
-        ByteBuffer bb = tx;
-        bb.flip();
-        bb.write(checksum);
-    }
+    // IMPORTANT position of tx is imporant
+    // because caller flip tx to set limit
+    // save position of tx
+    tx.mark();
+    tx.rewind();
+    tx.write(checksum);
+    // restore position of tx
+    tx.reset();
 
     txHeader.checksum = checksum;
     if (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
