@@ -158,6 +158,8 @@ private:
 	static std::set<uint16_t> stopMessageUntilMPSet;
 };
 
+const Logger& getLogger(); // for debug
+
 class LogSourceLocation {
 private:
 	static const char* to_simple_path(const char* path) {
@@ -190,7 +192,7 @@ public:
 };
 
 
-#define DEBUG_TRACE() { LogSourceLocation::trace(logger); }
+#define DEBUG_TRACE() { LogSourceLocation::trace(getLogger()); }
 
 
 struct ErrorError {
@@ -198,7 +200,7 @@ struct ErrorError {
 	ErrorError(std::source_location location_ = std::source_location::current()) : location(location_) {}
 };
 
-#define ERROR() { logBackTrace(); ErrorError errorError; LogSourceLocation::fatal(logger, errorError.location, "ERROR  "); throw errorError; }
+#define ERROR() { logBackTrace(); auto logger = getLogger(); ErrorError errorError; LogSourceLocation::fatal(logger, errorError.location, "ERROR  "); throw errorError; }
 
 
 void logBackTrace();

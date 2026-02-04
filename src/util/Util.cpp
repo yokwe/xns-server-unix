@@ -59,6 +59,10 @@
 #include "Util.h"
 static const Logger logger(__FILE__);
 
+const Logger& getLogger() {
+	return logger;
+}
+
 void logBackTrace() {
 	const int BUFFER_SIZE = 100;
 	void *buffer[BUFFER_SIZE];
