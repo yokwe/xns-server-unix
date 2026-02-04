@@ -52,6 +52,17 @@ struct HasWrite {
     virtual ~HasWrite() = default;
 };
 
+
+template<class T>
+concept HasReadObject = requires(T t, ByteBuffer& b) {
+    { readObject(b, t) } -> std::same_as<void>;
+};
+
+template<class T>
+concept HasWriteObject = requires(ByteBuffer& b, T& t) {
+    { writeObject(b, t) } -> std::same_as<void>;
+};
+
 class ByteBuffer : public HasRead, public HasWrite, public HasToString {
     static const bool USE_MESA_BYTE_ORDER = false;
 
@@ -324,6 +335,8 @@ public:
             constexpr auto has_read = std::is_base_of_v<HasRead, T>;
             if constexpr (has_read) {
                 head.read(*this);
+            } else if constexpr (HasReadObject<T>) {
+                readObject(*this, head);
             } else {
                 logger.error("Unexpected type  %s", demangle(typeid(head).name()));
                 ERROR()
@@ -400,8 +413,11 @@ public:
             constexpr auto has_write = std::is_base_of_v<HasWrite, T>;
             if constexpr (has_write) {
                 head.write(*this);
+            } else if constexpr (HasWriteObject<T>) {
+                writeObject(*this, head);
             } else {
                 logger.error("Unexpected type  %s", demangle(typeid(head).name()));
+                logger.error("  %s", demangle(typeid(T).name()));
                 ERROR()
             }
         } else {
@@ -431,3 +447,9 @@ public:
         return *this;
     }
 };
+
+inline void writeObject(ByteBuffer& bb, std::string& value) {
+    for(auto c: value) {
+        bb.put8(c);
+    }
+}
