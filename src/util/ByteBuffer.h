@@ -60,8 +60,7 @@ struct HasWrite {
 //
 template<typename T>
 concept has_read = requires (T& o, ByteBuffer& bb) {
-//    { o.read(bb) } -> std::same_as<ByteBuffer&>;
-    o.read(bb);
+    { o.read(bb)  } -> std::same_as<ByteBuffer&>;
 };
 template<typename T>
 concept has_write = requires (T& o, ByteBuffer& bb) {
