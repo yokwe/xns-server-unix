@@ -45,16 +45,6 @@
 #include "Util.h"
 
 class ByteBuffer;
-struct HasRead {
-    virtual ByteBuffer& read(ByteBuffer& bb) = 0;
-    virtual ~HasRead() = default;
-};
-
-struct HasWrite {
-    virtual ByteBuffer& write(ByteBuffer& bb) = 0;
-    virtual ~HasWrite() = default;
-};
-
 //
 // concept
 //

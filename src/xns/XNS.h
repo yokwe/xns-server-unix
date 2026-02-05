@@ -46,7 +46,7 @@ namespace xns {
 //
 // Host
 //
-class Host : public HasRead, public HasWrite, public HasToString {
+class Host : public HasToString {
     uint64_t value;
 public:
     static const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
@@ -59,7 +59,7 @@ public:
         return value;
     }
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         uint16_t word1;
         uint16_t word2;
         uint16_t word3;
@@ -69,7 +69,7 @@ public:
         value = (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         uint16_t word1 = (uint16_t)(value >> 32);
         uint16_t word2 = (uint16_t)(value >> 16);
         uint16_t word3 = (uint16_t)(value >>  0);

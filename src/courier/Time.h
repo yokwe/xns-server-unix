@@ -51,16 +51,16 @@ enum class Type : uint16_t {
 };
 std::string toString(Type value);
 
-class Request : public HasRead, public HasWrite, public HasToString {
+class Request : public HasToString {
 public:
     Version version;
     Type    type;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(version, type);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(version, type);
         return bb;
     }
@@ -69,7 +69,7 @@ public:
     }
 };
 
-class Response : public HasRead, public HasWrite, public HasToString {
+class Response : public HasToString {
 public:
     enum class Direction : uint16_t {
         ENUM_NAME_VALUE(Direction, WEST, 0)
@@ -99,11 +99,11 @@ public:
     Tolerance tolerance;
     uint32_t  toleranceValue;   // if tolerance is KNOWN time error in unit of millisecond
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
         return bb;
     }

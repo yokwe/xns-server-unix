@@ -49,12 +49,12 @@ namespace courier {
 //
 // STRING
 //
-class STRING : public HasRead, public HasWrite, public HasToString  {
+class STRING : public HasToString  {
     static const constexpr uint32_t MAX_LENGTH = 65535;
     mutable std::string value;
 
 public:
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         uint16_t length;
         bb.read(length);
         value.clear();
@@ -64,7 +64,7 @@ public:
         if (length & 1) bb.get8();
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         uint16_t length = value.length();
         bb.put16(length);
         for(uint8_t c: value) {
@@ -100,7 +100,7 @@ public:
 // ARRAY
 //
 template <class T, uint32_t N>
-class ARRAY : public HasRead, public HasWrite, public HasToString  {
+class ARRAY : public HasToString  {
     static_assert(N <= 65535, "N is more than 65535");
 
     static const constexpr uint32_t MAX_LENGTH = 65535;
@@ -124,12 +124,10 @@ public:
             if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
                 // OK
             } else ERROR()
-        } else if constexpr(is_class) {
-            constexpr auto has_read  = std::is_base_of_v<HasRead, T>;
-            constexpr auto has_write = std::is_base_of_v<HasWrite, T>;
-            if (has_read && has_write) {
-                // OK
-            } else ERROR()
+        } else if constexpr(has_read<T> && has_write<T>) {
+            // OK
+        } else if constexpr(has_readObject<T> && has_writeObject<T>) {
+            // OK
         } else ERROR()
     }
     ARRAY& operator =(const std::array<T, N>& that) {
@@ -141,7 +139,7 @@ public:
         return N;
     }
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         for(uint32_t i = 0; i < N; i++) {
             T value;
             bb.read(value);
@@ -149,7 +147,7 @@ public:
         }
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         for(uint32_t i = 0; i < N; i++) {
             auto value = array.at(i);
             bb.write(value);
@@ -170,7 +168,7 @@ public:
 // SEQUENCE
 //
 template <class T, uint32_t N = 65535>
-class SEQUENCE : public HasRead, public HasWrite, public HasToString  {
+class SEQUENCE : public HasToString  {
     static const constexpr uint32_t MAX_LENGTH = N;
     mutable std::vector<T> vector;
 
@@ -192,12 +190,10 @@ public:
             if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
                 // OK
             } else ERROR()
-        } else if constexpr(is_class) {
-            constexpr auto has_read  = std::is_base_of_v<HasRead, T>;
-            constexpr auto has_write = std::is_base_of_v<HasWrite, T>;
-            if (has_read && has_write) {
-                // OK
-            } else ERROR()
+        } else if constexpr(has_read<T> && has_write<T>) {
+            // OK
+        } else if constexpr(has_readObject<T> && has_writeObject<T>) {
+            // OK
         } else ERROR()
     }
     SEQUENCE& operator =(const std::vector<T>& that) {
@@ -215,7 +211,7 @@ public:
         return vector.size();
     }
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         uint16_t size = bb.get16();
         for(uint32_t i = 0; i < size; i++) {
             T value;
@@ -224,7 +220,7 @@ public:
         }
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         uint16_t size = vector.size();
         bb.put16(size);
         for(uint32_t i = 0; i < size; i++) {
@@ -256,7 +252,7 @@ std::string toString(Type value);
 
 namespace protocol3{
 //
-struct CallMessage : public HasRead, public HasWrite, public HasToString {
+struct CallMessage : public HasToString {
     Type       type;
     uint16_t   transactionID;
     uint32_t   programNumber;
@@ -264,12 +260,12 @@ struct CallMessage : public HasRead, public HasWrite, public HasToString {
     uint16_t   procedureValue;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         if (type != Type::CALL) ERROR()
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         return bb;
     }
@@ -278,17 +274,17 @@ struct CallMessage : public HasRead, public HasWrite, public HasToString {
             courier::toString(type), transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
     }
 };
-struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
+struct ReturnMessage : public HasToString {
     Type       type;
     uint16_t   transactionID;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(type, transactionID, arg);
         if (type != Type::RETURN) ERROR()
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(type, transactionID, arg);
         return bb;
     }
@@ -297,18 +293,18 @@ struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
             courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
     }
 };
-struct AbortMessage : public HasRead, public HasWrite, public HasToString {
+struct AbortMessage : public HasToString {
     Type       type;
     uint16_t   transactionID;
     uint16_t   errorValue;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(type, transactionID, errorValue, arg);
         if (type != Type::ABORT) ERROR()
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(type, transactionID, errorValue, arg);
         return bb;
     }
@@ -318,7 +314,7 @@ struct AbortMessage : public HasRead, public HasWrite, public HasToString {
     }
 };
 
-struct MessageType : public HasRead, public HasWrite, public HasToString {
+struct MessageType : public HasToString {
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, CALL,    0)
         ENUM_NAME_VALUE(Type, REJECT,  1)
@@ -327,19 +323,19 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
     };
     static std::string toString(Type value);
 
-    struct CallMessage : public HasRead, public HasWrite, public HasToString {
+    struct CallMessage : public HasToString {
         uint16_t transactionID;
         uint32_t programNumber;
         uint16_t versionNumber;
         uint16_t procedureValue;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) override {
+        ByteBuffer& read(ByteBuffer& bb) {
             bb.read(transactionID, programNumber, versionNumber, procedureValue);
             arg = bb.rangeRemains();
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) override {
+        ByteBuffer& write(ByteBuffer& bb) {
             bb.write(transactionID, programNumber, versionNumber, procedureValue);
             bb.write(arg.toSpan());
             return bb;
@@ -349,7 +345,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
                 transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
         }
     };
-    struct RejectMessage : public HasRead, public HasWrite, public HasToString {
+    struct RejectMessage : public HasToString {
         enum class Type : uint16_t {
             ENUM_NAME_VALUE(Type, NO_SUCH_PROGRAM_NUMBER,  0)
             ENUM_NAME_VALUE(Type, NO_SUCH_VERSION_NUMBER,  1)
@@ -359,14 +355,14 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
         };
         static std::string toString(Type value);
 
-        struct ImplementedVersionNumbers: public HasRead, public HasWrite, public HasToString {
+        struct ImplementedVersionNumbers: public HasToString {
             uint16_t lowest;
             uint16_t highest;
 
-            ByteBuffer& read(ByteBuffer& bb) override {
+            ByteBuffer& read(ByteBuffer& bb) {
                 return bb.read(lowest, highest);
             }
-            ByteBuffer& write(ByteBuffer& bb) override {
+            ByteBuffer& write(ByteBuffer& bb) {
                 return bb.write(lowest, highest);
             }
             std::string toString() const override {
@@ -388,7 +384,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
             return std::get<ImplementedVersionNumbers>(variant);
         }
 
-        ByteBuffer& read(ByteBuffer& bb) override {
+        ByteBuffer& read(ByteBuffer& bb) {
             bb.read(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -409,7 +405,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
             }
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) override {
+        ByteBuffer& write(ByteBuffer& bb) {
             bb.write(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -442,16 +438,16 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
             }
         }
     };
-    struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
+    struct ReturnMessage : public HasToString {
         uint16_t transactionID;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) override {
+        ByteBuffer& read(ByteBuffer& bb) {
             bb.read(transactionID);
             arg = bb.rangeRemains();
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) override {
+        ByteBuffer& write(ByteBuffer& bb) {
             bb.write(transactionID);
             bb.write(arg.toSpan());
             return bb;
@@ -461,17 +457,17 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
                 transactionID, arg.byteLimit(), arg.toString());
         }
     };
-    struct AbortMessage : public HasRead, public HasWrite, public HasToString {
+    struct AbortMessage : public HasToString {
         uint16_t transactionID;
         uint16_t errorValue;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) override {
+        ByteBuffer& read(ByteBuffer& bb) {
             bb.read(transactionID, errorValue);
             arg = bb.rangeRemains();
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) override {
+        ByteBuffer& write(ByteBuffer& bb) {
             bb.write(transactionID, errorValue);
             bb.write(arg.toSpan());
             return bb;
@@ -485,7 +481,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
     Type type;
     std::variant<CallMessage, RejectMessage, ReturnMessage, AbortMessage> variant;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(type);
         switch(type) {
             case Type::CALL:
@@ -519,7 +515,7 @@ struct MessageType : public HasRead, public HasWrite, public HasToString {
         }
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(type);
         switch(type) {
         case Type::CALL:
@@ -567,17 +563,17 @@ std::string toString(Protocol value);
 //
 // ProtocolRange
 //
-struct ProtocolRange : public HasRead, public HasWrite, public HasToString {
+struct ProtocolRange : public HasToString {
     Protocol low;
     Protocol high;
 
     ProtocolRange() : low(Protocol::PROTOCOL_3), high(Protocol::PROTOCOL_3) {}
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(low, high);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(low, high);
         return bb;
     }
@@ -589,17 +585,17 @@ struct ProtocolRange : public HasRead, public HasWrite, public HasToString {
 //
 // VersionRange
 //
-struct VersionRange : public HasRead, public HasWrite, public HasToString {
+struct VersionRange : public HasToString {
     uint16_t low;
     uint16_t high;
 
     VersionRange() : low(0), high() {}
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(low, high);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(low, high);
         return bb;
     }
@@ -613,15 +609,15 @@ struct VersionRange : public HasRead, public HasWrite, public HasToString {
 //
 namespace expedited {
 //
-struct CallMessage : public HasRead, public HasWrite, public HasToString {
+struct CallMessage : public HasToString {
     ProtocolRange          range;
     protocol3::CallMessage message;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(range, message);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(range, message);
         return bb;
     }
@@ -629,15 +625,15 @@ struct CallMessage : public HasRead, public HasWrite, public HasToString {
         return std_sprintf("{%s  %s}", range.toString(), message.toString());
     }
 };
-struct ReturnMessage : public HasRead, public HasWrite, public HasToString {
+struct ReturnMessage : public HasToString {
     ProtocolRange            range;
     protocol3::ReturnMessage message;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(range, message);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(range, message);
         return bb;
     }

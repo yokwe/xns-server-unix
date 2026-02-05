@@ -51,6 +51,19 @@ int main(int, char **) {
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
 
+    {
+        auto bb = getByteBuffer();
+        std::string string("ABCD");
+
+        bb.write(string);
+        logger.info("bb  %d  %s", bb.byteLimit(), bb.toString());
+
+        bb.flip();
+        std::string a;
+        bb.read(a);
+        logger.info("a  \"%s\"", a);
+    }
+
     Context context;
 
 	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), toStringHost(context.driver->device.address), context.driver->device.name);

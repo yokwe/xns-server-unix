@@ -41,7 +41,7 @@
 namespace xns {
 //
 
-class SPP : public HasRead, public HasWrite, public HasToString {
+class SPP : public HasToString {
 public:
     enum class SST : uint8_t {
         ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
@@ -84,11 +84,11 @@ public:
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
         return bb;
     }

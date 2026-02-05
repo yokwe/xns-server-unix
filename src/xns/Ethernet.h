@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class Ethernet : public HasRead, public HasWrite, public HasToString {
+class Ethernet : public HasToString {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
@@ -57,11 +57,11 @@ public:
     Host source;
     Type type;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(dest, source, type);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(dest, source, type);
         return bb;
     }

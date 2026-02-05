@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class IDP : public HasRead, public HasWrite, public HasToString {
+class IDP : public HasToString {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
 
@@ -64,17 +64,17 @@ public:
     };
     static std::string toString(PacketType value);
 
-    class NetworkAddress : public HasRead, public HasWrite, public HasToString {
+    class NetworkAddress : public HasToString {
     public:
         Network network;
         Host    host;
         Socket  socket;
     
-        ByteBuffer& read(ByteBuffer& bb) override {
+        ByteBuffer& read(ByteBuffer& bb) {
             bb.read(network, host, socket);
             return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) override {
+        ByteBuffer& write(ByteBuffer& bb) {
             bb.write(network, host, socket);
             return bb;
         }
@@ -93,11 +93,11 @@ public:
     NetworkAddress dst;
     NetworkAddress src;
 
-    ByteBuffer& read(ByteBuffer& bb) override {
+    ByteBuffer& read(ByteBuffer& bb) {
         bb.read(checksum, length, control, packetType, dst, src);
         return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) override {
+    ByteBuffer& write(ByteBuffer& bb) {
         bb.write(checksum, length, control, packetType, dst, src);
         return bb;
     }
