@@ -35,9 +35,12 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <type_traits>
+#include <utility>
 
 #include "Util.h"
 
@@ -52,18 +55,29 @@ struct HasWrite {
     virtual ~HasWrite() = default;
 };
 
-
-template<class T>
-concept HasReadObject = requires(T t, ByteBuffer& b) {
-    { readObject(b, t) } -> std::same_as<void>;
+//
+// concept
+//
+template<typename T>
+concept has_read = requires (T& o, ByteBuffer& bb) {
+//    { o.read(bb) } -> std::same_as<ByteBuffer&>;
+    o.read(bb);
+};
+template<typename T>
+concept has_write = requires (T& o, ByteBuffer& bb) {
+    { o.write(bb) } -> std::same_as<ByteBuffer&>;
 };
 
-template<class T>
-concept HasWriteObject = requires(ByteBuffer& b, T& t) {
-    { writeObject(b, t) } -> std::same_as<void>;
+template<typename T>
+concept has_readObject = requires (T& o, ByteBuffer& bb) {
+    { readObject(bb, o) } -> std::same_as<void>;
+};
+template<typename T>
+concept has_writeObject = requires (T& o, ByteBuffer& bb) {
+    { writeObject(bb, o) } -> std::same_as<void>;
 };
 
-class ByteBuffer : public HasRead, public HasWrite, public HasToString {
+class ByteBuffer : public HasToString {
     static const bool USE_MESA_BYTE_ORDER = false;
 
     static const uint32_t BYTES_PER_WORD = 2;
@@ -285,69 +299,11 @@ public:
     }
 
     //
-    // HasRead and read(...)
+    // read()
     //
-    ByteBuffer& read(ByteBuffer& value) override {
-        value = rangeRemains();
-        return *this;
-    }
-    // read() for template function read
     ByteBuffer& read() {
         return *this;
     }
-    template <class Head, class... Tail>
-    ByteBuffer& read(Head&& head, Tail&&... tail) {
-        using T = std::remove_cv_t<std::remove_reference_t<Head>>;
-        constexpr auto is_uint8_t  = std::is_same_v<T, uint8_t>;
-        constexpr auto is_uint16_t = std::is_same_v<T, uint16_t>;
-        constexpr auto is_uint32_t = std::is_same_v<T, uint32_t>;
-        constexpr auto is_class    = std::is_class_v<T>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
-
-//		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
-
-        if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
-            read(head);
-        } else if constexpr (is_enum) {
-            using UT = std::underlying_type_t<T>;
-            constexpr auto ut_uint8_t  = std::is_same_v<UT, uint8_t>;
-            constexpr auto ut_uint16_t = std::is_same_v<UT, uint16_t>;
-            constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
-
-//    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
-            if constexpr (ut_uint8_t) {
-                uint8_t t;
-                read(t);
-                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
-            } else if constexpr(ut_uint16_t) {
-                uint16_t t;
-                read(t);
-                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
-            } else if constexpr (ut_uint32_t) {
-                uint32_t t;
-                read(t);
-                head = static_cast<std::remove_cv_t<std::remove_reference_t<Head>>>(t);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-                ERROR()    
-            }
-        } else if constexpr (is_class) {
-            constexpr auto has_read = std::is_base_of_v<HasRead, T>;
-            if constexpr (has_read) {
-                head.read(*this);
-            } else if constexpr (HasReadObject<T>) {
-                readObject(*this, head);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-                ERROR()
-            }
-        } else {
-            logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-            ERROR()
-        }
-        return read(std::forward<Tail>(tail)...);
-    }
-
     ByteBuffer& read(uint8_t& value) {
         value = get8();
         return *this;
@@ -364,67 +320,35 @@ public:
     ByteBuffer& read(int64_t  value) = delete;
     ByteBuffer& read(uint64_t value) = delete;
 
-
-    //
-    // HasWrite and write(...)
-    //
-   ByteBuffer& write(ByteBuffer& value) override {
-        putSpan(value.toSpan());
+    ByteBuffer& read(ByteBuffer& value) {
+        value = rangeRemains();
         return *this;
     }
-    // write() for temlate function write
+
+    template <class Head, class... Tail>
+    ByteBuffer& read(Head&& head, Tail&&... tail) {
+        using T = std::remove_cvref_t<Head>;
+        if constexpr (has_read<T>) {
+            head.read(*this);
+        } else if constexpr (has_readObject<T>) {
+            readObject(*this, head);
+        } else if constexpr (std::is_enum_v<T>) {
+            using U = std::underlying_type_t<T>;
+            U value;
+            read(value);
+            head = static_cast<T>(value);
+        } else {
+            read(head);
+        }
+        // process tail
+        return read(std::forward<Tail>(tail)...);
+    }
+
+    //
+    // write()
+    //
     ByteBuffer& write() {
         return *this;
-    }
-    template <class Head, class... Tail>
-    ByteBuffer& write(Head&& head, Tail&&... tail) {
-        using T = std::remove_cv_t<std::remove_reference_t<Head>>;
-        constexpr auto is_uint8_t  = std::is_same_v<T, uint8_t>;
-        constexpr auto is_uint16_t = std::is_same_v<T, uint16_t>;
-        constexpr auto is_uint32_t = std::is_same_v<T, uint32_t>;
-        constexpr auto is_class    = std::is_class_v<T>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
-
-//		logger.info("read head  %2d  |  %d  %d  |  %d  %d  | %s", sizeof(head), is_uint16_t, is_uint32_t, is_class, is_enum, demangle(typeid(head).name()));
-
-        if constexpr (is_uint8_t || is_uint16_t || is_uint32_t) {
-            write(head);
-        } else if constexpr (is_enum) {
-            using UT = std::underlying_type_t<T>;
-            constexpr auto ut_uint8_t  = std::is_same_v<UT, uint8_t>;
-            constexpr auto ut_uint16_t = std::is_same_v<UT, uint16_t>;
-            constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
-
-//    		logger.info("enum class  %d  %d  %d", ut_uint8_t, ut_uint16_t, ut_uint32_t);
-            if constexpr (ut_uint8_t) {
-                auto t = static_cast<uint8_t>(head);
-                write(t);
-            } else if constexpr(ut_uint16_t) {
-                auto t = static_cast<uint16_t>(head);
-                write(t);
-            } else if constexpr (ut_uint32_t) {
-                auto t = static_cast<uint32_t>(head);
-                write(t);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-                ERROR()    
-            }
-        } else if constexpr (is_class) {
-            constexpr auto has_write = std::is_base_of_v<HasWrite, T>;
-            if constexpr (has_write) {
-                head.write(*this);
-            } else if constexpr (HasWriteObject<T>) {
-                writeObject(*this, head);
-            } else {
-                logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-                logger.error("  %s", demangle(typeid(T).name()));
-                ERROR()
-            }
-        } else {
-            logger.error("Unexpected type  %s", demangle(typeid(head).name()));
-            ERROR()
-        }
-        return write(std::forward<Tail>(tail)...);
     }
     ByteBuffer& write(uint8_t value) {
         put8(value);
@@ -442,14 +366,47 @@ public:
     ByteBuffer& write(int64_t  value) = delete;
     ByteBuffer& write(uint64_t value) = delete;
 
+    ByteBuffer& write(ByteBuffer& value) {
+        putSpan(value.toSpan());
+        return *this;
+    }
     ByteBuffer& write(std::span<uint8_t> span) {
         putSpan(span);
         return *this;
     }
+
+    template <class Head, class... Tail>
+    ByteBuffer& write(Head&& head, Tail&&... tail) {
+        using T = std::remove_cvref_t<Head>;
+        // process head
+        if constexpr (has_write<Head>) {
+            head.write(*this);
+        } else if constexpr (has_writeObject<Head>) {
+            writeObject(*this, head);
+        } else if constexpr (std::is_enum_v<T>) {
+            using U = std::underlying_type_t<T>;
+            U value = static_cast<U>(head);
+            write(value);
+        } else {
+            write(head);
+        }
+        // process tail
+        return write(std::forward<Tail>(tail)...);
+    }
 };
 
+//
+// std::string
+//
 inline void writeObject(ByteBuffer& bb, std::string& value) {
     for(auto c: value) {
         bb.put8(c);
+    }
+}
+inline void readObject(ByteBuffer& bb, std::string& value) {
+    value.clear();
+    auto span = bb.toSpan();
+    for(auto c: span) {
+        value += c;
     }
 }
