@@ -58,13 +58,18 @@ concept has_write = requires (T& o, ByteBuffer& bb) {
 };
 
 template<typename T>
-concept has_readObject = requires (T& o, ByteBuffer& bb) {
-    { readObject(bb, o) } -> std::same_as<void>;
+concept has_from_bb = requires (T& o, ByteBuffer& bb) {
+    { from_bb(bb, o) } -> std::same_as<void>;
 };
 template<typename T>
-concept has_writeObject = requires (T& o, ByteBuffer& bb) {
-    { writeObject(bb, o) } -> std::same_as<void>;
+concept has_to_bb = requires (T& o, ByteBuffer& bb) {
+    { to_bb(bb, o) } -> std::same_as<void>;
 };
+
+template<typename T>
+concept valid_for_bb_ = (has_read<T> && has_write<T>) || (has_from_bb<T> && has_to_bb<T>) || std::is_enum_v<T> || std::is_integral_v<T>;
+template<typename T>
+concept valid_for_bb = valid_for_bb_<std::remove_cvref_t<T>>;
 
 class ByteBuffer {
     static const bool USE_MESA_BYTE_ORDER = false;
@@ -293,6 +298,7 @@ public:
     ByteBuffer& read() {
         return *this;
     }
+    // unsigned
     ByteBuffer& read(uint8_t& value) {
         value = get8();
         return *this;
@@ -305,7 +311,16 @@ public:
         value = get32();
         return *this;
     }
-    ByteBuffer& read(int      value) = delete;
+    // signed
+    ByteBuffer& read(int16_t& value) {
+        value = (int16_t)get16();
+        return *this;
+    }
+    ByteBuffer& read(int32_t& value) {
+        value = (int32_t)get32();
+        return *this;
+    }
+    // prohibit
     ByteBuffer& read(int64_t  value) = delete;
     ByteBuffer& read(uint64_t value) = delete;
 
@@ -315,19 +330,26 @@ public:
     }
 
     template <class Head, class... Tail>
+//    requires valid_for_bb<Head>
     ByteBuffer& read(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
         if constexpr (has_read<T>) {
             head.read(*this);
-        } else if constexpr (has_readObject<T>) {
-            readObject(*this, head);
+        } else if constexpr (has_from_bb<T>) {
+            from_bb(*this, head);
         } else if constexpr (std::is_enum_v<T>) {
             using U = std::underlying_type_t<T>;
             U value;
             read(value);
             head = static_cast<T>(value);
+        } else if constexpr (std::is_integral_v<T>) {
+            T value;
+            read(value);
+            head = value;
         } else {
+            static_assert(false, "Unexptected");
+            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(Head).name()));
             read(head);
         }
         // process tail
@@ -340,6 +362,7 @@ public:
     ByteBuffer& write() {
         return *this;
     }
+    // unsigned
     ByteBuffer& write(uint8_t value) {
         put8(value);
         return *this;
@@ -352,7 +375,16 @@ public:
         put32(value);
         return *this;
     }
-    ByteBuffer& write(int      value) = delete;
+    // signed
+    ByteBuffer& write(int16_t value) {
+        put16((uint16_t)value);
+        return *this;
+    }
+    ByteBuffer& write(int32_t value) {
+        put32((uint32_t)value);
+        return *this;
+    }
+    // prohibit
     ByteBuffer& write(int64_t  value) = delete;
     ByteBuffer& write(uint64_t value) = delete;
 
@@ -366,18 +398,24 @@ public:
     }
 
     template <class Head, class... Tail>
+//    requires valid_for_bb<Head>
     ByteBuffer& write(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
         if constexpr (has_write<Head>) {
             head.write(*this);
-        } else if constexpr (has_writeObject<Head>) {
-            writeObject(*this, head);
+        } else if constexpr (has_to_bb<Head>) {
+            to_bb(*this, head);
         } else if constexpr (std::is_enum_v<T>) {
             using U = std::underlying_type_t<T>;
             U value = static_cast<U>(head);
             write(value);
+        } else if constexpr (std::is_integral_v<T>) {
+            T value = (T)head;
+            write(value);
         } else {
+            static_assert(false, "Unexptected");
+            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(Head).name()));
             write(head);
         }
         // process tail
@@ -388,12 +426,12 @@ public:
 //
 // std::string
 //
-inline void writeObject(ByteBuffer& bb, std::string& value) {
+inline void to_bb(ByteBuffer& bb, std::string& value) {
     for(auto c: value) {
         bb.put8(c);
     }
 }
-inline void readObject(ByteBuffer& bb, std::string& value) {
+inline void from_bb(ByteBuffer& bb, std::string& value) {
     value.clear();
     auto span = bb.toSpan();
     for(auto c: span) {

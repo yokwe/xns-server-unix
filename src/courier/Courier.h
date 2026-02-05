@@ -109,27 +109,7 @@ class ARRAY {
 
 public:
     ARRAY() {
-        constexpr auto is_uint8_t  = std::is_same_v<T, uint8_t>;
-        constexpr auto is_uint16_t = std::is_same_v<T, uint16_t>;
-        constexpr auto is_uint32_t = std::is_same_v<T, uint32_t>;
-        constexpr auto is_class    = std::is_class_v<T>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
-    
-        if (is_uint8_t || is_uint16_t || is_uint32_t) {
-            // OK
-        } else if constexpr (is_enum) {
-            using UT = std::underlying_type_t<T>;
-            constexpr auto ut_uint8_t  = std::is_same_v<UT, uint8_t>;
-            constexpr auto ut_uint16_t = std::is_same_v<UT, uint16_t>;
-            constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
-            if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
-                // OK
-            } else static_assert(false, "Unexpected");
-        } else if constexpr(has_read<T> && has_write<T>) {
-            // OK
-        } else if constexpr(has_readObject<T> && has_writeObject<T>) {
-            // OK
-        } else static_assert(false, "Unexpected");
+        if constexpr (!valid_for_bb<T>) static_assert(false, "Unexpected");
     }
     ARRAY& operator =(const std::array<T, N>& that) {
         array = that;
@@ -175,27 +155,7 @@ class SEQUENCE {
 
 public:
     SEQUENCE() {
-        constexpr auto is_uint8_t  = std::is_same_v<T, uint8_t>;
-        constexpr auto is_uint16_t = std::is_same_v<T, uint16_t>;
-        constexpr auto is_uint32_t = std::is_same_v<T, uint32_t>;
-        constexpr auto is_class    = std::is_class_v<T>;
-        constexpr auto is_enum     = std::is_scoped_enum_v<T>;
-    
-        if (is_uint8_t || is_uint16_t || is_uint32_t) {
-            // OK
-        } else if constexpr (is_enum) {
-            using UT = std::underlying_type_t<T>;
-            constexpr auto ut_uint8_t  = std::is_same_v<UT, uint8_t>;
-            constexpr auto ut_uint16_t = std::is_same_v<UT, uint16_t>;
-            constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
-            if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
-                // OK
-            } else static_assert(false, "Unexpected");
-        } else if constexpr(has_read<T> && has_write<T>) {
-            // OK
-        } else if constexpr(has_readObject<T> && has_writeObject<T>) {
-            // OK
-        } else static_assert(false, "Unexpected");
+        if constexpr (!valid_for_bb<T>) static_assert(false, "Unexpected");
     }
     SEQUENCE& operator =(const std::vector<T>& that) {
         if (MAX_LENGTH < that.size()) ERROR()
