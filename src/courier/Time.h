@@ -51,7 +51,7 @@ enum class Type : uint16_t {
 };
 std::string toString(Type value);
 
-class Request : public HasToString {
+class Request {
 public:
     Version version;
     Type    type;
@@ -64,12 +64,12 @@ public:
         bb.write(version, type);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %s}", Time::toString(version), Time::toString(type));
     }
 };
 
-class Response : public HasToString {
+class Response {
 public:
     enum class Direction : uint16_t {
         ENUM_NAME_VALUE(Direction, WEST, 0)
@@ -107,7 +107,7 @@ public:
         bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         uint32_t unixTime = Util::toUnixTime(time);
         std::string timeString = Util::toString(unixTime);
 

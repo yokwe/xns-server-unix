@@ -40,7 +40,7 @@
 
 namespace xns {
 //
-class PEX : public HasToString {
+class PEX {
 public:
     // APilot/15.0.1/NS/Public/PacketExchange.mesa
     // ExchangeClientType: TYPE = MACHINE DEPENDENT {
@@ -74,7 +74,7 @@ public:
         bb.write(id, clientType);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%08X %-4s}", id, toString(clientType));
     }
 };

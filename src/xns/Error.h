@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class Error : public HasToString {
+class Error {
 public:
     enum class ErrorNumber : uint16_t {
         ENUM_NAME_VALUE(ErrorNumber, UNSPEC,               0)
@@ -80,7 +80,7 @@ public:
         bb.write(errorNumber, errorParameter);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %d}", toString(errorNumber), errorParameter);
     }
 

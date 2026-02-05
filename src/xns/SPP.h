@@ -41,7 +41,7 @@
 namespace xns {
 //
 
-class SPP : public HasToString {
+class SPP {
 public:
     enum class SST : uint8_t {
         ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
@@ -92,7 +92,7 @@ public:
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, toString(sst), srcID, dstID, seq, ack, alloc);
     }
 

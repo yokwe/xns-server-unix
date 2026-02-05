@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class Ethernet : public HasToString {
+class Ethernet {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, XNS, 0x0600)
@@ -65,7 +65,7 @@ public:
         bb.write(dest, source, type);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %s  %s}",dest.toString(), source.toString(), toString(type));
     }
 };

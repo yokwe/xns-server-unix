@@ -37,6 +37,7 @@
 
 #include <string>
 #include <cstdint>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -49,7 +50,7 @@ namespace courier {
 //
 // STRING
 //
-class STRING : public HasToString  {
+class STRING {
     static const constexpr uint32_t MAX_LENGTH = 65535;
     mutable std::string value;
 
@@ -73,7 +74,7 @@ public:
         if (length & 1) bb.put8(0);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return value.data();
     }
 
@@ -100,7 +101,7 @@ public:
 // ARRAY
 //
 template <class T, uint32_t N>
-class ARRAY : public HasToString  {
+class ARRAY {
     static_assert(N <= 65535, "N is more than 65535");
 
     static const constexpr uint32_t MAX_LENGTH = 65535;
@@ -123,12 +124,12 @@ public:
             constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
             if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
                 // OK
-            } else ERROR()
+            } else static_assert(false, "Unexpected");
         } else if constexpr(has_read<T> && has_write<T>) {
             // OK
         } else if constexpr(has_readObject<T> && has_writeObject<T>) {
             // OK
-        } else ERROR()
+        } else static_assert(false, "Unexpected");
     }
     ARRAY& operator =(const std::array<T, N>& that) {
         array = that;
@@ -154,7 +155,7 @@ public:
         }
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         if (array.empty()) return "[]";
         std::string string;
         for(const auto& e: array) {
@@ -168,7 +169,7 @@ public:
 // SEQUENCE
 //
 template <class T, uint32_t N = 65535>
-class SEQUENCE : public HasToString  {
+class SEQUENCE {
     static const constexpr uint32_t MAX_LENGTH = N;
     mutable std::vector<T> vector;
 
@@ -189,12 +190,12 @@ public:
             constexpr auto ut_uint32_t = std::is_same_v<UT, uint32_t>;
             if constexpr (ut_uint8_t || ut_uint16_t || ut_uint32_t) {
                 // OK
-            } else ERROR()
+            } else static_assert(false, "Unexpected");
         } else if constexpr(has_read<T> && has_write<T>) {
             // OK
         } else if constexpr(has_readObject<T> && has_writeObject<T>) {
             // OK
-        } else ERROR()
+        } else static_assert(false, "Unexpected");
     }
     SEQUENCE& operator =(const std::vector<T>& that) {
         if (MAX_LENGTH < that.size()) ERROR()
@@ -229,7 +230,7 @@ public:
         }
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         if (vector.empty()) return "[]";
         std::string string;
         for(const auto& e: vector) {
@@ -252,7 +253,7 @@ std::string toString(Type value);
 
 namespace protocol3{
 //
-struct CallMessage : public HasToString {
+struct CallMessage {
     Type       type;
     uint16_t   transactionID;
     uint32_t   programNumber;
@@ -269,12 +270,12 @@ struct CallMessage : public HasToString {
         bb.write(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %04X  %d  %d  %d  (%d) %s}",
             courier::toString(type), transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
     }
 };
-struct ReturnMessage : public HasToString {
+struct ReturnMessage {
     Type       type;
     uint16_t   transactionID;
     ByteBuffer arg;
@@ -288,12 +289,12 @@ struct ReturnMessage : public HasToString {
         bb.write(type, transactionID, arg);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %04X  (%d) %s}",
             courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
     }
 };
-struct AbortMessage : public HasToString {
+struct AbortMessage {
     Type       type;
     uint16_t   transactionID;
     uint16_t   errorValue;
@@ -308,13 +309,13 @@ struct AbortMessage : public HasToString {
         bb.write(type, transactionID, errorValue, arg);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %04X  (%d) %s}",
             courier::toString(type), transactionID, arg.byteLimit(), arg.toString());
     }
 };
 
-struct MessageType : public HasToString {
+struct MessageType {
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, CALL,    0)
         ENUM_NAME_VALUE(Type, REJECT,  1)
@@ -323,7 +324,7 @@ struct MessageType : public HasToString {
     };
     static std::string toString(Type value);
 
-    struct CallMessage : public HasToString {
+    struct CallMessage {
         uint16_t transactionID;
         uint32_t programNumber;
         uint16_t versionNumber;
@@ -340,12 +341,12 @@ struct MessageType : public HasToString {
             bb.write(arg.toSpan());
             return bb;
         }
-        std::string toString() const override {
+        std::string toString() const {
             return std_sprintf("{%04X  %d  %d  %d  (%d) %s}",
                 transactionID, programNumber, versionNumber, procedureValue, arg.byteLimit(), arg.toString());
         }
     };
-    struct RejectMessage : public HasToString {
+    struct RejectMessage {
         enum class Type : uint16_t {
             ENUM_NAME_VALUE(Type, NO_SUCH_PROGRAM_NUMBER,  0)
             ENUM_NAME_VALUE(Type, NO_SUCH_VERSION_NUMBER,  1)
@@ -355,7 +356,7 @@ struct MessageType : public HasToString {
         };
         static std::string toString(Type value);
 
-        struct ImplementedVersionNumbers: public HasToString {
+        struct ImplementedVersionNumbers{
             uint16_t lowest;
             uint16_t highest;
 
@@ -365,7 +366,7 @@ struct MessageType : public HasToString {
             ByteBuffer& write(ByteBuffer& bb) {
                 return bb.write(lowest, highest);
             }
-            std::string toString() const override {
+            std::string toString() const {
                 return std_sprintf("{%d %d}", lowest, highest);
             }
         };
@@ -421,7 +422,7 @@ struct MessageType : public HasToString {
             }
             return bb;
         }
-        std::string toString() const override {
+        std::string toString() const {
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
             {
@@ -438,7 +439,7 @@ struct MessageType : public HasToString {
             }
         }
     };
-    struct ReturnMessage : public HasToString {
+    struct ReturnMessage {
         uint16_t transactionID;
         ByteBuffer arg;
 
@@ -452,12 +453,12 @@ struct MessageType : public HasToString {
             bb.write(arg.toSpan());
             return bb;
         }
-        std::string toString() const override {
+        std::string toString() const {
             return std_sprintf("{%04X  (%d) %s}",
                 transactionID, arg.byteLimit(), arg.toString());
         }
     };
-    struct AbortMessage : public HasToString {
+    struct AbortMessage {
         uint16_t transactionID;
         uint16_t errorValue;
         ByteBuffer arg;
@@ -472,7 +473,7 @@ struct MessageType : public HasToString {
             bb.write(arg.toSpan());
             return bb;
         }
-        std::string toString() const override {
+        std::string toString() const {
             return std_sprintf("{%04X  %d  (%d) %s}",
                 transactionID, errorValue, arg.byteLimit(), arg.toString());
         }
@@ -563,7 +564,7 @@ std::string toString(Protocol value);
 //
 // ProtocolRange
 //
-struct ProtocolRange : public HasToString {
+struct ProtocolRange {
     Protocol low;
     Protocol high;
 
@@ -577,7 +578,7 @@ struct ProtocolRange : public HasToString {
         bb.write(low, high);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %s}", courier::toString(low), courier::toString(high));
     }
 };
@@ -585,7 +586,7 @@ struct ProtocolRange : public HasToString {
 //
 // VersionRange
 //
-struct VersionRange : public HasToString {
+struct VersionRange {
     uint16_t low;
     uint16_t high;
 
@@ -599,7 +600,7 @@ struct VersionRange : public HasToString {
         bb.write(low, high);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%d  %d}", low, high);
     }
 };
@@ -609,7 +610,7 @@ struct VersionRange : public HasToString {
 //
 namespace expedited {
 //
-struct CallMessage : public HasToString {
+struct CallMessage {
     ProtocolRange          range;
     protocol3::CallMessage message;
 
@@ -621,11 +622,11 @@ struct CallMessage : public HasToString {
         bb.write(range, message);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %s}", range.toString(), message.toString());
     }
 };
-struct ReturnMessage : public HasToString {
+struct ReturnMessage {
     ProtocolRange            range;
     protocol3::ReturnMessage message;
 
@@ -637,7 +638,7 @@ struct ReturnMessage : public HasToString {
         bb.write(range, message);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %s}", range.toString(), message.toString());
     }
 };

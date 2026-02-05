@@ -66,7 +66,7 @@ concept has_writeObject = requires (T& o, ByteBuffer& bb) {
     { writeObject(bb, o) } -> std::same_as<void>;
 };
 
-class ByteBuffer : public HasToString {
+class ByteBuffer {
     static const bool USE_MESA_BYTE_ORDER = false;
 
     static const uint32_t BYTES_PER_WORD = 2;
@@ -132,7 +132,7 @@ public:
         return std::span<uint8_t>{myData, myByteLimit};
     }
 
-    std::string toString() const override {
+    std::string toString() const {
         return toHexString(myByteLimit, myData);
     }
 

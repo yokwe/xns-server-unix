@@ -43,7 +43,7 @@
 
 namespace xns {
 //
-class Echo : public HasToString {
+class Echo {
 public:
     enum class Type : uint16_t {
         ENUM_NAME_VALUE(Type, REQUEST,  1)
@@ -64,7 +64,7 @@ public:
         bb.write(type);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s}", toString(type));
     }
 };

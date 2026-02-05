@@ -62,7 +62,7 @@ struct Config {
         //                 procedure
     };
 
-    struct Key : public HasToString {
+    struct Key {
         struct Hash {
             std::size_t operator()(const Key& value) const {
                 return value.program << 16 | value.version;
@@ -75,7 +75,7 @@ struct Config {
         Key(uint32_t program_, uint16_t version_) : program(program_), version(version_) {}
         Key(const Program& program) : program(program.program), version(program.version) {}
 
-        std::string toString() const override {
+        std::string toString() const {
             return std_sprintf("{%d  %d}", program, version);
         }
     

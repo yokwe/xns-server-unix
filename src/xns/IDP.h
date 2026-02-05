@@ -44,7 +44,7 @@
 
 namespace xns {
 //
-class IDP : public HasToString {
+class IDP {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
 
@@ -64,7 +64,7 @@ public:
     };
     static std::string toString(PacketType value);
 
-    class NetworkAddress : public HasToString {
+    class NetworkAddress {
     public:
         Network network;
         Host    host;
@@ -78,7 +78,7 @@ public:
             bb.write(network, host, socket);
             return bb;
         }
-        std::string toString() const override {
+        std::string toString() const {
             return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
         }
     };
@@ -101,7 +101,7 @@ public:
         bb.write(checksum, length, control, packetType, dst, src);
         return bb;
     }
-    std::string toString() const override {
+    std::string toString() const {
         return std_sprintf("{%s  %d  %d  %s  %s  %s}",
             toString(checksum), length, control, toString(packetType), dst.toString(), src.toString());    
     }

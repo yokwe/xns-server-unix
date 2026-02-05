@@ -46,7 +46,7 @@ namespace xns {
 //
 // Host
 //
-class Host : public HasToString {
+class Host {
     uint64_t value;
 public:
     static const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
@@ -77,7 +77,7 @@ public:
         bb.write(word1, word2, word3);
         return bb;
     }
-    std::string toString() const override;
+    std::string toString() const;
 };
 
 //
