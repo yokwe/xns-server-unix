@@ -327,6 +327,7 @@ public:
 
     template <class Head, class... Tail>
     ByteBuffer& read(Head&& head, Tail&&... tail) {
+        // process head
         using T = std::remove_cvref_t<Head>;
         if constexpr (has_read<T>) {
             head.read(*this);
@@ -377,8 +378,8 @@ public:
 
     template <class Head, class... Tail>
     ByteBuffer& write(Head&& head, Tail&&... tail) {
-        using T = std::remove_cvref_t<Head>;
         // process head
+        using T = std::remove_cvref_t<Head>;
         if constexpr (has_write<Head>) {
             head.write(*this);
         } else if constexpr (has_writeObject<Head>) {
