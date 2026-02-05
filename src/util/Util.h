@@ -40,6 +40,7 @@
 #include <set>
 #include <source_location>
 #include <concepts>
+#include <type_traits>
 #include <variant>
 
 #include <log4cxx/logger.h>
@@ -295,12 +296,34 @@ struct StringLiteral {
     char value[N];
 };
 
-struct HasToString {
-    virtual std::string toString() const = 0;
-	virtual ~HasToString() = default;
+//
+// toStringX()
+//
+template<typename T>
+concept has_toStringA = requires (const T& o) {
+    { toString(o) } -> std::same_as<std::string>;
 };
-template <typename T>
-concept Stringable = std::derived_from<T, HasToString>;
+template<typename T>
+concept has_toStringB = requires (const T& o) {
+    { o.toString() } -> std::same_as<std::string>;
+};
+template<typename T>
+concept has_toString = has_toStringA<T> || has_toStringB<T>;
+
+template <has_toString T>
+std::string toStringX(T o) {
+	using U = std::remove_cvref<T>;
+	if constexpr (has_toStringA<U>) {
+		return toSring(o);
+	} else if constexpr (has_toStringB<U>) {
+		return o.toString();
+	} else {
+		static_assert(false, "Unexpected");
+	}
+}
+std::string toStringX(has_toStringB auto o) {
+	return o.toString();
+}
 
 // use this template function to call toString method of the class in std::varinat
 template<class T>
