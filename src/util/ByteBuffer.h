@@ -476,7 +476,7 @@ void from_bb(ByteBuffer& bb, std::vector<T>& vector) {
 //
 template<typename T, std::size_t N>
 void to_bb(ByteBuffer& bb, std::array<T, N>& array) {
-    uint32_t size = array.size();
+    int size = array.size();
     if (65535 < size) ERROR()
     for(int i = 0; i < size; i++) {
         T value = array[i];
