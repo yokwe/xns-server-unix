@@ -471,3 +471,25 @@ void from_bb(ByteBuffer& bb, std::vector<T>& vector) {
         vector.push_back(value);
     }
 }
+//
+// std::array
+//
+template<typename T, std::size_t N>
+void to_bb(ByteBuffer& bb, std::array<T, N>& array) {
+    uint32_t size = array.size();
+    if (65535 < size) ERROR()
+    for(int i = 0; i < size; i++) {
+        T value = array[i];
+        bb.write(value);
+    }
+}
+template<typename T, std::size_t N>
+void from_bb(ByteBuffer& bb, std::array<T, N>& array) {
+    int size = array.size();
+    if (65535 < size) ERROR()
+    for(int i = 0; i < size; i++) {
+        T value;
+        bb.read(value);
+        array.push_back(value);
+    }
+}
