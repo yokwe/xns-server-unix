@@ -430,15 +430,45 @@ public:
 //
 // std::string
 //
-inline void to_bb(ByteBuffer& bb, std::string& value) {
-    for(auto c: value) {
+inline void to_bb(ByteBuffer& bb, std::string& string) {
+    int size = string.size();
+    if (65535 < size) ERROR()
+    bb.put16(size);
+    for(int i = 0; i < size; i++) {
+        uint8_t c = string[i];
         bb.put8(c);
     }
 }
-inline void from_bb(ByteBuffer& bb, std::string& value) {
-    value.clear();
-    auto span = bb.toSpan();
-    for(auto c: span) {
-        value += c;
+inline void from_bb(ByteBuffer& bb, std::string& string) {
+    int size = bb.get16();
+    if (65535 < size) ERROR()
+    string.reserve(size);
+    for(int i = 0; i < size; i++) {
+        uint8_t c = bb.get8();
+        string.push_back(c);
+    }
+}
+//
+// std::vector
+//
+template<typename T>
+void to_bb(ByteBuffer& bb, std::vector<T>& vector) {
+    int size = vector.size();
+    if (65535 < size) ERROR()
+    bb.put16(size);
+    for(int i = 0; i < size; i++) {
+        T value = vector[i];
+        bb.write(value);
+    }
+}
+template<typename T>
+void from_bb(ByteBuffer& bb, std::vector<T>& vector) {
+    int size = bb.get16();
+    if (65535 < size) ERROR()
+    vector.reserve(size);
+    for(int i = 0; i < size; i++) {
+        T value;
+        bb.read(value);
+        vector.push_back(value);
     }
 }

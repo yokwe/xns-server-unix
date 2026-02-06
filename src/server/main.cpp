@@ -56,12 +56,27 @@ int main(int, char **) {
         std::string string("ABCD");
 
         bb.write(string);
+        bb.flip();
         logger.info("bb  %d  %s", bb.byteLimit(), bb.toString());
 
-        bb.flip();
         std::string a;
         bb.read(a);
         logger.info("a  \"%s\"", a);
+    }
+    {
+        auto bb = getByteBuffer();
+
+        std::vector<std::string> vector;
+        vector.push_back("A");
+        vector.push_back("B");
+        vector.push_back("C");
+        bb.write(vector);
+        bb.flip();
+        logger.info("bb  %d  %s", bb.byteLimit(), bb.toString());
+
+        std::vector<std::string>a;
+        bb.read(a);
+        logger.info("a  %d  %s  %s  %s", a.size(), a[0], a[1], a[2]);
     }
 
     Context context;
