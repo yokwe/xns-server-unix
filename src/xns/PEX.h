@@ -66,13 +66,11 @@ public:
 
     PEX() : id(0), clientType(ClientType::UNSPEC) {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(id, clientType);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(id, clientType);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%08X %-4s}", id, toString(clientType));

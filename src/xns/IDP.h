@@ -70,13 +70,11 @@ public:
         Host    host;
         Socket  socket;
     
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(network, host, socket);
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(network, host, socket);
-            return bb;
         }
         std::string toString() const {
             return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
@@ -93,13 +91,11 @@ public:
     NetworkAddress dst;
     NetworkAddress src;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(checksum, length, control, packetType, dst, src);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(checksum, length, control, packetType, dst, src);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %d  %d  %s  %s  %s}",

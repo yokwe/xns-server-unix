@@ -42,7 +42,7 @@ static const Logger logger(__FILE__);
 // valid range of myBytePos   is [0..myByteCapacity)
 // valid range of myByteLimit is [myBytePos..myByteCapacity)
 
-void ByteBuffer::checkBeforeRead(uint32_t byteSize) {
+void ByteBuffer::checkBeforeRead(uint32_t byteSize) const {
     auto newBytePos = myBytePos + byteSize;
     if (newBytePos <= myByteLimit) return;
 
@@ -54,7 +54,7 @@ void ByteBuffer::checkBeforeRead(uint32_t byteSize) {
     logger.error("  limit     %u", myByteLimit);
     ERROR()
 }
-void ByteBuffer::checkBeforeWrite(uint32_t byteSize) {
+void ByteBuffer::checkBeforeWrite(uint32_t byteSize) const {
     auto newBytePos = myBytePos + byteSize;
     if (newBytePos <= myByteCapacity) return;
 
@@ -67,7 +67,7 @@ void ByteBuffer::checkBeforeWrite(uint32_t byteSize) {
     ERROR()
 }
 
-ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) {
+ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) const {
     if (myByteCapacity < (byteOffset + byteSize)) {
         // fix readSize
         auto newByteSize = myByteCapacity - byteOffset;
@@ -77,11 +77,11 @@ ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) {
     return ByteBuffer(myData + byteOffset, byteSize, byteSize);
 }
 
-void ByteBuffer::mark() {
+void ByteBuffer::mark() const {
     if (myByteMark != BAD_MARK) ERROR()
     myByteMark = myBytePos;
 }
-void ByteBuffer::reset() {
+void ByteBuffer::reset() const {
     if (myByteMark == BAD_MARK) ERROR()
     myBytePos = myByteMark;
     myByteMark = BAD_MARK;

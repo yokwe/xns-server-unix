@@ -84,14 +84,12 @@ struct CallMessage {
     uint16_t   procedureValue;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         if (type != Type::CALL) ERROR()
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(type, transactionID, programNumber, versionNumber, procedureValue, arg);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %04X  %d  %d  %d  (%d) %s}",
@@ -103,14 +101,12 @@ struct ReturnMessage {
     uint16_t   transactionID;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(type, transactionID, arg);
         if (type != Type::RETURN) ERROR()
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(type, transactionID, arg);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %04X  (%d) %s}",
@@ -123,14 +119,12 @@ struct AbortMessage {
     uint16_t   errorValue;
     ByteBuffer arg;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(type, transactionID, errorValue, arg);
         if (type != Type::ABORT) ERROR()
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(type, transactionID, errorValue, arg);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %04X  (%d) %s}",
@@ -154,15 +148,13 @@ struct MessageType {
         uint16_t procedureValue;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(transactionID, programNumber, versionNumber, procedureValue);
             arg = bb.rangeRemains();
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(transactionID, programNumber, versionNumber, procedureValue);
             bb.write(arg.toSpan());
-            return bb;
         }
         std::string toString() const {
             return std_sprintf("{%04X  %d  %d  %d  (%d) %s}",
@@ -183,13 +175,11 @@ struct MessageType {
             uint16_t lowest;
             uint16_t highest;
 
-            ByteBuffer& read(ByteBuffer& bb) {
+            void read(ByteBuffer& bb) {
                 bb.read(lowest, highest);
-                return bb;
             }
-            ByteBuffer& write(ByteBuffer& bb) {
+            void write(ByteBuffer& bb) {
                 bb.write(lowest, highest);
-                return bb;
             }
             std::string toString() const {
                 return std_sprintf("{%d %d}", lowest, highest);
@@ -210,7 +200,7 @@ struct MessageType {
             return std::get<ImplementedVersionNumbers>(variant);
         }
 
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -229,9 +219,8 @@ struct MessageType {
             default:
                 ERROR()
             }
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -245,7 +234,6 @@ struct MessageType {
             default:
                 ERROR()
             }
-            return bb;
         }
         std::string toString() const {
             switch(type) {
@@ -268,15 +256,13 @@ struct MessageType {
         uint16_t transactionID;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(transactionID);
             arg = bb.rangeRemains();
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(transactionID);
             bb.write(arg.toSpan());
-            return bb;
         }
         std::string toString() const {
             return std_sprintf("{%04X  (%d) %s}",
@@ -288,15 +274,13 @@ struct MessageType {
         uint16_t errorValue;
         ByteBuffer arg;
 
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(transactionID, errorValue);
             arg = bb.rangeRemains();
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(transactionID, errorValue);
             bb.write(arg.toSpan());
-            return bb;
         }
         std::string toString() const {
             return std_sprintf("{%04X  %d  (%d) %s}",
@@ -307,7 +291,7 @@ struct MessageType {
     Type type;
     std::variant<CallMessage, RejectMessage, ReturnMessage, AbortMessage> variant;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(type);
         switch(type) {
             case Type::CALL:
@@ -339,9 +323,8 @@ struct MessageType {
             }
             break;
         }
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(type);
         switch(type) {
         case Type::CALL:
@@ -371,7 +354,6 @@ struct MessageType {
         default:
             ERROR()
         }
-        return bb;
     }
 };
 
@@ -395,13 +377,11 @@ struct ProtocolRange {
 
     ProtocolRange() : low(Protocol::PROTOCOL_3), high(Protocol::PROTOCOL_3) {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(low, high);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(low, high);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %s}", courier::toString(low), courier::toString(high));
@@ -417,13 +397,11 @@ struct VersionRange {
 
     VersionRange() : low(0), high() {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(low, high);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(low, high);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%d  %d}", low, high);
@@ -439,13 +417,11 @@ struct CallMessage {
     ProtocolRange          range;
     protocol3::CallMessage message;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(range, message);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(range, message);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %s}", range.toString(), message.toString());
@@ -455,13 +431,11 @@ struct ReturnMessage {
     ProtocolRange            range;
     protocol3::ReturnMessage message;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(range, message);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(range, message);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %s}", range.toString(), message.toString());

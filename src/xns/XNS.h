@@ -59,7 +59,7 @@ public:
         return value;
     }
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         uint16_t word1;
         uint16_t word2;
         uint16_t word3;
@@ -67,15 +67,13 @@ public:
         bb.read(word1, word2, word3);
 
         value = (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         uint16_t word1 = (uint16_t)(value >> 32);
         uint16_t word2 = (uint16_t)(value >> 16);
         uint16_t word3 = (uint16_t)(value >>  0);
 
         bb.write(word1, word2, word3);
-        return bb;
     }
     std::string toString() const;
 };

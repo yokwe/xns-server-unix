@@ -84,13 +84,11 @@ public:
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, toString(sst), srcID, dstID, seq, ack, alloc);

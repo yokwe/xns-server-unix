@@ -72,13 +72,11 @@ public:
 
     Error() : errorNumber(ErrorNumber::UNSPEC), errorParameter(0) {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(errorNumber, errorParameter);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(errorNumber, errorParameter);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %d}", toString(errorNumber), errorParameter);

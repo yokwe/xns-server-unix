@@ -62,7 +62,7 @@ std::string RIP::toString(Delay value) {
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
-ByteBuffer& RIP::read(ByteBuffer& bb) {
+void RIP::read(ByteBuffer& bb) {
     bb.read(type);
     for(;;) {
         if (bb.remains() == 0) break;
@@ -70,14 +70,12 @@ ByteBuffer& RIP::read(ByteBuffer& bb) {
         bb.read(entry);
         entryList.push_back(entry);
     }
-    return bb;
 }
-ByteBuffer& RIP::write(ByteBuffer& bb) {
+void RIP::write(ByteBuffer& bb) {
     bb.write(type);
     for(auto& e: entryList) {
         bb.write(e);
     }
-    return bb;
 }
 std::string RIP::toString() const {
     std::string string;

@@ -56,13 +56,11 @@ public:
     Echo() : type(Type::REQUEST) {}
     Echo(Type type_) : type(type_) {}
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(type);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(type);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s}", toString(type));

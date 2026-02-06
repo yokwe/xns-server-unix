@@ -56,13 +56,11 @@ public:
     Version version;
     Type    type;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(version, type);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(version, type);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %s}", Time::toString(version), Time::toString(type));
@@ -99,13 +97,11 @@ public:
     Tolerance tolerance;
     uint32_t  toleranceValue;   // if tolerance is KNOWN time error in unit of millisecond
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
-        return bb;
     }
     std::string toString() const {
         uint32_t unixTime = Util::toUnixTime(time);

@@ -50,11 +50,11 @@ class ByteBuffer;
 //
 template<typename T>
 concept has_read = requires (T& o, ByteBuffer& bb) {
-    { o.read(bb)  } -> std::same_as<ByteBuffer&>;
+    { o.read(bb)  } -> std::same_as<void>;
 };
 template<typename T>
 concept has_write = requires (T& o, ByteBuffer& bb) {
-    { o.write(bb) } -> std::same_as<ByteBuffer&>;
+    { o.write(bb) } -> std::same_as<void>;
 };
 template<typename T>
 concept has_read_write = has_read<T> && has_write<T>;
@@ -90,11 +90,11 @@ class ByteBuffer {
 
     std::shared_ptr<uint8_t[]> myStorage;
 
-    uint8_t*  myData;
-    uint32_t  myByteCapacity;  // cpacity of myData
-    uint32_t  myBytePos;       // current position for read and write
-    uint32_t  myByteLimit;     // written size
-    uint32_t  myByteMark;
+            uint8_t*  myData;
+            uint32_t  myByteCapacity; // cpacity of myData
+    mutable uint32_t  myBytePos;      // current position for read and write
+            uint32_t  myByteLimit;    // written size
+    mutable uint32_t  myByteMark;     // saved position by mark
 
     ByteBuffer(uint8_t* data, uint32_t byteCapacity, uint32_t byteLimit) :
         myStorage(0), myData(data), myByteCapacity(byteCapacity), myBytePos(0), myByteLimit(byteLimit), myByteMark(BAD_MARK) {}
@@ -103,8 +103,8 @@ class ByteBuffer {
     
     // valid range of myBytePos   is [0..myByteCapacity)
     // valid range of myByteLimit is [myBytePos..myByteCapacity)
-    void checkBeforeRead(uint32_t byteSize);
-    void checkBeforeWrite(uint32_t byteSize);
+    void checkBeforeRead (uint32_t byteSize) const;
+    void checkBeforeWrite(uint32_t byteSize) const;
         
 public:
     ByteBuffer() : ByteBuffer(0, 0, 0) {}
@@ -126,13 +126,13 @@ public:
         return (uint8_t)(value >> 0);
     }
 
-    ByteBuffer byteRange(uint32_t byteOffset, uint32_t byteSize);
-    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) {
+    ByteBuffer byteRange(uint32_t byteOffset, uint32_t byteSize) const;
+    ByteBuffer range(uint32_t wordOffset, uint32_t wordSize) const {
         auto byteOffset  = toByteValue(wordOffset);
         auto byteSize = toByteValue(wordSize);
         return byteRange(byteOffset, byteSize);
     }
-    ByteBuffer rangeRemains() {
+    ByteBuffer rangeRemains() const {
         auto byteSize = byteRemains();
         return ByteBuffer(myData + myBytePos, byteSize, byteSize);
     }
@@ -145,7 +145,7 @@ public:
         return toHexString(myByteLimit, myData);
     }
 
-    const uint8_t* data() {
+    const uint8_t* data() const {
         return myData;
     }
 
@@ -166,35 +166,35 @@ public:
     //
     // rewind -- make ByteBuffer ready for read from start
     //
-    void rewind() {
+    void rewind() const {
         myBytePos = 0;
     }
     //
     // mark -- mark position for later reset
     //
-    void mark();
+    void mark() const;
     //
     // reset -- move to last mark position
     //
-    void reset();
+    void reset() const;
 
 
     //
     // capacity
     //
-    uint32_t byteCapacity() {
+    uint32_t byteCapacity() const {
         return myByteCapacity;
     }
-    uint32_t capacity() {
+    uint32_t capacity() const {
         return toWordValue(byteCapacity());
     }
     //
     // pos
     //
-    uint32_t bytePos() {
+    uint32_t bytePos() const {
         return myBytePos;
     }
-    uint32_t pos() {
+    uint32_t pos() const {
         return toWordValue(bytePos());
     }
     //
@@ -203,42 +203,42 @@ public:
     uint32_t byteLimit() const {
         return myByteLimit;
     }
-    uint32_t limit() {
+    uint32_t limit() const {
         return toWordValue(byteLimit());
     }
-    bool empty() {
+    bool empty() const {
         return byteLimit() == 0;
     }
     //
     // remains
     //
-    uint32_t byteRemains() {
+    uint32_t byteRemains() const {
         return myByteLimit - myBytePos;
     }
-    uint32_t remains() {
+    uint32_t remains() const {
         return toWordValue(byteRemains());
     }
 
     
     // getX
-    // std::span<uint8_t> getSpan() {
+    // std::span<uint8_t> getSpan()const {
     //     std::span<uint8_t> ret {myData + myBytePos, myByteLimit - myBytePos};
     //     myBytePos = myByteLimit;
     //     return ret;
     // }
-    uint8_t get8() {
+    uint8_t get8() const {
         checkBeforeRead(1);
         uint8_t ret = myData[myBytePos++];;
         return ret;
     }
-    uint16_t get16() {
+    uint16_t get16() const {
         checkBeforeRead(2);
         uint16_t ret = 0;
         ret |= myData[myBytePos++] <<  8;
         ret |= myData[myBytePos++] <<  0;
         return ret;
     }
-    uint32_t get32() {
+    uint32_t get32() const {
         checkBeforeRead(4);
         uint32_t ret = 0;
         if constexpr (USE_MESA_BYTE_ORDER) {
@@ -299,43 +299,37 @@ public:
     //
     // read()
     //
-    ByteBuffer& read() {
-        return *this;
+    void read() const {
+        //
     }
     // unsigned
-    ByteBuffer& read(uint8_t& value) {
+    void read(uint8_t& value) {
         value = get8();
-        return *this;
     }
-    ByteBuffer& read(uint16_t& value) {
+    void read(uint16_t& value) {
         value = get16();
-        return *this;
     }
-    ByteBuffer& read(uint32_t& value) {
+    void read(uint32_t& value) {
         value = get32();
-        return *this;
     }
     // signed
-    ByteBuffer& read(int16_t& value) {
+    void read(int16_t& value) {
         value = (int16_t)get16();
-        return *this;
     }
-    ByteBuffer& read(int32_t& value) {
+    void read(int32_t& value) {
         value = (int32_t)get32();
-        return *this;
     }
     // prohibit
-    ByteBuffer& read(int64_t  value) = delete;
-    ByteBuffer& read(uint64_t value) = delete;
+    void read(int64_t  value) = delete;
+    void read(uint64_t value) = delete;
 
-    ByteBuffer& read(ByteBuffer& value) {
+    void read(ByteBuffer& value) {
         value = rangeRemains();
-        return *this;
     }
 
     template <class Head, class... Tail>
 //    requires valid_for_bb<Head>
-    ByteBuffer& read(Head&& head, Tail&&... tail) {
+    void read(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
         if constexpr (has_read_write<T>) {
@@ -357,53 +351,46 @@ public:
             read(head);
         }
         // process tail
-        return read(std::forward<Tail>(tail)...);
+        read(std::forward<Tail>(tail)...);
     }
 
     //
     // write()
     //
-    ByteBuffer& write() {
-        return *this;
+    void write() {
+        //
     }
     // unsigned
-    ByteBuffer& write(uint8_t value) {
+    void write(uint8_t value) {
         put8(value);
-        return *this;
     }
-    ByteBuffer& write(uint16_t value) {
+    void write(uint16_t value) {
         put16(value);
-        return *this;
     }
-    ByteBuffer& write(uint32_t value) {
+    void write(uint32_t value) {
         put32(value);
-        return *this;
     }
     // signed
-    ByteBuffer& write(int16_t value) {
+    void write(int16_t value) {
         put16((uint16_t)value);
-        return *this;
     }
-    ByteBuffer& write(int32_t value) {
+    void write(int32_t value) {
         put32((uint32_t)value);
-        return *this;
     }
     // prohibit
-    ByteBuffer& write(int64_t  value) = delete;
-    ByteBuffer& write(uint64_t value) = delete;
+    void write(int64_t  value) = delete;
+    void write(uint64_t value) = delete;
 
-    ByteBuffer& write(ByteBuffer& value) {
+    void write(ByteBuffer& value) {
         putSpan(value.toSpan());
-        return *this;
     }
-    ByteBuffer& write(std::span<uint8_t> span) {
+    void write(std::span<uint8_t> span) {
         putSpan(span);
-        return *this;
     }
 
     template <class Head, class... Tail>
 //    requires valid_for_bb<Head>
-    ByteBuffer& write(Head&& head, Tail&&... tail) {
+    void write(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
         if constexpr (has_read_write<T>) {
@@ -423,7 +410,7 @@ public:
             write(head);
         }
         // process tail
-        return write(std::forward<Tail>(tail)...);
+        write(std::forward<Tail>(tail)...);
     }
 };
 

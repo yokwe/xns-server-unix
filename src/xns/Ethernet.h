@@ -57,13 +57,11 @@ public:
     Host source;
     Type type;
 
-    ByteBuffer& read(ByteBuffer& bb) {
+    void read(ByteBuffer& bb) {
         bb.read(dest, source, type);
-        return bb;
     }
-    ByteBuffer& write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) {
         bb.write(dest, source, type);
-        return bb;
     }
     std::string toString() const {
         return std_sprintf("{%s  %s  %s}",dest.toString(), source.toString(), toString(type));

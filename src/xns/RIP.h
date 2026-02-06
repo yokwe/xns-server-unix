@@ -67,13 +67,11 @@ public:
         Entry() : delay(Delay::INFINITY) {}
         Entry(Network network_, Delay delay_) : network(network_), delay(delay_) {}
 
-        ByteBuffer& read(ByteBuffer& bb) {
+        void read(ByteBuffer& bb) {
             bb.read(network, delay);
-            return bb;
         }
-        ByteBuffer& write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) {
             bb.write(network, delay);
-            return bb;
         }
         std::string toString() const {
             return std_sprintf("{%s  %s}", xns::toString(network), RIP::toString(delay));
@@ -86,8 +84,8 @@ public:
     RIP() : type(Type::REQUEST) {}
     RIP(Type type_) : type(type_) {}
 
-    ByteBuffer& read(ByteBuffer& bb);
-    ByteBuffer& write(ByteBuffer& bb);
+    void read(ByteBuffer& bb);
+    void write(ByteBuffer& bb);
     std::string toString() const;
 };
 
