@@ -57,7 +57,9 @@ concept has_write = requires (T& o, ByteBuffer& bb) {
     { o.write(bb) } -> std::same_as<void>;
 };
 template<typename T>
-concept has_read_write = has_read<T> && has_write<T>;
+concept has_read_write_ = has_read<T> && has_write<T>;
+template<typename T>
+concept has_read_write = has_read_write_<std::remove_cvref_t<T>>;
 
 template<typename T>
 concept has_from_bb = requires (T& o, ByteBuffer& bb) {
@@ -327,29 +329,34 @@ public:
         value = rangeRemains();
     }
 
-    template <class Head, class... Tail>
-//    requires valid_for_bb<Head>
-    void read(Head&& head, Tail&&... tail) {
-        // process head
-        using T = std::remove_cvref_t<Head>;
+    template <class TT>
+    void read(TT& o) {
+        using T = std::remove_cvref_t<TT>;
         if constexpr (has_read_write<T>) {
-            head.read(*this);
+            o.read(*this);
         } else if constexpr (has_from_bb_to_bb<T>) {
-            from_bb(*this, head);
+            from_bb(*this, o);
         } else if constexpr (std::is_enum_v<T>) {
-            using U = std::underlying_type_t<T>;
-            U value;
+            using UT = std::underlying_type_t<T>;
+            UT value;
             read(value);
-            head = static_cast<T>(value);
+            o = static_cast<T>(value);
         } else if constexpr (std::is_integral_v<T>) {
             T value;
             read(value);
-            head = value;
+            o = value;
         } else {
             static_assert(false, "Unexptected");
-            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(Head).name()));
-            read(head);
+            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
+            read(o);
         }
+    }
+    
+    // for multiple parameter -- process from left parameter
+    template <class Head, class... Tail>
+    void read(Head&& head, Tail&&... tail) {
+        // process head
+        read(head);
         // process tail
         read(std::forward<Tail>(tail)...);
     }
@@ -388,27 +395,32 @@ public:
         putSpan(span);
     }
 
-    template <class Head, class... Tail>
-//    requires valid_for_bb<Head>
-    void write(Head&& head, Tail&&... tail) {
-        // process head
-        using T = std::remove_cvref_t<Head>;
+    template<typename TT>
+    void write(TT& o) {
+        using T = std::remove_cvref_t<TT>;
         if constexpr (has_read_write<T>) {
-            head.write(*this);
+            o.write(*this);
         } else if constexpr (has_from_bb_to_bb<T>) {
-            to_bb(*this, head);
+            to_bb(*this, o);
         } else if constexpr (std::is_enum_v<T>) {
             using U = std::underlying_type_t<T>;
-            U value = static_cast<U>(head);
+            U value = static_cast<U>(o);
             write(value);
         } else if constexpr (std::is_integral_v<T>) {
-            T value = (T)head;
+            T value = (T)o;
             write(value);
         } else {
             static_assert(false, "Unexptected");
-            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(Head).name()));
-            write(head);
+            logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(o).name()));
+            write(o);
         }
+    }
+
+    // for multiple parameter -- process from left parameter
+    template <class Head, class... Tail>
+    void write(Head&& head, Tail&&... tail) {
+        // process head
+        write(head);
         // process tail
         write(std::forward<Tail>(tail)...);
     }
