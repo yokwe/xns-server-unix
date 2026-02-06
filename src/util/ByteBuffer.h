@@ -56,6 +56,8 @@ template<typename T>
 concept has_write = requires (T& o, ByteBuffer& bb) {
     { o.write(bb) } -> std::same_as<ByteBuffer&>;
 };
+template<typename T>
+concept has_read_write = has_read<T> && has_write<T>;
 
 template<typename T>
 concept has_from_bb = requires (T& o, ByteBuffer& bb) {
@@ -65,9 +67,11 @@ template<typename T>
 concept has_to_bb = requires (T& o, ByteBuffer& bb) {
     { to_bb(bb, o) } -> std::same_as<void>;
 };
+template<typename T>
+concept has_from_bb_to_bb = has_from_bb<T> && has_to_bb<T>;
 
 template<typename T>
-concept valid_for_bb_ = (has_read<T> && has_write<T>) || (has_from_bb<T> && has_to_bb<T>) || std::is_enum_v<T> || std::is_integral_v<T>;
+concept valid_for_bb_ = has_read_write<T> || has_from_bb_to_bb<T> || std::is_enum_v<T> || std::is_integral_v<T>;
 template<typename T>
 concept valid_for_bb = valid_for_bb_<std::remove_cvref_t<T>>;
 
@@ -334,9 +338,9 @@ public:
     ByteBuffer& read(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
-        if constexpr (has_read<T>) {
+        if constexpr (has_read_write<T>) {
             head.read(*this);
-        } else if constexpr (has_from_bb<T>) {
+        } else if constexpr (has_from_bb_to_bb<T>) {
             from_bb(*this, head);
         } else if constexpr (std::is_enum_v<T>) {
             using U = std::underlying_type_t<T>;
@@ -402,9 +406,9 @@ public:
     ByteBuffer& write(Head&& head, Tail&&... tail) {
         // process head
         using T = std::remove_cvref_t<Head>;
-        if constexpr (has_write<Head>) {
+        if constexpr (has_read_write<T>) {
             head.write(*this);
-        } else if constexpr (has_to_bb<Head>) {
+        } else if constexpr (has_from_bb_to_bb<T>) {
             to_bb(*this, head);
         } else if constexpr (std::is_enum_v<T>) {
             using U = std::underlying_type_t<T>;
