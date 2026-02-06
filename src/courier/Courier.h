@@ -50,155 +50,18 @@ namespace courier {
 //
 // STRING
 //
-class STRING {
-    static const constexpr uint32_t MAX_LENGTH = 65535;
-    mutable std::string value;
-
-public:
-    ByteBuffer& read(ByteBuffer& bb) {
-        uint16_t length;
-        bb.read(length);
-        value.clear();
-        for(uint16_t i = 0; i < length; i++) {
-            value += bb.get8();
-        }
-        if (length & 1) bb.get8();
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) {
-        uint16_t length = value.length();
-        bb.put16(length);
-        for(uint8_t c: value) {
-            bb.put8(c);
-        }
-        if (length & 1) bb.put8(0);
-        return bb;
-    }
-    std::string toString() const {
-        return value.data();
-    }
-
-    // define operator =
-    std::string operator = (const std::string& newValue) /*const*/ {
-        if (MAX_LENGTH < newValue.length()) ERROR()
-        value.clear();
-        value.reserve(newValue.length());
-        value += newValue;
-        return value;
-    }
-
-    // cast to const char*
-    operator const char* () const {
-        return value.data();
-    }
-    // cast to const std::string&
-    operator const std::string& () const {
-        return value;
-    }
-};
+// use std::string for STRING
 
 //
 // ARRAY
 //
-template <class T, uint32_t N>
-class ARRAY {
-    static_assert(N <= 65535, "N is more than 65535");
+// use std::aray for ARRAY
 
-    static const constexpr uint32_t MAX_LENGTH = 65535;
-    mutable std::array<T, N> array;
-
-public:
-    ARRAY() {
-        if constexpr (!valid_for_bb<T>) static_assert(false, "Unexpected");
-    }
-    ARRAY& operator =(const std::array<T, N>& that) {
-        array = that;
-        return *this;
-    }
-    
-    uint32_t size() const {
-        return N;
-    }
-
-    ByteBuffer& read(ByteBuffer& bb) {
-        for(uint32_t i = 0; i < N; i++) {
-            T value;
-            bb.read(value);
-            array.at(i) = value;
-        }
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) {
-        for(uint32_t i = 0; i < N; i++) {
-            auto value = array.at(i);
-            bb.write(value);
-        }
-        return bb;
-    }
-    std::string toString() const {
-        if (array.empty()) return "[]";
-        std::string string;
-        for(const auto& e: array) {
-            string += std_sprintf(" %s", e.toString());
-        }
-        return std_sprintf("(%d) [%s]", array.size(), string.substr(1));
-    }
-};
 
 //
 // SEQUENCE
 //
-template <class T, uint32_t N = 65535>
-class SEQUENCE {
-    static const constexpr uint32_t MAX_LENGTH = N;
-    mutable std::vector<T> vector;
-
-public:
-    SEQUENCE() {
-        if constexpr (!valid_for_bb<T>) static_assert(false, "Unexpected");
-    }
-    SEQUENCE& operator =(const std::vector<T>& that) {
-        if (MAX_LENGTH < that.size()) ERROR()
-        vector = that;
-        return *this;
-    }
-    SEQUENCE& operator +=(const T& that) {
-        if (MAX_LENGTH < that.size()) ERROR()
-        vector += that;
-        return *this;
-    }
-
-    uint32_t size() const {
-        return vector.size();
-    }
-
-    ByteBuffer& read(ByteBuffer& bb) {
-        uint16_t size = bb.get16();
-        for(uint32_t i = 0; i < size; i++) {
-            T value;
-            bb.read(value);
-            vector.at(i) = value;
-        }
-        return bb;
-    }
-    ByteBuffer& write(ByteBuffer& bb) {
-        uint16_t size = vector.size();
-        bb.put16(size);
-        for(uint32_t i = 0; i < size; i++) {
-            auto value = vector.at(i);
-            bb.write(value);
-        }
-        return bb;
-    }
-    std::string toString() const {
-        if (vector.empty()) return "[]";
-        std::string string;
-        for(const auto& e: vector) {
-            string += std_sprintf(" %s", e.toString());
-        }
-        return std_sprintf("(%d) [%s]", vector.size(), string.substr(1));
-    }
-};
+// use std::vector for SEQUENCE
 
 //
 // Message
@@ -321,10 +184,12 @@ struct MessageType {
             uint16_t highest;
 
             ByteBuffer& read(ByteBuffer& bb) {
-                return bb.read(lowest, highest);
+                bb.read(lowest, highest);
+                return bb;
             }
             ByteBuffer& write(ByteBuffer& bb) {
-                return bb.write(lowest, highest);
+                bb.write(lowest, highest);
+                return bb;
             }
             std::string toString() const {
                 return std_sprintf("{%d %d}", lowest, highest);
