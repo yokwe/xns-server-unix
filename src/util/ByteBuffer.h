@@ -309,7 +309,7 @@ public:
     //
     // read()
     //
-    void read() const {
+    void read() {
         //
     }
     // unsigned
@@ -340,31 +340,13 @@ public:
     template <class TT>
     void read(TT& o) {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (std::is_same_v<T, uint8_t>) {
-            o = get8();
-        } else if constexpr (std::is_same_v<T, uint16_t>) {
-            o = get16();
-        } else if constexpr (std::is_same_v<T, uint32_t>) {
-            o = get32();
-        } else if constexpr (std::is_same_v<T, int16_t>) {
-            o = (T)get16();
-        } else if constexpr (std::is_same_v<T, int32_t>) {
-            o = (T)get32();
-        } else if constexpr (std::is_same_v<T, ByteBuffer>) {
+        if constexpr (std::is_same_v<T, ByteBuffer>) {
             o = getByteBuffer();
         } else if constexpr (std::is_enum_v<T>) {
             using UT = std::underlying_type_t<T>;
-            if constexpr (std::is_same_v<UT, uint8_t>) {
-                o = static_cast<T>(get8());
-            } else if constexpr (std::is_same_v<UT, uint16_t>) {
-                o = static_cast<T>(get16());
-            } else if constexpr (std::is_same_v<UT, uint32_t>) {
-                o = static_cast<T>(get32());
-            } else {
-                static_assert(false, "Unexptected");
-                logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
-                read(o);
-            }
+            UT value;
+            read(value);
+            o = static_cast<T>(value);
         } else if constexpr (has_from_bb_to_bb<T>) {
             from_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
@@ -422,31 +404,12 @@ public:
     template<typename TT>
     void write(TT& o) {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (std::is_same_v<T, uint8_t>) {
-            put8(o);
-        } else if constexpr (std::is_same_v<T, uint16_t>) {
-            put16(o);
-        } else if constexpr (std::is_same_v<T, uint32_t>) {
-            put32(o);
-        } else if constexpr (std::is_same_v<T, int16_t>) {
-            put16((T)o);
-        } else if constexpr (std::is_same_v<T, int32_t>) {
-            put32((T)o);
-        } else if constexpr (std::is_same_v<T, ByteBuffer>) {
+        if constexpr (std::is_same_v<T, ByteBuffer>) {
             putByteBuffer(o);
         } else if constexpr (std::is_enum_v<T>) {
             using UT = std::underlying_type_t<T>;
-            if constexpr (std::is_same_v<UT, uint8_t>) {
-                put8(static_cast<uint8_t>(o));
-            } else if constexpr (std::is_same_v<UT, uint16_t>) {
-                put16(static_cast<uint16_t>(o));
-            } else if constexpr (std::is_same_v<UT, uint32_t>) {
-                put32(static_cast<uint32_t>(o));
-            } else {
-                static_assert(false, "Unexptected");
-                logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
-                read(o);
-            }
+            UT value = static_cast<UT>(o);
+            write(value);
         } else if constexpr (has_from_bb_to_bb<T>) {
             to_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
