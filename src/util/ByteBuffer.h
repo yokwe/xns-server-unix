@@ -263,7 +263,7 @@ public:
     }
 
     // putX
-    void putByteBuffer(ByteBuffer& bb) {
+    void putByteBuffer(const ByteBuffer& bb) {
         putSpan(bb.toSpan());
     }
     void putSpan(const std::span<uint8_t>& span) {
@@ -329,6 +329,10 @@ public:
     void read(int32_t& value) const {
         value = (int32_t)get32();
     }
+    // ByteBuffer
+    void read(ByteBuffer& value) const {
+        value = getByteBuffer();
+    }
     // prohibit
     void read(int64_t  value) = delete;
     void read(uint64_t value) = delete;
@@ -336,9 +340,7 @@ public:
     template <class TT>
     void read(TT&& o) const {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (std::is_same_v<T, ByteBuffer>) {
-            o = getByteBuffer();
-        } else if constexpr (std::is_enum_v<T>) {
+        if constexpr (std::is_enum_v<T>) {
             using UT = std::underlying_type_t<T>;
             UT value;
             read(value);
@@ -386,6 +388,10 @@ public:
     void write(int32_t value) {
         put32((uint32_t)value);
     }
+    // ByteBuffer
+    void write(ByteBuffer& value) {
+        putByteBuffer(value);
+    }
     // prohibit
     void write(int64_t  value) = delete;
     void write(uint64_t value) = delete;
@@ -393,9 +399,7 @@ public:
     template<typename TT>
     void write(TT& o) {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (std::is_same_v<T, ByteBuffer>) {
-            putByteBuffer(o);
-        } else if constexpr (std::is_enum_v<T>) {
+        if constexpr (std::is_enum_v<T>) {
             using UT = std::underlying_type_t<T>;
             UT value = static_cast<UT>(o);
             write(value);
