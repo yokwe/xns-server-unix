@@ -87,7 +87,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
     }
     std::string toString() const {

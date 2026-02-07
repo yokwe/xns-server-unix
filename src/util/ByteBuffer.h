@@ -42,6 +42,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "Debug.h"
 #include "Util.h"
 
 class ByteBuffer;
@@ -53,7 +54,7 @@ concept has_read = requires (T& o, ByteBuffer& bb) {
     { o.read(bb)  } -> std::same_as<void>;
 };
 template<typename T>
-concept has_write = requires (T& o, ByteBuffer& bb) {
+concept has_write = requires (const T& o, ByteBuffer& bb) {
     { o.write(bb) } -> std::same_as<void>;
 };
 template<typename T>
@@ -66,7 +67,7 @@ concept has_from_bb = requires (T& o, const ByteBuffer& bb) {
     { from_bb(bb, o) } -> std::same_as<void>;
 };
 template<typename T>
-concept has_to_bb = requires (T& o, ByteBuffer& bb) {
+concept has_to_bb = requires (const T& o, ByteBuffer& bb) {
     { to_bb(bb, o) } -> std::same_as<void>;
 };
 template<typename T>
@@ -314,23 +315,29 @@ public:
     }
     // unsigned
     void read(uint8_t& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = get8();
     }
     void read(uint16_t& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = get16();
     }
     void read(uint32_t& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = get32();
     }
     // signed
     void read(int16_t& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = (int16_t)get16();
     }
     void read(int32_t& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = (int32_t)get32();
     }
     // ByteBuffer
     void read(ByteBuffer& value) const {
+        if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
         value = getByteBuffer();
     }
     // prohibit
@@ -341,13 +348,16 @@ public:
     void read(TT&& o) const {
         using T = std::remove_cvref_t<TT>;
         if constexpr (std::is_enum_v<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
             using UT = std::underlying_type_t<T>;
             UT value;
             read(value);
             o = static_cast<T>(value);
         } else if constexpr (has_from_bb_to_bb<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
             from_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
             o.read(*this);
         } else {
             static_assert(false, "Unexptected");
@@ -373,23 +383,29 @@ public:
     }
     // unsigned
     void write(uint8_t value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         put8(value);
     }
     void write(uint16_t value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         put16(value);
     }
     void write(uint32_t value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         put32(value);
     }
     // signed
     void write(int16_t value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         put16((uint16_t)value);
     }
     void write(int32_t value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         put32((uint32_t)value);
     }
     // ByteBuffer
-    void write(ByteBuffer& value) {
+    void write(ByteBuffer value) {
+        if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
         putByteBuffer(value);
     }
     // prohibit
@@ -400,12 +416,15 @@ public:
     void write(TT& o) {
         using T = std::remove_cvref_t<TT>;
         if constexpr (std::is_enum_v<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
             using UT = std::underlying_type_t<T>;
             UT value = static_cast<UT>(o);
             write(value);
         } else if constexpr (has_from_bb_to_bb<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
             to_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
+            if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
             o.write(*this);
         } else {
             static_assert(false, "Unexptected");
@@ -427,7 +446,7 @@ public:
 //
 // std::string
 //
-inline void to_bb(ByteBuffer& bb, std::string& string) {
+inline void to_bb(ByteBuffer& bb, const std::string& string) {
     int size = string.size();
     if (65535 < size) ERROR()
     bb.put16(size);
@@ -449,7 +468,7 @@ inline void from_bb(const ByteBuffer& bb, std::string& string) {
 // std::vector
 //
 template<typename T>
-void to_bb(ByteBuffer& bb, std::vector<T>& vector) {
+void to_bb(ByteBuffer& bb, const std::vector<T>& vector) {
     int size = vector.size();
     if (65535 < size) ERROR()
     bb.put16(size);
@@ -473,7 +492,7 @@ void from_bb(const ByteBuffer& bb, std::vector<T>& vector) {
 // std::array
 //
 template<typename T, std::size_t N>
-void to_bb(ByteBuffer& bb, std::array<T, N>& array) {
+void to_bb(ByteBuffer& bb, const std::array<T, N>& array) {
     int size = array.size();
     if (65535 < size) ERROR()
     for(int i = 0; i < size; i++) {

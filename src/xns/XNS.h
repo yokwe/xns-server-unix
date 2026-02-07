@@ -68,7 +68,7 @@ public:
 
         value = (uint64_t)word1 << 32 | (uint64_t)word2 << 16 | (uint64_t)word3;
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         uint16_t word1 = (uint16_t)(value >> 32);
         uint16_t word2 = (uint16_t)(value >> 16);
         uint16_t word3 = (uint16_t)(value >>  0);

@@ -59,7 +59,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(version, type);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(version, type);
     }
     std::string toString() const {
@@ -100,7 +100,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
     }
     std::string toString() const {

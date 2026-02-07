@@ -75,7 +75,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(errorNumber, errorParameter);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(errorNumber, errorParameter);
     }
     std::string toString() const {

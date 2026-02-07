@@ -73,7 +73,7 @@ public:
         void read(const ByteBuffer& bb) {
             bb.read(network, host, socket);
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(network, host, socket);
         }
         std::string toString() const {
@@ -94,7 +94,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(checksum, length, control, packetType, dst, src);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(checksum, length, control, packetType, dst, src);
     }
     std::string toString() const {

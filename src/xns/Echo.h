@@ -59,7 +59,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(type);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(type);
     }
     std::string toString() const {

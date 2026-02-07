@@ -70,7 +70,7 @@ public:
         void read(const ByteBuffer& bb) {
             bb.read(network, delay);
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(network, delay);
         }
         std::string toString() const {
@@ -85,7 +85,7 @@ public:
     RIP(Type type_) : type(type_) {}
 
     void read(const ByteBuffer& bb);
-    void write(ByteBuffer& bb);
+    void write(ByteBuffer& bb) const;
     std::string toString() const;
 };
 

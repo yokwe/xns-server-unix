@@ -88,7 +88,7 @@ struct CallMessage {
         bb.read(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         if (type != Type::CALL) ERROR()
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(type, transactionID, programNumber, versionNumber, procedureValue, arg);
     }
     std::string toString() const {
@@ -105,7 +105,7 @@ struct ReturnMessage {
         bb.read(type, transactionID, arg);
         if (type != Type::RETURN) ERROR()
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(type, transactionID, arg);
     }
     std::string toString() const {
@@ -123,7 +123,7 @@ struct AbortMessage {
         bb.read(type, transactionID, errorValue, arg);
         if (type != Type::ABORT) ERROR()
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(type, transactionID, errorValue, arg);
     }
     std::string toString() const {
@@ -152,7 +152,7 @@ struct MessageType {
             bb.read(transactionID, programNumber, versionNumber, procedureValue);
             arg = bb.rangeRemains();
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(transactionID, programNumber, versionNumber, procedureValue);
             bb.write(arg);
         }
@@ -178,7 +178,7 @@ struct MessageType {
             void read(const ByteBuffer& bb) {
                 bb.read(lowest, highest);
             }
-            void write(ByteBuffer& bb) {
+            void write(ByteBuffer& bb) const {
                 bb.write(lowest, highest);
             }
             std::string toString() const {
@@ -220,7 +220,7 @@ struct MessageType {
                 ERROR()
             }
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -260,7 +260,7 @@ struct MessageType {
             bb.read(transactionID);
             arg = bb.rangeRemains();
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(transactionID);
             bb.write(arg);
         }
@@ -278,7 +278,7 @@ struct MessageType {
             bb.read(transactionID, errorValue);
             arg = bb.rangeRemains();
         }
-        void write(ByteBuffer& bb) {
+        void write(ByteBuffer& bb) const {
             bb.write(transactionID, errorValue);
             bb.write(arg);
         }
@@ -324,7 +324,7 @@ struct MessageType {
             break;
         }
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(type);
         switch(type) {
         case Type::CALL:
@@ -380,7 +380,7 @@ struct ProtocolRange {
     void read(const ByteBuffer& bb) {
         bb.read(low, high);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(low, high);
     }
     std::string toString() const {
@@ -400,7 +400,7 @@ struct VersionRange {
     void read(const ByteBuffer& bb) {
         bb.read(low, high);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(low, high);
     }
     std::string toString() const {
@@ -420,7 +420,7 @@ struct CallMessage {
     void read(const ByteBuffer& bb) {
         bb.read(range, message);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(range, message);
     }
     std::string toString() const {
@@ -434,7 +434,7 @@ struct ReturnMessage {
     void read(const ByteBuffer& bb) {
         bb.read(range, message);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(range, message);
     }
     std::string toString() const {

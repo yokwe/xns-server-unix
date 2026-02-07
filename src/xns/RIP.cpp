@@ -71,7 +71,7 @@ void RIP::read(const ByteBuffer& bb) {
         entryList.push_back(entry);
     }
 }
-void RIP::write(ByteBuffer& bb) {
+void RIP::write(ByteBuffer& bb) const {
     bb.write(type);
     for(auto& e: entryList) {
         bb.write(e);

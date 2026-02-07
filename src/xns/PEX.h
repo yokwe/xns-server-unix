@@ -69,7 +69,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(id, clientType);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(id, clientType);
     }
     std::string toString() const {

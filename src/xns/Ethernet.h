@@ -60,7 +60,7 @@ public:
     void read(const ByteBuffer& bb) {
         bb.read(dest, source, type);
     }
-    void write(ByteBuffer& bb) {
+    void write(ByteBuffer& bb) const {
         bb.write(dest, source, type);
     }
     std::string toString() const {
