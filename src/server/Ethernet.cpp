@@ -73,7 +73,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     // build tx
     auto tx = getByteBuffer();
     tx.write(txHeader);
-    tx.write(txbb.toSpan());
+    tx.write(txbb);
     // add padding if it is smaller than MINIMUM_LENGTH
     auto length = tx.byteLimit();
     for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);

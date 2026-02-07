@@ -70,7 +70,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     auto tx = getByteBuffer();
     tx.write(txHeader);
-    tx.write(txbb.toSpan());
+    tx.write(txbb);
 
     if (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 

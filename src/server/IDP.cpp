@@ -90,7 +90,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     // build tx
     auto tx = getByteBuffer();
     tx.write(txHeader);
-    tx.write(txbb.toSpan());
+    tx.write(txbb);
     // to make even length data, add Garbage Byte if length is odd.
     if (tx.byteLimit() & 1) tx.put8(0);
 

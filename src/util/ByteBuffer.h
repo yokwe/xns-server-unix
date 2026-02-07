@@ -228,6 +228,11 @@ public:
     //     myBytePos = myByteLimit;
     //     return ret;
     // }
+    ByteBuffer getByteBuffer() const {
+        auto ret = rangeRemains();
+        myBytePos = myByteLimit; // update position
+        return ret;
+    }
     uint8_t get8() const {
         checkBeforeRead(1);
         uint8_t ret = myData[myBytePos++];;
@@ -258,6 +263,9 @@ public:
     }
 
     // putX
+    void putByteBuffer(ByteBuffer& bb) {
+        putSpan(bb.toSpan());
+    }
     void putSpan(const std::span<uint8_t>& span) {
         auto byteSize = span.size();
         if (byteSize == 0) return;
@@ -325,26 +333,42 @@ public:
     void read(int64_t  value) = delete;
     void read(uint64_t value) = delete;
 
-    void read(ByteBuffer& value) {
-        value = rangeRemains();
-    }
+    // void read(ByteBuffer& value) {
+    //     value = getByteBuffer();
+    // }
 
     template <class TT>
     void read(TT& o) {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (has_read_write<T>) {
-            o.read(*this);
-        } else if constexpr (has_from_bb_to_bb<T>) {
-            from_bb(*this, o);
+        if constexpr (std::is_same_v<T, uint8_t>) {
+            o = get8();
+        } else if constexpr (std::is_same_v<T, uint16_t>) {
+            o = get16();
+        } else if constexpr (std::is_same_v<T, uint32_t>) {
+            o = get32();
+        } else if constexpr (std::is_same_v<T, int16_t>) {
+            o = (T)get16();
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+            o = (T)get32();
+        } else if constexpr (std::is_same_v<T, ByteBuffer>) {
+            o = getByteBuffer();
         } else if constexpr (std::is_enum_v<T>) {
             using UT = std::underlying_type_t<T>;
-            UT value;
-            read(value);
-            o = static_cast<T>(value);
-        } else if constexpr (std::is_integral_v<T>) {
-            T value;
-            read(value);
-            o = value;
+            if constexpr (std::is_same_v<UT, uint8_t>) {
+                o = static_cast<T>(get8());
+            } else if constexpr (std::is_same_v<UT, uint16_t>) {
+                o = static_cast<T>(get16());
+            } else if constexpr (std::is_same_v<UT, uint32_t>) {
+                o = static_cast<T>(get32());
+            } else {
+                static_assert(false, "Unexptected");
+                logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
+                read(o);
+            }
+        } else if constexpr (has_from_bb_to_bb<T>) {
+            from_bb(*this, o);
+        } else if constexpr (has_read_write<T>) {
+            o.read(*this);
         } else {
             static_assert(false, "Unexptected");
             logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
@@ -388,27 +412,45 @@ public:
     void write(int64_t  value) = delete;
     void write(uint64_t value) = delete;
 
-    void write(ByteBuffer& value) {
-        putSpan(value.toSpan());
-    }
-    void write(std::span<uint8_t> span) {
-        putSpan(span);
-    }
+    // void write(ByteBuffer& value) {
+    //     putByteBuffer(value);
+    // }
+    // void write(std::span<uint8_t> span) {
+    //     putSpan(span);
+    // }
 
     template<typename TT>
     void write(TT& o) {
         using T = std::remove_cvref_t<TT>;
-        if constexpr (has_read_write<T>) {
-            o.write(*this);
+        if constexpr (std::is_same_v<T, uint8_t>) {
+            put8(o);
+        } else if constexpr (std::is_same_v<T, uint16_t>) {
+            put16(o);
+        } else if constexpr (std::is_same_v<T, uint32_t>) {
+            put32(o);
+        } else if constexpr (std::is_same_v<T, int16_t>) {
+            put16((T)o);
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+            put32((T)o);
+        } else if constexpr (std::is_same_v<T, ByteBuffer>) {
+            putByteBuffer(o);
+        } else if constexpr (std::is_enum_v<T>) {
+            using UT = std::underlying_type_t<T>;
+            if constexpr (std::is_same_v<UT, uint8_t>) {
+                put8(static_cast<uint8_t>(o));
+            } else if constexpr (std::is_same_v<UT, uint16_t>) {
+                put16(static_cast<uint16_t>(o));
+            } else if constexpr (std::is_same_v<UT, uint32_t>) {
+                put32(static_cast<uint32_t>(o));
+            } else {
+                static_assert(false, "Unexptected");
+                logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(TT).name()));
+                read(o);
+            }
         } else if constexpr (has_from_bb_to_bb<T>) {
             to_bb(*this, o);
-        } else if constexpr (std::is_enum_v<T>) {
-            using U = std::underlying_type_t<T>;
-            U value = static_cast<U>(o);
-            write(value);
-        } else if constexpr (std::is_integral_v<T>) {
-            T value = (T)o;
-            write(value);
+        } else if constexpr (has_read_write<T>) {
+            o.write(*this);
         } else {
             static_assert(false, "Unexptected");
             logger.info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(o).name()));
@@ -426,6 +468,15 @@ public:
     }
 };
 
+//
+// ByteBuffer
+//
+inline void to_bb(ByteBuffer& bb, ByteBuffer& that) {
+    bb.putByteBuffer(that);
+}
+inline void from_bb(ByteBuffer& bb, ByteBuffer& that) {
+    that = bb.getByteBuffer();
+}
 //
 // std::string
 //

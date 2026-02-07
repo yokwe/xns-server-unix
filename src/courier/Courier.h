@@ -154,7 +154,7 @@ struct MessageType {
         }
         void write(ByteBuffer& bb) {
             bb.write(transactionID, programNumber, versionNumber, procedureValue);
-            bb.write(arg.toSpan());
+            bb.write(arg);
         }
         std::string toString() const {
             return std_sprintf("{%04X  %d  %d  %d  (%d) %s}",
@@ -262,7 +262,7 @@ struct MessageType {
         }
         void write(ByteBuffer& bb) {
             bb.write(transactionID);
-            bb.write(arg.toSpan());
+            bb.write(arg);
         }
         std::string toString() const {
             return std_sprintf("{%04X  (%d) %s}",
@@ -280,7 +280,7 @@ struct MessageType {
         }
         void write(ByteBuffer& bb) {
             bb.write(transactionID, errorValue);
-            bb.write(arg.toSpan());
+            bb.write(arg);
         }
         std::string toString() const {
             return std_sprintf("{%04X  %d  (%d) %s}",

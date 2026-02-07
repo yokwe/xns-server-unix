@@ -80,7 +80,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
-        tx.write(txbb.toSpan());
+        tx.write(txbb);
         if (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
     }
 
