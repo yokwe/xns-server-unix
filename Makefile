@@ -16,8 +16,6 @@ export LOG4CXX_CONFIGURATION
 
 
 .PHONY: all clean help cmake build distclean distclean-cmake distclean-macos
-.PHONY: main test guam-headless
-.PHONY: run-main run-test run-guam-headless
 
 all:
 	@echo "BUILD_DIR             ${BUILD_DIR}"
@@ -90,6 +88,3 @@ run-server: server
 	mkdir -p ${BUILD_DIR}/run
 	/bin/echo -n >${BUILD_DIR}/run/server.log
 	LOG4CXX_CONFIGURATION=data/log4j-config-server.xml ${BUILD_DIR}/server/server
-
-run-T001:
-	ant T001
