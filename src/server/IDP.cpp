@@ -59,7 +59,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     xns::IDP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-    if (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (rxHeader.checksum != xns::IDP::Checksum::NOCHECK) {
@@ -107,7 +107,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     tx.reset();
 
     txHeader.checksum = checksum;
-    if (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
+    if constexpr (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

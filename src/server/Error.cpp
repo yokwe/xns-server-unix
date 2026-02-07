@@ -51,7 +51,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Error rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
-    if (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     return ByteBuffer{};
 }

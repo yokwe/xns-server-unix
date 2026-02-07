@@ -101,7 +101,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 
-    if (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (!rxbb.empty()) ERROR();
@@ -111,7 +111,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
-        if (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", toString(txHeader));
+        if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", toString(txHeader));
     }
 
     return tx;

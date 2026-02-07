@@ -73,12 +73,12 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 
-    if (SHOW_PACKET_TIME) logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_TIME) logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     if (rx.remains()) ERROR()
 
     auto txHeader = call(rxHeader, context);
-    if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
+    if constexpr (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
     auto tx = getByteBuffer();
     tx.write(txHeader);

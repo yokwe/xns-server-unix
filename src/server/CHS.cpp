@@ -63,7 +63,7 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     CallMessage rxHeader;
 
     rx.read(rxHeader);
-    if (SHOW_PACKET_TIME) logger.info("CHS  >>  %s", rxHeader.toString());
+    if constexpr (SHOW_PACKET_TIME) logger.info("CHS  >>  %s", rxHeader.toString());
     if (rx.remains()) ERROR()
 
     auto program = rxHeader.message.programNumber;
@@ -76,7 +76,7 @@ ByteBuffer process(ByteBuffer& rx, Context& context) {
     logger.info("%s  %s", prog.name, proc.name);
 
     // auto txHeader = call(rxHeader, context);
-    // if (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
+    // if constexpr (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
     auto tx = getByteBuffer();
     // tx.write(txHeader);

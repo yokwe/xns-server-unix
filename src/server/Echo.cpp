@@ -73,7 +73,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     Echo rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
-    if (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);
     auto tx = getByteBuffer();
@@ -81,7 +81,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     if (rxHeader.type == Type::REQUEST) {
         tx.write(txHeader);
         tx.write(txbb);
-        if (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+        if constexpr (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
     }
 
     return tx;

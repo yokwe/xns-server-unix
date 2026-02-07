@@ -60,7 +60,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
 
-    if (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = map.at(rxHeader.clientType)(rxbb, context);
     txbb.flip();
@@ -72,7 +72,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     tx.write(txHeader);
     tx.write(txbb);
 
-    if (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+    if constexpr (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }

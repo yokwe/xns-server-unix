@@ -58,7 +58,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     }
     if (!myPacket) return ByteBuffer{};
 
-    if (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
     auto txbb = IDP::process(rxbb, context);        
     txbb.flip();
@@ -78,7 +78,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
     auto length = tx.byteLimit();
     for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
 
-    if (SHOW_PACKET_ETHERNET) logger.info("ETH  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
+    if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
 
     return tx;
 }
