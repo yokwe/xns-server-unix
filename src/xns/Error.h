@@ -72,7 +72,7 @@ public:
 
     Error() : errorNumber(ErrorNumber::UNSPEC), errorParameter(0) {}
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(errorNumber, errorParameter);
     }
     void write(ByteBuffer& bb) {

@@ -67,7 +67,7 @@ public:
         Entry() : delay(Delay::INFINITY) {}
         Entry(Network network_, Delay delay_) : network(network_), delay(delay_) {}
 
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(network, delay);
         }
         void write(ByteBuffer& bb) {
@@ -84,7 +84,7 @@ public:
     RIP() : type(Type::REQUEST) {}
     RIP(Type type_) : type(type_) {}
 
-    void read(ByteBuffer& bb);
+    void read(const ByteBuffer& bb);
     void write(ByteBuffer& bb);
     std::string toString() const;
 };

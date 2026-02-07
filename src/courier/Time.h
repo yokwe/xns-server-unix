@@ -56,7 +56,7 @@ public:
     Version version;
     Type    type;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(version, type);
     }
     void write(ByteBuffer& bb) {
@@ -97,7 +97,7 @@ public:
     Tolerance tolerance;
     uint32_t  toleranceValue;   // if tolerance is KNOWN time error in unit of millisecond
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
     }
     void write(ByteBuffer& bb) {

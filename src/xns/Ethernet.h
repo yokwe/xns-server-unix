@@ -57,7 +57,7 @@ public:
     Host source;
     Type type;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(dest, source, type);
     }
     void write(ByteBuffer& bb) {

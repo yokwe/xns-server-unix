@@ -84,7 +84,7 @@ public:
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
     }
     void write(ByteBuffer& bb) {

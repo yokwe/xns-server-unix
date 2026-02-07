@@ -62,7 +62,7 @@ template<typename T>
 concept has_read_write = has_read_write_<std::remove_cvref_t<T>>;
 
 template<typename T>
-concept has_from_bb = requires (T& o, ByteBuffer& bb) {
+concept has_from_bb = requires (T& o, const ByteBuffer& bb) {
     { from_bb(bb, o) } -> std::same_as<void>;
 };
 template<typename T>
@@ -309,36 +309,32 @@ public:
     //
     // read()
     //
-    void read() {
+    void read() const {
         //
     }
     // unsigned
-    void read(uint8_t& value) {
+    void read(uint8_t& value) const {
         value = get8();
     }
-    void read(uint16_t& value) {
+    void read(uint16_t& value) const {
         value = get16();
     }
-    void read(uint32_t& value) {
+    void read(uint32_t& value) const {
         value = get32();
     }
     // signed
-    void read(int16_t& value) {
+    void read(int16_t& value) const {
         value = (int16_t)get16();
     }
-    void read(int32_t& value) {
+    void read(int32_t& value) const {
         value = (int32_t)get32();
     }
     // prohibit
     void read(int64_t  value) = delete;
     void read(uint64_t value) = delete;
 
-    // void read(ByteBuffer& value) {
-    //     value = getByteBuffer();
-    // }
-
     template <class TT>
-    void read(TT& o) {
+    void read(TT&& o) const {
         using T = std::remove_cvref_t<TT>;
         if constexpr (std::is_same_v<T, ByteBuffer>) {
             o = getByteBuffer();
@@ -360,7 +356,7 @@ public:
     
     // for multiple parameter -- process from left parameter
     template <class Head, class... Tail>
-    void read(Head&& head, Tail&&... tail) {
+    void read(Head&& head, Tail&&... tail) const {
         // process head
         read(head);
         // process tail
@@ -394,13 +390,6 @@ public:
     void write(int64_t  value) = delete;
     void write(uint64_t value) = delete;
 
-    // void write(ByteBuffer& value) {
-    //     putByteBuffer(value);
-    // }
-    // void write(std::span<uint8_t> span) {
-    //     putSpan(span);
-    // }
-
     template<typename TT>
     void write(TT& o) {
         using T = std::remove_cvref_t<TT>;
@@ -432,15 +421,6 @@ public:
 };
 
 //
-// ByteBuffer
-//
-inline void to_bb(ByteBuffer& bb, ByteBuffer& that) {
-    bb.putByteBuffer(that);
-}
-inline void from_bb(ByteBuffer& bb, ByteBuffer& that) {
-    that = bb.getByteBuffer();
-}
-//
 // std::string
 //
 inline void to_bb(ByteBuffer& bb, std::string& string) {
@@ -452,7 +432,7 @@ inline void to_bb(ByteBuffer& bb, std::string& string) {
         bb.put8(c);
     }
 }
-inline void from_bb(ByteBuffer& bb, std::string& string) {
+inline void from_bb(const ByteBuffer& bb, std::string& string) {
     int size = bb.get16();
     if (65535 < size) ERROR()
     string.reserve(size);
@@ -475,7 +455,7 @@ void to_bb(ByteBuffer& bb, std::vector<T>& vector) {
     }
 }
 template<typename T>
-void from_bb(ByteBuffer& bb, std::vector<T>& vector) {
+void from_bb(const ByteBuffer& bb, std::vector<T>& vector) {
     int size = bb.get16();
     if (65535 < size) ERROR()
     vector.reserve(size);
@@ -498,7 +478,7 @@ void to_bb(ByteBuffer& bb, std::array<T, N>& array) {
     }
 }
 template<typename T, std::size_t N>
-void from_bb(ByteBuffer& bb, std::array<T, N>& array) {
+void from_bb(const ByteBuffer& bb, std::array<T, N>& array) {
     int size = array.size();
     if (65535 < size) ERROR()
     for(int i = 0; i < size; i++) {

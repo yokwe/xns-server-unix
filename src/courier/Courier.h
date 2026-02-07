@@ -84,7 +84,7 @@ struct CallMessage {
     uint16_t   procedureValue;
     ByteBuffer arg;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(type, transactionID, programNumber, versionNumber, procedureValue, arg);
         if (type != Type::CALL) ERROR()
     }
@@ -101,7 +101,7 @@ struct ReturnMessage {
     uint16_t   transactionID;
     ByteBuffer arg;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(type, transactionID, arg);
         if (type != Type::RETURN) ERROR()
     }
@@ -119,7 +119,7 @@ struct AbortMessage {
     uint16_t   errorValue;
     ByteBuffer arg;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(type, transactionID, errorValue, arg);
         if (type != Type::ABORT) ERROR()
     }
@@ -148,7 +148,7 @@ struct MessageType {
         uint16_t procedureValue;
         ByteBuffer arg;
 
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(transactionID, programNumber, versionNumber, procedureValue);
             arg = bb.rangeRemains();
         }
@@ -175,7 +175,7 @@ struct MessageType {
             uint16_t lowest;
             uint16_t highest;
 
-            void read(ByteBuffer& bb) {
+            void read(const ByteBuffer& bb) {
                 bb.read(lowest, highest);
             }
             void write(ByteBuffer& bb) {
@@ -200,7 +200,7 @@ struct MessageType {
             return std::get<ImplementedVersionNumbers>(variant);
         }
 
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(type);
             switch(type) {
             case Type::NO_SUCH_VERSION_NUMBER:
@@ -256,7 +256,7 @@ struct MessageType {
         uint16_t transactionID;
         ByteBuffer arg;
 
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(transactionID);
             arg = bb.rangeRemains();
         }
@@ -274,7 +274,7 @@ struct MessageType {
         uint16_t errorValue;
         ByteBuffer arg;
 
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(transactionID, errorValue);
             arg = bb.rangeRemains();
         }
@@ -291,7 +291,7 @@ struct MessageType {
     Type type;
     std::variant<CallMessage, RejectMessage, ReturnMessage, AbortMessage> variant;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(type);
         switch(type) {
             case Type::CALL:
@@ -377,7 +377,7 @@ struct ProtocolRange {
 
     ProtocolRange() : low(Protocol::PROTOCOL_3), high(Protocol::PROTOCOL_3) {}
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(low, high);
     }
     void write(ByteBuffer& bb) {
@@ -397,7 +397,7 @@ struct VersionRange {
 
     VersionRange() : low(0), high() {}
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(low, high);
     }
     void write(ByteBuffer& bb) {
@@ -417,7 +417,7 @@ struct CallMessage {
     ProtocolRange          range;
     protocol3::CallMessage message;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(range, message);
     }
     void write(ByteBuffer& bb) {
@@ -431,7 +431,7 @@ struct ReturnMessage {
     ProtocolRange            range;
     protocol3::ReturnMessage message;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(range, message);
     }
     void write(ByteBuffer& bb) {

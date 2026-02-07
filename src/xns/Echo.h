@@ -56,7 +56,7 @@ public:
     Echo() : type(Type::REQUEST) {}
     Echo(Type type_) : type(type_) {}
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(type);
     }
     void write(ByteBuffer& bb) {

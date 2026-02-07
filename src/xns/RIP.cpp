@@ -62,7 +62,7 @@ std::string RIP::toString(Delay value) {
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
-void RIP::read(ByteBuffer& bb) {
+void RIP::read(const ByteBuffer& bb) {
     bb.read(type);
     for(;;) {
         if (bb.remains() == 0) break;

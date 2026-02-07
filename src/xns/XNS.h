@@ -59,7 +59,7 @@ public:
         return value;
     }
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         uint16_t word1;
         uint16_t word2;
         uint16_t word3;

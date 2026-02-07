@@ -70,7 +70,7 @@ public:
         Host    host;
         Socket  socket;
     
-        void read(ByteBuffer& bb) {
+        void read(const ByteBuffer& bb) {
             bb.read(network, host, socket);
         }
         void write(ByteBuffer& bb) {
@@ -91,7 +91,7 @@ public:
     NetworkAddress dst;
     NetworkAddress src;
 
-    void read(ByteBuffer& bb) {
+    void read(const ByteBuffer& bb) {
         bb.read(checksum, length, control, packetType, dst, src);
     }
     void write(ByteBuffer& bb) {
