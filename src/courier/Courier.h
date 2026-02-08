@@ -37,9 +37,7 @@
 
 #include <string>
 #include <cstdint>
-#include <type_traits>
 #include <variant>
-#include <vector>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
