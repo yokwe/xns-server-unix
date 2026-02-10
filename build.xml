@@ -9,7 +9,7 @@
 	
 	<!-- T001 -->
 	<target name="T001">
-		<java module="yokwe.gen_stub/yokwe.gen_stub.app.T001" fork="true" failonerror="true">
+		<java module="yokwe.courier/yokwe.courier.app.T001" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 		</java>
@@ -17,15 +17,15 @@
 
 	<!-- DumpCourier -->
 	<target name="dump-courier">
-		<java module="yokwe.gen_stub/yokwe.gen_stub.app.DumpCourier" fork="true" failonerror="true">
+		<java module="yokwe.courier/yokwe.courier.app.DumpCourier" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 		</java>
 	</target>
 
-	<!-- GenStub -->
-	<target name="gen-stub">
-		<java module="yokwe.gen_stub/yokwe.gen_stub.app.GenStub" fork="true" failonerror="true">
+	<!-- GenCourier -->
+	<target name="gen-courier">
+		<java module="yokwe.courier/yokwe.courier.app.GenCourier" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 			<arg line="Time2 Authentication3 BulkData1 Clearinghouse3" />
@@ -38,7 +38,7 @@
 
 	<!-- GenCourierConfig -->
 	<target name="gen-courier-config">
-		<java module="yokwe.gen_stub/yokwe.gen_stub.app.GenCourierConfig" fork="true" failonerror="true">
+		<java module="yokwe.courier/yokwe.courier.app.GenCourierConfig" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 			<arg line="Time2 Authentication3 BulkData1 Clearinghouse3" />
@@ -55,10 +55,10 @@
 			<classpath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 			<arg line="-o tmp/antlr" />
-			<arg line="-package yokwe.gen_stub.courier.antlr" />
+			<arg line="-package yokwe.courier.antlr" />
 			<arg line="-no-listener" />
 			<arg line="-visitor" />
-			<arg value="src/main/java/yokwe/gen_stub/courier/antlr/Courier.g" />
+			<arg value="src/main/java/yokwe/courier/antlr/Courier.g" />
 		</java>
 	</target>
 

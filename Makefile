@@ -7,7 +7,7 @@ SOURCE_DIR := src
 DATA_DIR   := data
 MAVEN_BUILD_DIR := target
 
-ANTLR_DIR := src/main/java/yokwe/gen_stub/courier/antlr
+ANTLR_DIR := src/main/java/yokwe/courier/antlr
 
 export BUILD_DIR
 
@@ -64,6 +64,7 @@ build-antlr: $(ANTLR_DIR)/CourierParser.java
 	mvn ant:ant install
 
 $(ANTLR_DIR)/CourierParser.java: $(ANTLR_DIR)/Courier.g
+	echo "ANTLR_DIR  $ANTLR_DIR"
 	mkdir -p tmp/antlr
 	rm   -rf tmp/antlr/*
 	ant antlr-v4-tool

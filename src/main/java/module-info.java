@@ -1,4 +1,4 @@
-open module yokwe.gen_stub {
+open module yokwe.courier {
 	
 	// yokwe-util
 	requires transitive yokwe.util;
