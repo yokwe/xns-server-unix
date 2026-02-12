@@ -44,8 +44,8 @@ public class Util {
 			case 'b':
 			case 'B':
 				return Long.parseUnsignedLong(text.substring(0, length - 1), 8);
-			case 'x':
-			case 'X':
+			case 'h':
+			case 'H':
 				return Long.parseUnsignedLong(text.substring(0, length - 1), 16);
 			case 'd':
 			case 'D':
@@ -56,6 +56,9 @@ public class Util {
 		} catch (NumberFormatException e) {
 			throw new UnexpectedException(String.format("text = %s", text), e);
 		}
+	}
+	public static int parseInt(String text) {
+		return (int)parseLong(text);
 	}
 	public static String toJavaConstName(String name) {
 		StringBuilder ret = new StringBuilder();

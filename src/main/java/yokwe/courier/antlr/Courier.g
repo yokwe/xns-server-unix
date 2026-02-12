@@ -52,8 +52,6 @@ SEQUENCE     : 'SEQUENCE';
 STRING       : 'STRING';
 TYPE         : 'TYPE';
 UNSPECIFIED  : 'UNSPECIFIED';
-UNSPECIFIED2 : 'UNSPECIFIED2';
-UNSPECIFIED3 : 'UNSPECIFIED3';
 UPON         : 'UPON';
 VERSION      : 'VERSION';
 TRUE         : 'TRUE';
@@ -65,14 +63,14 @@ fragment CHAR_AF    : [A-F|a-f];
 fragment CHAR_DEC   : [0-9];
 fragment CHAR_OCT   : [0-7];
 
-ID  : CHAR_ALPHA (CHAR_ALPHA | CHAR_DEC | '_')*;
-
 NUMBER
     : CHAR_DEC+
-    | CHAR_DEC+[Dd]
-    | CHAR_OCT+[Bb]
-    | CHAR_DEC(CHAR_DEC|CHAR_AF)*[Xx]
+    | CHAR_DEC+[D]
+    | CHAR_OCT+[B]
+    | (CHAR_DEC|CHAR_AF)+[H]
     ;
+
+ID  : CHAR_ALPHA (CHAR_ALPHA | CHAR_DEC | '_')*;
 
 STR : '"' ('""' | ~('"'))* '"';
 
@@ -86,20 +84,15 @@ SPACE
     : [ \r\t\n]                ->skip;
 
 
+
+/* 4.2 Program declarations */
 courierProgram
-    :    programHeader '=' programBody '.'
-    ;
-
-programHeader
-    :    name=ID ':' PROGRAM program=NUMBER VERSION version=NUMBER
-    ;
-
-programBody
-    :    BEGIN dependencyList declarationList END
+    :    name=ID ':' PROGRAM program=positiveNumber VERSION version=positiveNumber
+         '=' BEGIN dependencyList declarationList END '.'
     ;
 
 dependencyList
-    :    /* empty */
+    :    /* EMPTY */
     |    DEPENDS UPON referencedProgramList ';'
     ;
 
@@ -108,100 +101,168 @@ referencedProgramList
     ;
 
 referencedProgram
-    :    name=ID '(' program=NUMBER ')' VERSION version=NUMBER
+    :    name=ID '(' program=positiveNumber ')' VERSION version=positiveNumber
     ;
 
 declarationList
-    :    /* empty */
+    :    /* EMPTY */
     |    elements+=declaration+
     ;
 
 declaration
-    :    name=ID ':' TYPE '=' type ';'     # DeclType
-    |    name=ID ':' type '=' constant ';' # DeclCons
+    :    typeDecl # DeclarationType
+    |    consDecl # DeclarationCons
+    ;
+
+
+/* 3.3 Type and constant declarations */
+typeDecl
+    :    name=ID ':' TYPE '=' type ';'
+    ;
+
+consDecl
+    :    name=ID ':' type '=' cons ';'
     ;
 
 type
-    :    predefinedType  # TypePredefined
-    |    constructedType # TypeConstructed
-    |    referenced      # TypeReferenced
+    :    booleanType      # TypeBoolean
+    |    cardinalType     # TypeCardinal
+    |    longCardinalType # TypeLongCardinal
+    |    integerType      # TypeInteger
+    |    longIntegerType  # TypeLongInteger
+    |    stringType       # TypeString
+    |    unspecifiedType  # TypeUnspecified
+    /**/
+    |    enumerationType  # TypeEnumeration
+    |    arrayType        # TypeArray
+    |    sequenceType     # TypeSequence
+    |    recordType       # TypeRecord
+    |    choiceType       # TypeChoice
+    |    procedureType    # TypeProcedure
+    |    errorType        # TypeError
+    /**/
+    |    reference        # TypeReference
     ;
 
-predefinedType
-    :    BOOLEAN        # TypeBoolean
-    |    CARDINAL       # TypeCardinal
-    |    LONG CARDINAL  # TypeLongCardinal
-    |    INTEGER        # TypeInteger
-    |    LONG INTEGER   # TypeLongInteger
-    |    STRING         # TypeString
-    |    UNSPECIFIED    # TypeUnspecified
+cons
+    :    booleanConstant  # ConsBoolean
+    |    positiveNumber   # ConsPositive
+    |    negativeNumber   # ConsNegative
+    |    stringConstant   # ConsString
+    /**/
+    |    arrayConstant    # ConsArray
+    |    recordConstant   # ConsRecord
+    |    choiceConstant   # ConsChoice
+    /**/
+    |    reference        # ConsReference
+    ;
+    
+reference
+    :    name=ID                 # ReferenceLocal
+    |    program=ID '.'  name=ID # ReferenceRemote
+    |    program=ID '::' name=ID # ReferenceExternal
     ;
 
-constructedType
-    :    '{' correspondenceList '}'                      # TypeEnum
-    |    ARRAY numericValue OF type                      # TypeArray
-    |    SEQUENCE maximumNumber OF type                  # TypeSequence
-    |    RECORD '[' fieldList ']'                        # TypeRecord
-    |    RECORD '[' ']'                                  # TypeRecordEmpty
-    |    CHOICE referenced OF '{' typedCandidateList '}' # TypeChoiceTyped
-    |    CHOICE OF '{' anonCandidateList '}'             # TypeChoiceAnon
-    |    PROCEDURE argumentList resultList errorList     # TypeProcedure
-    |    ERROR argumentList                              # TypeError
+/* 3.4 Predefiend types */
+positiveNumber
+    :    NUMBER
     ;
 
-referenced
-    :    name=ID                   # TypeRef
-    |    program=ID   '.'  name=ID # TypeRefQ
-    |    namespace=ID '::' name=ID # TypeRefExt
+negativeNumber
+    :    '-' NUMBER
+    ;
+
+/* 3.4.1 Boolean */
+booleanType
+    :    BOOLEAN
+    ;
+
+booleanConstant
+    :    TRUE  # BooleanConstantTrue
+    |    FALSE # BooleanConstantFalse
+    ;
+
+/* 3.4.2 Cardinal */
+cardinalType
+    :    CARDINAL
+    ;
+
+/* 3.4.3 Long cardinal */
+longCardinalType
+    :    LONG CARDINAL
+    ;
+
+/* 3.4.4 Integer */
+integerType
+    :    INTEGER
+    ;
+
+/* 3.4.5 Long integer */
+longIntegerType
+    :    LONG INTEGER
+    ;
+
+/* 3.4.6 String */
+stringType
+    :    STRING
+    ;
+    
+stringConstant
+    :    STR
+    ;
+
+/* 3.4.7 Unspecified */
+unspecifiedType
+    :    UNSPECIFIED
+    ;
+
+/* 3.5.1 Enumeration */
+enumerationType
+    :    '{' correspondenceList '}'
+    ;
+    
+enumerationConstant
+    :    name=ID
     ;
 
 correspondenceList
     :    elements+=correspondence (',' elements+=correspondence)*
     ;
-
 correspondence
-    :    name=ID '(' value=numericValue ')'
+    :    name=ID '(' number=positiveNumber ')'
     ;
 
-maximumNumber
-    :    /* empty */
-    |    numericValue
+/* 3.5.2 Array */
+arrayType
+    :    ARRAY positiveNumber OF type # ArrayTypeNumber
+    |    ARRAY reference      OF type # ArrayTypeReference
     ;
 
-numericValue
-    :    NUMBER     # ValueNumber
-    |    referenced # ValueRefCons
+arrayConstant
+    :    '[' elementList ']' # ArrayConstantList
+    |    '[' ']'             # ArrayConstantEmpty
     ;
 
-typedCandidateList
-    :    elements+=typedCandidate (',' elements+=typedCandidate)*
+elementList
+    :    elements+=cons  (',' elements+=cons)*
     ;
 
-typedCandidate
-    :    nameList '=>' type
+/* 3.5.3 Sequence */
+sequenceType
+    :    SEQUENCE /* EMPTY */    OF type # SequenceTypeEmpty
+    |    SEQUENCE positiveNumber OF type # SequenceTypeNumber
+    |    SEQUENCE reference      OF type # SequenceTypeReference
     ;
 
-anonCandidateList
-    :    elements+=anonCandidate (',' elements+=anonCandidate)*
+/* 3.5.4 Record */
+recordType
+    :    RECORD '[' /* EMPTY */ ']' # RecordTypeEmpty
+    |    RECORD '[' fieldList   ']' # RecordTypeList
     ;
 
-anonCandidate
-    :    correspondenceList '=>' type
-    ;
-
-argumentList
-    :    /* empty */
-    |    '[' fieldList ']'
-    ;
-
-resultList
-    :    /* empty */
-    |    RETURNS '[' fieldList ']'
-    ;
-
-errorList
-    :    /* empty */
-    |    REPORTS '[' nameList ']'
+recordConstant
+    :    '[' /* EMPTY */   ']' # RecordConstantEmpty
+    |    '[' componentList ']' # RecordConstantList
     ;
 
 fieldList
@@ -212,39 +273,72 @@ field
     :    nameList ':' type
     ;
 
-constant
-    :    literalConstant     # ConsLiteral
-    |    constructedConstant # ConsConstructed
-    |    referenced          # ConsRef
-    ;
-
-literalConstant
-    :    TRUE             # ConsTrue
-    |    FALSE            # ConsFalse
-    |    value=NUMBER     # ConsNumber
-    |    '-' value=NUMBER # ConsNumberNegative
-    |    value=STR        # ConsString
-    ;
-
-constructedConstant
-    :    '[' elementList ']'   # ConsArray
-    |    '[' componentList ']' # ConsRecord
-    |    '[' ']'               # ConsRecordEmpty
-    |    name=ID constant      # ConsChoice
-    ;
-
-elementList
-    :    elements+=constant (',' elements+=constant)*
-    ;
-
 componentList
-    :    elements+=component (',' elements+=component)*
+    :   elements+=component (',' elements+=component)*
     ;
 
 component
-    :    nameList ':' constant
+    :    nameList ':' cons
     ;
-
+    
 nameList
     :    elements+=ID (',' elements+=ID)*
+    ;
+    
+/* 3.5.5 Choice */
+choiceType
+    :    CHOICE /* EMPTY */ OF '{' candidateList     '}' # ChoiceTypeAnon
+    |    CHOICE reference   OF '{' candidateNameList '}' # ChoiceTypeName
+    ;
+
+choiceConstant
+    :    name=ID cons
+    ;
+
+candidateList
+    :    elements+=candidate  (',' elements+=candidate)*
+    ;
+
+candidate
+    :    designatorList '=>' type
+    ;
+
+designatorList
+    :    elements+=designator  (',' elements+=designator)*
+    ;
+
+designator
+    :    name=ID '(' number=positiveNumber ')'
+    ;
+
+candidateNameList
+    :    elements+=candidateName  (',' elements+=candidateName)*
+    ;
+candidateName
+    :    nameList '=>' type
+    ;
+
+/* 3.5.6 Procedure */
+procedureType
+    :    PROCEDURE argumentList resultList errorList
+    ;
+
+argumentList
+    :    /* EMPTY */
+    |    '[' fieldList ']'
+    ;
+
+resultList
+    :    /* EMPTY */
+    |    RETURNS '[' fieldList ']'
+    ;
+
+errorList
+    :    /* EMPTY */
+    |    REPORTS '[' nameList ']'
+    ;
+
+/* 3.5.7 Error */
+errorType
+    :    ERROR argumentList
     ;

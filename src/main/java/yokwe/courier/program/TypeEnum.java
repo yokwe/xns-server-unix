@@ -32,12 +32,12 @@ package yokwe.courier.program;
 
 import java.util.List;
 
-import yokwe.courier.program.Program.NameNumericValue;
+import yokwe.courier.program.Program.NumberName;
 
 public class TypeEnum extends Type {
-	public final List<NameNumericValue> list;
+	public final List<NumberName> list;
 	
-	public TypeEnum(List<NameNumericValue> list) {
+	public TypeEnum(List<NumberName> list) {
 		super(Type.Kind.ENUM);
 		this.list = list;
 	}

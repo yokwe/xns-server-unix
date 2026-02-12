@@ -32,10 +32,10 @@ package yokwe.courier.program;
 
 import yokwe.courier.program.Program.Reference;
 
-public class ConsRef extends Cons {
+public class ConsReference extends Cons {
 	public final Reference value;
 	
-	public ConsRef(Reference value) {
+	public ConsReference(Reference value) {
 		super(Kind.REFERENCE);
 		this.value = value;
 	}

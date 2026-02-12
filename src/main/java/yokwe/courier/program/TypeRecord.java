@@ -36,6 +36,8 @@ import java.util.List;
 import yokwe.courier.program.Program.NameType;
 
 public class TypeRecord extends Type {
+	public static final TypeRecord EMPTY = new TypeRecord(new ArrayList<>());
+	
 	public List<NameType> fieldList;
 	
 	public TypeRecord(List<NameType> fieldList) {
@@ -44,7 +46,6 @@ public class TypeRecord extends Type {
 		this.fieldList = fieldList;
 	}
 	
-	public static final TypeRecord EMPTY = new TypeRecord(new ArrayList<>());
 	
 	@Override
 	public String toString() {

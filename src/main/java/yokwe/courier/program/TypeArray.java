@@ -30,23 +30,37 @@
 
 package yokwe.courier.program;
 
-import yokwe.courier.program.Program.NumericValue;
+import yokwe.courier.program.Program.Reference;
 
 public class TypeArray extends Type {
 	static final int MAX_SIZE = 65535;
 	
-	final NumericValue size;
-	final Type         element;
+	final int       size;
+	final Reference ref; // reference of size
+	final Type      element;
 	
-	public TypeArray(NumericValue size, Type element) {
+	public TypeArray(int size, Type element) {
 		super(Kind.ARRAY);
 		
 		this.size    = size;
+		this.ref     = null;
+		this.element = element;
+	}
+	public TypeArray(Reference ref, Type element) {
+		super(Kind.ARRAY);
+		
+		this.size    = 0;
+		this.ref     = ref;
 		this.element = element;
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("{%s  %s  %s}", kind, size.toString(), element.toString());
+		if (ref == null) return String.format("{%s  %d  %s}", kind, size, element.toString());
+		else return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
+	}
+	
+	boolean hasReference() {
+		return ref != null;
 	}
 }

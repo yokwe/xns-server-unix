@@ -49,7 +49,9 @@ public class Program implements Comparable<Program> {
 			this.program = program;
 			this.version = version;
 		}
-		
+		public Info(String name, String program, String version) {
+			this(name, Util.parseInt(program), Util.parseInt(version));
+		}
 		@Override
 		public boolean equals(Object o) {
 			if (o instanceof Info) {
@@ -72,8 +74,8 @@ public class Program implements Comparable<Program> {
 		public String toString() {
 			return ToString.withFieldName(this);
 		}
-		public String toLongName() {
-			return String.format("%s%d", name, version);
+		public String toName() {
+			return (version == 0) ? name : String.format("%s%d", name, version);
 		}
 	}
 	
@@ -113,40 +115,41 @@ public class Program implements Comparable<Program> {
 		}
 	}
 	
-	public static class NumericValue {
-		public final int       numeric;
-		public final Reference ref;
+	// name number
+	public static class NumberName {
+		public final int    number;
+		public final String name;
 		
-		public NumericValue(int numeric) {
-			this.numeric = numeric;
-			this.ref     = null;
-		}
-		public NumericValue(Reference ref) {
-			this.numeric = 0;
-			this.ref     = ref;
+		public NumberName(int number, String name) {
+			this.number = number;
+			this.name   = name;
 		}
 		
 		@Override
 		public String toString() {
-			return ref == null ? String.format("%d", numeric) : ref.toString();
+			return String.format("{%s  %d}", name, number);
 		}
 	}
 	
-	public static class NameNumericValue {
-		final String       name;
-		final NumericValue value;
+	// name number type
+	public static class NameNumberType {
+		public final String name;
+		public final int    number;
+		public final Type   type;
 		
-		public NameNumericValue(String name, NumericValue value) {
-			this.name    = name;
-			this.value = value;
+		public NameNumberType(String name, int number, Type type) {
+			this.name   = name;
+			this.number = number;
+			this.type   = type;
 		}
 		
 		@Override
 		public String toString() {
-			return String.format("(%s  %s)", name, value.toString());
+			return String.format("{%s  %d  %s}", name, number, type.toString());
 		}
 	}
 	
+	// name type
 	public static class NameType {
 		public final String name;
 		public final Type   type;
@@ -161,6 +164,7 @@ public class Program implements Comparable<Program> {
 		};
 	}
 	
+	// name cons
 	public static class NameCons {
 		public final String name;
 		public final Cons   cons;
@@ -175,31 +179,23 @@ public class Program implements Comparable<Program> {
 		};
 	}
 	
+	// Reference
 	public static class Reference {
-		enum Kind {
-			INTERNAL,
-			EXTERNAL,
-		}
-		
-		public final Kind   kind;
 		public final Info   program;
 		public final String namespace;
 		public final String name;
 
 		public Reference(Program myProgram, String name) {
-			this.kind      = Kind.INTERNAL;
 			this.program   = myProgram.self;
 			this.namespace = null;
 			this.name      = name;
 		}
 		public Reference(Program myProgram, String program, String name) {				
-			this.kind      = Kind.INTERNAL;
 			this.program   = myProgram.findDepend(program);
 			this.namespace = null;
 			this.name      = name;
 		}
 		public Reference(String namespace, String name) {
-			this.kind      = Kind.EXTERNAL;
 			this.name      = name;
 			this.program   = null;
 			this.namespace = namespace;
@@ -207,14 +203,14 @@ public class Program implements Comparable<Program> {
 		
 		@Override
 		public String toString() {
-			String ret = switch (kind) {
-//				case INTERNAL -> String.format("{REF  %s  %s%d.%s}", kind, program.name, program.version, name);
-//				case EXTERNAL -> String.format("{REF  %s  %s::%s}", kind, namespace, name);
-				case INTERNAL -> String.format("%s%d.%s", program.name, program.version, name);
-				case EXTERNAL -> String.format("%s::%s", namespace, name);
-				default -> throw new UnexpectedException("Unexpected kind");
-			};
-			return ret;
+			return isExternal() ? String.format("%s::%s", namespace, name) : String.format("%s%d.%s", program.name, program.version, name);
+		}
+		
+		public boolean isInernal() {
+			return namespace == null;
+		}
+		public boolean isExternal() {
+			return namespace != null;
 		}
 	}
 	
@@ -223,15 +219,9 @@ public class Program implements Comparable<Program> {
 	final List<Info> dependList;
 	final List<Decl> declList;
 	
-	public Program(String name, int program, int version) {
-		this.self       = new Info(name, program, version);
-		this.dependList = new ArrayList<>();
-		this.declList   = new ArrayList<>();
-	}
-	
-	public Program(Info info) {
-		this.self       = info;
-		this.dependList = new ArrayList<>();
+	public Program(Info self, List<Info> dependList) {
+		this.self       = self;
+		this.dependList = dependList;
 		this.declList   = new ArrayList<>();
 	}
 

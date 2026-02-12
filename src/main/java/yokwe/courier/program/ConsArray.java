@@ -30,9 +30,12 @@
 
 package yokwe.courier.program;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ConsArray extends Cons {
+	public static final ConsArray EMPTY = new ConsArray(new ArrayList<>());
+	
 	public List<Cons> constList;
 	
 	public ConsArray(List<Cons> valueList) {

@@ -45,7 +45,7 @@ public class TypeError extends Type {
 	
 	@Override
 	public String toString() {
-		var string = argumentList.isEmpty() ? "" : String.format(" [%s]", String.join(" ", argumentList.stream().map(o -> o.toString()).toList()));
+		var string = argumentList.isEmpty() ? "" : String.format(" %s", String.join(" ", argumentList.stream().map(o -> o.toString()).toList()));
 		return String.format("{%s%s}", kind, string);
 	}
 }

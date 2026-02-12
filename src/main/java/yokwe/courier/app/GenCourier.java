@@ -30,27 +30,24 @@
 
 package yokwe.courier.app;
 
-import yokwe.courier.program.ProgramBuilder;
+import yokwe.courier.program.Builder;
 
 public class GenCourier {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
 	public static void main(String[] args) throws Exception {
 		logger.debug("START");
-		ProgramBuilder.scanDirectory("data/courier/custom");
-		ProgramBuilder.scanDirectory("data/courier/XNSonUX");
-//		ProgramBuilder.initialize("data/courier/test");
 		
-		String[] nameList = {
-			"BulkData1",
-			"Authentication3",
-			"Clearinghouse3",
+		String[] pathList = {
+			"data/courier/custom",
+			"data/courier/XNSonUX",
 		};
 		
-		for(var name: nameList) {
-			logger.debug(String.format("name = %s", name));
-			var program = ProgramBuilder.getProgram(name);
-			logger.info("program  {}", program.toString());
+		var builder = new Builder();
+		
+		for(var e: pathList) {
+			builder.scanDirectory(e);
 		}
+		logger.debug("STOP");
 	}
 }

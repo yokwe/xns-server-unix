@@ -30,25 +30,43 @@
 
 package yokwe.courier.program;
 
-import yokwe.courier.program.Program.NumericValue;
+import yokwe.courier.program.Program.Reference;
+import yokwe.util.UnexpectedException;
 
 public class TypeSequence extends Type {
 	static final int MAX_SIZE = 65535;
 	
-	final NumericValue size;
-	final Type         element;
+	final int       size;
+	final Reference ref; // reference of size
+	final Type      element;
 	
-	public TypeSequence(NumericValue size, Type element) {
-		super(Kind.ARRAY);
+	public TypeSequence(int size, Type element) {
+		super(Kind.SEQUENCE);
+		
+		if (MAX_SIZE < size) throw new UnexpectedException("Unexpteced size");
 		
 		this.size    = size;
+		this.ref     = null;
 		this.element = element;
+	}
+	public TypeSequence(Reference ref, Type element) {
+		super(Kind.SEQUENCE);
+		
+		this.size    = 0;
+		this.ref     = ref;
+		this.element = element;
+	}
+	public TypeSequence(Type element) {
+		this(MAX_SIZE, element);
 	}
 	
 	@Override
 	public String toString() {
-		if (element == null) return String.format("{SEQUENCE  %s  NULL}", size.toString());
-		return String.format("{SEQUENCE  %s  %s}", size.toString(), element.toString());
+		if (ref == null) return String.format("{%s  %d  %s}", kind, size, element.toString());
+		else return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
 	}
-
+	
+	boolean hasReference() {
+		return ref != null;
+	}
 }

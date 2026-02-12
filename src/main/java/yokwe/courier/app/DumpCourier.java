@@ -30,16 +30,21 @@
 
 package yokwe.courier.app;
 
-import yokwe.courier.program.ProgramBuilder;
+import yokwe.courier.program.Builder;
 
 public class DumpCourier {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
 	public static void main(String[] args) throws Exception {
 		logger.debug("START");
-		ProgramBuilder.scanDirectory("data/courier/custom");
-		ProgramBuilder.scanDirectory("data/courier/XNSonUX");
-//		ProgramBuilder.scanDirectory("data/courier/test");
+		
+		String[] pathList = {
+			"data/courier/custom",
+			"data/courier/XNSonUX",
+		};
+		for(var e: pathList) {
+			process(e);
+		}
 		
 //		for(int i = 0; i < args.length; i++) {
 //			String name = args[i];
@@ -48,5 +53,14 @@ public class DumpCourier {
 //			logger.debug("program = {}", program.toString());
 //		}
 		logger.debug("STOP");
+	}
+	
+	static void process(String path) {
+		logger.info("path  {}", path);
+		var list = Builder.getCourierFileList(path);
+		for(var e: list) {
+			logger.info("file  {}", e);
+			Builder.getContext(e);
+		}
 	}
 }

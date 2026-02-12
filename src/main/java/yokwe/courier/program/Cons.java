@@ -38,6 +38,9 @@ public class Cons {
 	}
 	
 	public static class BOOLEAN extends Cons {
+		public static final Cons TRUE  = new BOOLEAN(true);
+		public static final Cons FALSE = new BOOLEAN(false);
+		
 		public final boolean value;
 		
 		public BOOLEAN(boolean value) {
@@ -50,8 +53,6 @@ public class Cons {
 			return value ? "TRUE" : "FALSE";
 		}
 	}
-	public static final Cons TRUE  = new BOOLEAN(true);
-	public static final Cons FALSE = new BOOLEAN(false);
 	
 	public static class NUMBER extends Cons {
 		public final int value;
