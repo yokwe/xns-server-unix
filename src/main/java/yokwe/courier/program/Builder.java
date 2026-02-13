@@ -66,24 +66,8 @@ public class Builder {
 		throw new UnexpectedException("Unexpected");
 	}
 	public void fixReference() {
-		for(var e: typeMapRef.entrySet()) {
-			var ref = e.getValue();
-			if (ref.fixed()) continue;
-			var name = ref.toName();
-			if (typeMap.containsKey(name)) {
-				ref.value = typeMap.get(name);
-			}
-		}
-		for(var e: consMapRef.entrySet()) {
-			var ref = e.getValue();
-			if (ref.fixed()) continue;
-			var name = ref.toName();
-			if (consMap.containsKey(name)) {
-				ref.value = consMap.get(name);
-			}
-		}
-		
-		
+		int countFixType = 0;
+		int countFixCons = 0;
 		for(var program: programMap.values()) {
 			for(var e: program.declList) {
 				var name = program.self.toName(e.name);;
@@ -93,6 +77,7 @@ public class Builder {
 						var ref = type.toTypeReference().ref.toReferenceType();
 						if (ref.needsFix()) {
 							ref.value = getType(ref.toName());
+							countFixType++;
 						}
 					}
 				}
@@ -102,6 +87,7 @@ public class Builder {
 						var ref = type.toTypeReference().ref.toReferenceType();
 						if (ref.needsFix()) {
 							ref.value = getType(ref.toName());
+							countFixType++;
 						}
 					}
 					
@@ -110,12 +96,14 @@ public class Builder {
 						var ref = cons.toConsReference().ref.toReferenceCons();
 						if (ref.needsFix()) {
 							ref.value = getCons(name);
+							countFixCons++;
 						}
 					}
 				}
 			}
 		}
-		
+		logger.info("countFixType  {}", countFixType);
+		logger.info("countFixCons  {}", countFixCons);
 		
 		// sanity check
 		for(var program: programMap.values()) {
