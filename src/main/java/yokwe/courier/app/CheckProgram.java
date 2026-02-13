@@ -2,7 +2,7 @@ package yokwe.courier.app;
 
 import yokwe.courier.program.Builder;
 
-public class CheckParser {
+public class CheckProgram {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
 	public static void main(String[] args) throws Exception {
@@ -17,12 +17,14 @@ public class CheckParser {
 		
 		for(var path: pathList) {
 			logger.info("path  {}", path);
-			for(var e: Builder.getCourierFileList(path)) {
+			for(var e: builder.getCourierFileList(path)) {
 				logger.info("      {}", e);
-				var context = Builder.getContext(e);
-				builder.getProgram(context);
+				var context = builder.getContext(e);
+				var program = builder.getProgram(context);
+				logger.info("      {}", program.self.toName());
 			}
 		}
+		
 		logger.debug("STOP");
 	}
 }
