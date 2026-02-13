@@ -33,14 +33,14 @@ package yokwe.courier.program;
 import yokwe.courier.program.Program.Reference;
 
 public class ConsReference extends Cons {
-	public final Reference value;
+	public final Reference ref;
 	
-	public ConsReference(Reference value) {
+	public ConsReference(Reference ref) {
 		super(Kind.REFERENCE);
-		this.value = value;
+		this.ref = ref;
 	}
 	@Override
 	public java.lang.String toString() {
-		return value.toString();
+		return ref.toString();
 	}
 }

@@ -119,7 +119,18 @@ public class Cons {
 		}
 	}
 	
+	// toXXX
+	public ConsReference toConsReference() {
+		return (ConsReference)this;
+	}
+
 	// isXXX
+	public boolean isConcrete() {
+		return kind != Kind.REFERENCE;
+	}
+	public boolean isReference() {
+		return kind == Kind.REFERENCE;
+	}
 	public boolean isBoolean() {
 		return kind == Kind.BOOLEAN;
 	}

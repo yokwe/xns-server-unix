@@ -31,6 +31,14 @@
 package yokwe.courier.program;
 
 public class Type {
+	public static final Type BOOLEAN       = new Type(Kind.BOOLEAN);
+	public static final Type CARDINAL      = new Type(Kind.CARDINAL);
+	public static final Type LONG_CARDINAL = new Type(Kind.LONG_CARDINAL);
+	public static final Type INTEGER       = new Type(Kind.INTEGER);
+	public static final Type LONG_INTEGER  = new Type(Kind.LONG_INTEGER);
+	public static final Type STRING        = new Type(Kind.STRING);
+	public static final Type UNSPECIFIED   = new Type(Kind.UNSPECIFIED);
+	
 	public enum Kind {
 		// predefined
 		BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED,
@@ -41,6 +49,7 @@ public class Type {
 	}
 
 	public final Kind kind;
+	
 	public Type(Kind kind) {
 		this.kind = kind;
 	}
@@ -54,32 +63,19 @@ public class Type {
 		return kind.toString();
 	}
 	
-	public boolean isPredefined() {
-		return switch(kind) {
-			case BOOLEAN, CARDINAL, LONG_CARDINAL, INTEGER, LONG_INTEGER, STRING, UNSPECIFIED -> true;
-			default -> false;
-		};
+	// toXXX
+	public TypeReference toTypeReference() {
+		return (TypeReference)this;
 	}
-	public boolean isConstructed() {
-		return switch(kind) {
-			case ARRAY, CHOICE, ENUM, ERROR, PROCEDURE, RECORD, SEQUENCE -> true;
-			default -> false;
-		};
+	public TypeEnum toTypeEnum() {
+		return (TypeEnum)this;
 	}
+	
+	// isXXX
 	public boolean isReference() {
-		return switch(kind) {
-			case REFERENCE -> true;
-			default -> false;
-		};
+		return kind == Kind.REFERENCE;
 	}
-	
-	public static final Type BOOLEAN       = new Type(Kind.BOOLEAN);
-	public static final Type CARDINAL      = new Type(Kind.CARDINAL);
-	public static final Type LONG_CARDINAL = new Type(Kind.LONG_CARDINAL);
-	public static final Type INTEGER       = new Type(Kind.INTEGER);
-	public static final Type LONG_INTEGER  = new Type(Kind.LONG_INTEGER);
-	public static final Type STRING        = new Type(Kind.STRING);
-	public static final Type UNSPECIFIED   = new Type(Kind.UNSPECIFIED);
-	
-	
+	public boolean isEnum() {
+		return kind == Kind.ENUM;
+	}
 }

@@ -6,7 +6,9 @@ BEGIN
 
   EtherBootPacketType: TYPE = {simpleRequest(1), simpleData(2), sppRequest(3)};
   
-  EthernetBootFileNumber: TYPE = IDP.Host;
+  Host: TYPE = ARRAY 3 OF UNSPECIFIED;
+  EthernetBootFileNumber: TYPE = Host;
+  
   
   BootFileRequest: TYPE = CHOICE EtherBootPacketType OF {
     simpleRequest => RECORD [bootFileNumber: EthernetBootFileNumber],

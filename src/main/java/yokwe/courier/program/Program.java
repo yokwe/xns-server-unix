@@ -52,6 +52,7 @@ public class Program implements Comparable<Program> {
 		public Info(String name, String program, String version) {
 			this(name, Util.parseInt(program), Util.parseInt(version));
 		}
+		
 		@Override
 		public boolean equals(Object o) {
 			if (o instanceof Info) {
@@ -61,7 +62,6 @@ public class Program implements Comparable<Program> {
 				return false;
 			}
 		}
-
 		@Override
 		public int compareTo(Info that) {
 			int ret = this.program - that.program;
@@ -74,8 +74,12 @@ public class Program implements Comparable<Program> {
 		public String toString() {
 			return ToString.withFieldName(this);
 		}
+		
 		public String toName() {
 			return (version == 0) ? name : String.format("%s%d", name, version);
+		}
+		public String toName(String myName) {
+			return String.format("%s.%s", toName(), myName);
 		}
 	}
 	
@@ -180,37 +184,103 @@ public class Program implements Comparable<Program> {
 	}
 	
 	// Reference
-	public static class Reference {
+	public static abstract class Reference {
 		public final Info   program;
 		public final String namespace;
 		public final String name;
 
-		public Reference(Program myProgram, String name) {
+		protected Reference(Program myProgram, String name) {
 			this.program   = myProgram.self;
 			this.namespace = null;
 			this.name      = name;
 		}
-		public Reference(Program myProgram, String program, String name) {				
-			this.program   = myProgram.findDepend(program);
+		protected Reference(Program myProgram, String program, String name) {				
+			this.program   = findDependProgram(myProgram, program);
 			this.namespace = null;
 			this.name      = name;
 		}
-		public Reference(String namespace, String name) {
+		protected Reference(String namespace, String name) {
 			this.name      = name;
 			this.program   = null;
 			this.namespace = namespace;
 		}
 		
-		@Override
-		public String toString() {
-			return isExternal() ? String.format("%s::%s", namespace, name) : String.format("%s%d.%s", program.name, program.version, name);
+		public abstract boolean fixed();
+		public boolean needsFix() {
+			return !fixed();
 		}
 		
-		public boolean isInernal() {
+		@Override
+		public String toString() {
+			return String.format("%s%s", fixed() ? "" : "?", toName());
+		}
+		
+		public String toName() {
+			return isExternal() ? String.format("%s::%s", namespace, name) : String.format("%s.%s", program.toName(), name);
+		}
+		
+		public boolean isInternal() {
 			return namespace == null;
 		}
 		public boolean isExternal() {
 			return namespace != null;
+		}
+		
+		boolean isReferenceType() {
+			return this instanceof ReferenceType;
+		}
+		boolean isReferenceCons() {
+			return this instanceof ReferenceCons;
+		}
+		public ReferenceType toReferenceType() {
+			return (ReferenceType)this;
+		}
+		public ReferenceCons toReferenceCons() {
+			return (ReferenceCons)this;
+		}
+
+		private Info findDependProgram(Program myProgram, String name) {
+			for(var e: myProgram.dependList) {
+				if (e.name.equals(name)) return e;
+			}
+			logger.error("name  {}", name);
+			throw new UnexpectedException("Unpexpected");
+		}
+	}
+	public static class ReferenceType extends Reference {
+		public Type value = null;
+		
+		public ReferenceType(Program myProgram, String name) {
+			super(myProgram, name);
+		}
+		public ReferenceType(Program myProgram, String program, String name) {				
+			super(myProgram, program, name);
+		}
+		public ReferenceType(String namespace, String name) {
+			super(namespace, name);
+		}
+		
+		@Override
+		public boolean fixed() {
+			return value != null;
+		}
+	}
+	public static class ReferenceCons extends Reference {
+		public Cons value = null;
+		
+		public ReferenceCons(Program myProgram, String name) {
+			super(myProgram, name);
+		}
+		public ReferenceCons(Program myProgram, String program, String name) {				
+			super(myProgram, program, name);
+		}
+		public ReferenceCons(String namespace, String name) {
+			super(namespace, name);
+		}
+		
+		@Override
+		public boolean fixed() {
+			return value != null;
 		}
 	}
 	
@@ -233,20 +303,5 @@ public class Program implements Comparable<Program> {
 	@Override
 	public String toString() {
 		return ToString.withFieldName(this);
-	}
-	
-	public void addDepend(List<Info> list) {
-		dependList.addAll(list);
-	}
-	public void addDecl(List<Decl> list) {
-		declList.addAll(list);
-	}
-	
-	public Info findDepend(String name) {
-		for(var e: dependList) {
-			if (e.name.equals(name)) return e;
-		}
-		logger.error("name  {}", name);
-		throw new UnexpectedException("Unpexpected anem");
 	}
 }

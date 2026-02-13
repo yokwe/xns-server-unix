@@ -19,11 +19,15 @@ public class CheckProgram {
 			logger.info("path  {}", path);
 			for(var e: builder.getCourierFileList(path)) {
 				logger.info("      {}", e);
-				var context = builder.getContext(e);
-				var program = builder.getProgram(context);
-				logger.info("      {}", program.self.toName());
+				builder.scanFile(e);
 			}
 		}
+		builder.fixReference();
+		
+		logger.info("programMap  {}", builder.programMap.size());
+		logger.info("type        {}  {}", builder.typeMap.size(), builder.typeMapRef.size());
+		logger.info("cons        {}  {}", builder.consMap.size(), builder.consMapRef.size());
+		
 		
 		logger.debug("STOP");
 	}
