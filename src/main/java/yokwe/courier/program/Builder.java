@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.CharStream;
@@ -28,8 +30,12 @@ public class Builder {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 	
 	public static String COURIER_FILE_SUFFIX = ".cr";
+		
+	List<Program> programList = new ArrayList<>();
 	
-	public static List<Path> getCourierFileList(String pathString) {
+	Map<Info, Program> programMap = new TreeMap<>();
+	
+	public List<Path> getCourierFileList(String pathString) {
 		var path = Paths.get(pathString);
 		// sanity check
 		if (!Files.isDirectory(path)) {
@@ -48,7 +54,24 @@ public class Builder {
 		}
 	}
 	
-	public static CourierParser.CourierProgramContext getContext(Path path) {
+	public void scanDirectory(String folderPathString) {
+		var list = getCourierFileList(folderPathString);
+		for(var e: list) {
+			var context = getContext(e);
+			if (context == null) continue;
+			
+			programList.add(getProgram(context));
+		}
+	}
+	
+	public void scanFile(Path path) {
+		var context = getContext(path);
+		var program = getProgram(context);
+		programMap.put(program.self, program);
+		
+	}
+	
+	public CourierParser.CourierProgramContext getContext(Path path) {
 		try {
 			CharStream        stream  = CharStreams.fromPath(path);
 			CourierLexer      lexer   = new CourierLexer(stream);
@@ -60,18 +83,6 @@ public class Builder {
 			String exceptionName = e.getClass().getSimpleName();
 			logger.error("{} {}", exceptionName, e);
 			throw new UnexpectedException(exceptionName, e);
-		}
-	}
-	
-	List<Program> programList = new ArrayList<>();
-	
-	public void scanDirectory(String folderPathString) {
-		var list = getCourierFileList(folderPathString);
-		for(var e: list) {
-			var context = getContext(e);
-			if (context == null) continue;
-			
-			programList.add(getProgram(context));
 		}
 	}
 	
@@ -293,19 +304,19 @@ public class Builder {
 	}
 	Cons toCons(Program myProgram, CourierParser.ConsBooleanContext context) {
 		return switch(context.booleanConstant()) {
-			case CourierParser.BooleanConstantTrueContext  ut -> Cons.BOOLEAN.TRUE;
-			case CourierParser.BooleanConstantFalseContext ut -> Cons.BOOLEAN.FALSE;
+			case CourierParser.BooleanConstantTrueContext  ut -> Cons.Boolean.TRUE;
+			case CourierParser.BooleanConstantFalseContext ut -> Cons.Boolean.FALSE;
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
 	Cons toCons(Program myProgram, CourierParser.ConsPositiveContext context) {
-		return new Cons.NUMBER(Util.parseInt(context.positiveNumber().getText()));
+		return new Cons.Number(Util.parseInt(context.positiveNumber().getText()));
 	}
 	Cons toCons(Program myProgram, CourierParser.ConsNegativeContext context) {
-		return new Cons.NUMBER(-1 * Util.parseInt(context.negativeNumber().getText()));
+		return new Cons.Number(-1 * Util.parseInt(context.negativeNumber().getText()));
 	}
 	Cons toCons(Program myProgram, CourierParser.ConsStringContext context) {
-		return new Cons.STRING(context.stringConstant().getText());
+		return new Cons.String(context.stringConstant().getText());
 	}
 	Cons toCons(Program myProgram, CourierParser.ConsArrayContext context) {
 		return switch(context.arrayConstant()) {

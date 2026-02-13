@@ -215,9 +215,9 @@ public class Program implements Comparable<Program> {
 	}
 	
 
-	final Info       self;
-	final List<Info> dependList;
-	final List<Decl> declList;
+	public final Info       self;
+	public final List<Info> dependList;
+	public final List<Decl> declList;
 	
 	public Program(Info self, List<Info> dependList) {
 		this.self       = self;

@@ -31,17 +31,17 @@
 package yokwe.courier.program;
 
 public class ConsChoice extends Cons {
-	public final String name;
+	public final java.lang.String name;
 	public final Cons   cons;
 	
-	public ConsChoice(String name, Cons cons) {
+	public ConsChoice(java.lang.String name, Cons cons) {
 		super(Kind.CHOICE);
 		this.name = name;
 		this.cons = cons;
 	}
 	
 	@Override
-	public String toString() {
-		return String.format("{%s  %s  %s}", kind, name, cons.toString());
+	public java.lang.String toString() {
+		return java.lang.String.format("{%s  %s  %s}", kind, name, cons.toString());
 	}
 }

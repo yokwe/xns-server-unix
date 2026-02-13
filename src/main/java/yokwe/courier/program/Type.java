@@ -40,7 +40,7 @@ public class Type {
 		REFERENCE
 	}
 
-	final Kind kind;
+	public final Kind kind;
 	public Type(Kind kind) {
 		this.kind = kind;
 	}

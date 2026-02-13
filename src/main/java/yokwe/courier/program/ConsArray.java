@@ -44,9 +44,9 @@ public class ConsArray extends Cons {
 	}
 	
 	@Override
-	public String toString() {
+	public java.lang.String toString() {
 		var list = constList.stream().map(o -> o.toString()).toList();
-		var string = String.join(" ", list);
-		return String.format("{%s  [%s]}", kind, string);
+		var string = java.lang.String.join(" ", list);
+		return java.lang.String.format("{%s  [%s]}", kind, string);
 	}
 }

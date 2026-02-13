@@ -34,11 +34,11 @@ import yokwe.courier.program.Program.Reference;
 import yokwe.util.UnexpectedException;
 
 public class TypeSequence extends Type {
-	static final int MAX_SIZE = 65535;
+	public static final int MAX_SIZE = 65535;
 	
-	final int       size;
-	final Reference ref; // reference of size
-	final Type      element;
+	public final int       size;
+	public final Reference ref; // reference of size
+	public final Type      element;
 	
 	public TypeSequence(int size, Type element) {
 		super(Kind.SEQUENCE);

@@ -30,6 +30,8 @@
 
 package yokwe.courier.program;
 
+import yokwe.util.UnexpectedException;
+
 public class Cons {
 	public enum Kind {
 		BOOLEAN, NUMBER, STRING,
@@ -37,53 +39,53 @@ public class Cons {
 		REFERENCE,
 	}
 	
-	public static class BOOLEAN extends Cons {
-		public static final Cons TRUE  = new BOOLEAN(true);
-		public static final Cons FALSE = new BOOLEAN(false);
+	public static class Boolean extends Cons {
+		public static final Cons TRUE  = new Boolean(true);
+		public static final Cons FALSE = new Boolean(false);
 		
 		public final boolean value;
 		
-		public BOOLEAN(boolean value) {
+		public Boolean(boolean value) {
 			super(Kind.BOOLEAN);
 			this.value = value;
 		}
 		
 		@Override
-		public String toString() {
+		public java.lang.String toString() {
 			return value ? "TRUE" : "FALSE";
 		}
 	}
-	
-	public static class NUMBER extends Cons {
+	public static class Number extends Cons {
 		public final int value;
 		
-		public NUMBER(int value) {
+		public Number(int value) {
 			super(Kind.NUMBER);
 			this.value = value;
 		}
-		public NUMBER(String value) {
+		public Number(java.lang.String value) {
 			super(Kind.NUMBER);
 			this.value = (int)Util.parseLong(value);
 		}
 		
 		@Override
-		public String toString() {
-			return String.format("%d", value);
+		public java.lang.String toString() {
+			return java.lang.String.format("%d", value);
 		}
 	}
-	public static class STRING extends Cons {
-		public final String value;
+	public static class String extends Cons {
+		public final java.lang.String value;
 		
-		public STRING(String value) {
+		public String(java.lang.String value) {
 			super(Kind.STRING);
 			this.value = value;
 		}
 		@Override
-		public String toString() {
+		public java.lang.String toString() {
 			return "\"" + value.replace("\"", "\\\"") + "\"";
 		}
 	}
-	final Kind kind;
+	
+	public final Kind kind;
 	
 	public Cons(Kind type) {
 		this.kind = type;
@@ -94,22 +96,37 @@ public class Cons {
 		return (o instanceof Cons) ? this.kind == ((Cons)o).kind : false;
 	}
 	
-	public boolean isPredefined() {
-		return switch(kind) {
-			case BOOLEAN, NUMBER, STRING -> true;
-			default -> false;
-		};
+	// getValueXXX
+	public boolean getValueBoolean() {
+		if (this instanceof Boolean) {
+			return ((Boolean)this).value;
+		} else {
+			throw new UnexpectedException("Unexpected");
+		}
 	}
-	public boolean isConstructed() {
-		return switch(kind) {
-			case ARRAY, CHOICE, RECORD -> true;
-			default -> false;
-		};
+	public int getValueNumber() {
+		if (this instanceof Number) {
+			return ((Number)this).value;
+		} else {
+			throw new UnexpectedException("Unexpected");
+		}
 	}
-	public boolean isReference() {
-		return switch(kind) {
-			case REFERENCE -> true;
-			default -> false;
-		};
+	public java.lang.String getValueSting() {
+		if (this instanceof Number) {
+			return ((String)this).value;
+		} else {
+			throw new UnexpectedException("Unexpected");
+		}
+	}
+	
+	// isXXX
+	public boolean isBoolean() {
+		return kind == Kind.BOOLEAN;
+	}
+	public boolean isNuber() {
+		return kind == Kind.NUMBER;
+	}
+	public boolean isString() {
+		return kind == Kind.STRING;
 	}
 }

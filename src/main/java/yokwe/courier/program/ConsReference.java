@@ -40,7 +40,7 @@ public class ConsReference extends Cons {
 		this.value = value;
 	}
 	@Override
-	public String toString() {
+	public java.lang.String toString() {
 		return value.toString();
 	}
 }
