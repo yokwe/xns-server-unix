@@ -4,9 +4,9 @@ BEGIN
 
 Frame: TYPE = RECORD [
     protocolRange: Protocol.ProtocolRange,
-    message:       Protocol.Protocol3,
+    message:       Protocol.Protocol3
     -- data will follow after header
-    data:          BLOCK
+    -- data:          BLOCK
 ];
 
 END.

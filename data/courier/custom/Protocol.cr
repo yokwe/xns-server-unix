@@ -25,15 +25,15 @@ Protocol2: TYPE = CHOICE MessageType OF {
                   transaction: CARDINAL,
                   program:     CARDINAL,
                   version:     CARDINAL,
-                  procedure:   CARDINAL,
-                  data:        BLOCK],
+                  procedure:   CARDINAL],
+--                  data:        BLOCK],
     RETURN => RECORD [
-                  transaction: CARDINAL,
-                  data:        BLOCK],
+                  transaction: CARDINAL],
+--                  data:        BLOCK],
     ABORT  => RECORD [
                   transaction: CARDINAL,
-                  abortCode:   CARDINAL,
-                  data:        BLOCK],
+                  abortCode:   CARDINAL],
+--                  data:        BLOCK],
     REJECT => RECORD [
                   transaction: CARDINAL,
                   rejectCode:  RejectCode]
@@ -56,15 +56,15 @@ Protocol3: TYPE = CHOICE MessageType OF {
                   transaction: CARDINAL,
                   program:     LONG CARDINAL,
                   version:     CARDINAL,
-                  procedure:   CARDINAL,
-                  data:        BLOCK],
+                  procedure:   CARDINAL],
+--                  data:        BLOCK],
     RETURN => RECORD [
-                  transaction: CARDINAL,
-                  data:        BLOCK],
+                  transaction: CARDINAL],
+--                  data:        BLOCK],
     ABORT  => RECORD [
                   transaction: CARDINAL,
-                  abortCode:   CARDINAL,
-                  data:        BLOCK],
+                  abortCode:   CARDINAL],
+--                  data:        BLOCK],
     REJECT => RECORD [
                   transaction: CARDINAL,
                   reject:      Reject]

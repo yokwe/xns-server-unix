@@ -8,6 +8,7 @@ BEGIN
   
   Host: TYPE = ARRAY 3 OF UNSPECIFIED;
   EthernetBootFileNumber: TYPE = Host;
+  ConnectionID: TYPE = UNSPECIFIED;
   
   
   BootFileRequest: TYPE = CHOICE EtherBootPacketType OF {
@@ -19,7 +20,7 @@ BEGIN
       -- one page of data normally, no data means end of file.
     sppRequest => RECORD [
       bootFileNumber: EthernetBootFileNumber,
-      connectionID: SequencedPacket.ConnectionID]
+      connectionID: ConnectionID]
   };
 
 END.

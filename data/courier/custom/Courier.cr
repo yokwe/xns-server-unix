@@ -28,12 +28,12 @@ BEGIN
     lowest, heighest: CARDINAL];
 
   -- 4.3.3 Return
-  RetrunMessageBody: TYPE = RECORD [
+  ReturnMessageBody: TYPE = RECORD [
     transacionID: UNSPECIFIED];
 --  procedureResults: RECORD [procedure-depent]];
 
   -- 4.3.4 Abort
-  AbortMessaBody: TYPE = RECORD [
+  AbortMessageBody: TYPE = RECORD [
     transactionID: UNSPECIFIED,
     errorValue: CARDINAL];
 --  errorArguments: RECORD [error-dependen]];
