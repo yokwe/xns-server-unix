@@ -35,105 +35,60 @@ public class Builder {
 		
 	public Map<Info, Program> programMap = new TreeMap<>(); // all program
 	
-	public Map<String, Type>  typeMap    = new TreeMap<>(); // only concrete type
-	public Map<String, Cons>  consMap    = new TreeMap<>(); // only concrete Cons
-	
+	public Map<String, Type>  typeMap    = new TreeMap<>(); // all type except TypeReference
+	public Map<String, Cons>  consMap    = new TreeMap<>(); // all cons except ConsRefefernce
+		
 	public Map<String, ReferenceType>  typeMapRef  = new TreeMap<>(); // all reference to type
 	public Map<String, ReferenceCons>  consMapRef  = new TreeMap<>(); // all reference to cons
 	
+	public Builder() {
+		//
+	}
+
 	Type getType(String name) {
 		String newName = name;
 		while(typeMapRef.containsKey(newName)) {
 			var ref = typeMapRef.get(newName);
-			newName = ref.toName();
+			var temp = ref.toName();
+			if (temp.equals(newName)) {
+				logger.error("getType  Unexpected name  {}  {}", name, newName);
+				throw new UnexpectedException("Unexpected");
+			}
+			newName = temp;
 		}
 		
-		if (typeMap.containsKey(newName)) {
-			return typeMap.get(newName);
-		}
+		if (typeMap.containsKey(newName)) return typeMap.get(newName);
 		logger.error("getType  Unexpected name  {}  {}", name, newName);
 //		return null;
 		throw new UnexpectedException("Unexpected");
 	}
 	Cons getCons(String name) {
-		if (consMap.containsKey(name)) return consMap.get(name);
-		if (consMapRef.containsKey(name)) {
-			var newName = consMapRef.get(name).toName();
-			return getCons(newName);
+		String newName = name;
+		while(consMapRef.containsKey(newName)) {
+			var ref = consMapRef.get(newName);
+			var temp = ref.toName();
+			if (temp.equals(newName)) {
+				logger.error("getCons  Unexpected name  {}  {}", name, newName);
+				throw new UnexpectedException("Unexpected");
+			}
+			newName = temp;
 		}
-		logger.error("getCons  Unexpected name  {}", name);
+		
+		if (consMap.containsKey(name)) return consMap.get(name);
+		logger.error("getCons  Unexpected name  {}  {}", name, newName);
 //		return null;
 		throw new UnexpectedException("Unexpected");
 	}
-	public void fixReference() {
-		int countFixType = 0;
-		int countFixCons = 0;
-		for(var program: programMap.values()) {
-			for(var e: program.declList) {
-				var name = program.self.toName(e.name);;
-				if (e.isType()) {
-					var type = e.type;
-					if (type.isReference()) {
-						var ref = type.toTypeReference().ref.toReferenceType();
-						if (ref.needsFix()) {
-							ref.value = getType(ref.toName());
-							countFixType++;
-						}
-					}
-				}
-				if (e.isCons()) {
-					var type = e.type;
-					if (type.isReference()) {
-						var ref = type.toTypeReference().ref.toReferenceType();
-						if (ref.needsFix()) {
-							ref.value = getType(ref.toName());
-							countFixType++;
-						}
-					}
-					
-					var cons = e.cons;
-					if (cons.isReference()) {
-						var ref = cons.toConsReference().ref.toReferenceCons();
-						if (ref.needsFix()) {
-							ref.value = getCons(name);
-							countFixCons++;
-						}
-					}
-				}
-			}
+	public void fixReference() {		
+		// fix reference in ReferenceType.all
+		for(var ref: ReferenceType.all) {
+			var name = ref.toName();
+			ref.value = getType(name);
 		}
-		logger.info("countFixType  {}", countFixType);
-		logger.info("countFixCons  {}", countFixCons);
-		
-		// sanity check
-		for(var program: programMap.values()) {
-			for(var e: program.declList) {
-				if (e.isType()) {
-					var type = e.type;
-					if (type.isReference()) {
-						var ref = type.toTypeReference().ref;
-						if (ref.needsFix()) {
-							logger.error("decltype not fixed  {}  {}", program.self.toName(), e.toString());
-						}
-					}
-				}
-				if (e.isCons()) {
-					var type = e.type;
-					if (type.isReference()) {
-						var ref = type.toTypeReference().ref;
-						if (ref.needsFix()) {
-							logger.error("declcons type not fixed  {}  {}", program.self.toName(), e.toString());
-						}
-					}
-					var cons = e.cons;
-					if (cons.isReference()) {
-						var ref = cons.toConsReference().ref;
-						if (ref.needsFix()) {
-							logger.error("declcons cons not fixed  {}  {}", program.self.toName(), e.toString());
-						}
-					}
-				}
-			}
+		// fix reference in ReferenceCons.all
+		for(var ref: ReferenceCons.all) {
+			var name = ref.toName();
+			ref.value = getCons(name);
 		}
 	}
 	
@@ -223,17 +178,13 @@ public class Builder {
 		var name = context.name.getText();
 		var type = toType(myProgram, context.type());
 		
-		var myName = myProgram.self.toName(name);
-		if (type instanceof TypeReference) {
-			var ref = type.toTypeReference().ref;
-			var refType = (ReferenceType)ref;
-			
-			if (typeMapRef.containsKey(myName)) {
-				// already in typeMapRef
-			} else {
-				typeMapRef.put(myName, refType);
-			}
+		/**/
+		if (type.isReference()) {
+			var myName = myProgram.self.toName(name);
+			var refType = type.toTypeReference().toReferenceType();
+			typeMapRef.put(myName, refType);
 		} else {
+			var myName = myProgram.self.toName(name);
 			typeMap.put(myName, type);
 			
 			// special for enum element
@@ -246,6 +197,7 @@ public class Builder {
 				}
 			}
 		}
+		/**/
 		
 		return new Decl(name, type);
 	}
@@ -254,25 +206,21 @@ public class Builder {
 		var type = toType(myProgram, context.type());
 		var cons = toCons(myProgram, context.cons());
 		
-		var myName = myProgram.self.toName(name);
-		
-		if (type instanceof TypeReference) {
-			var ref = type.toTypeReference().ref;
-			var refType = (ReferenceType)ref;
-			if (typeMapRef.containsKey(myName)) {
-				// already in typeMapRef
-			} else {
-				typeMapRef.put(myName, refType);
-			}
+		/**/
+		if (type.isReference()) {
+			var myName = myProgram.self.toName(name);
+			var refType = type.toTypeReference().toReferenceType();
+			typeMapRef.put(myName, refType);
 		}
-
-		if (cons instanceof ConsReference) {
-			var ref = cons.toConsReference().ref;
-			var refType = (ReferenceCons)ref;
-			consMapRef.put(myName, refType);
+		if (cons.isReference()) {
+			var myName = myProgram.self.toName(name);
+			var refCons = cons.toConsReference().toReferenceCons();
+			consMapRef.put(myName, refCons);
 		} else {
+			var myName = myProgram.self.toName(name);
 			consMap.put(myName, cons);
 		}
+		/**/
 		
 		return new Decl(name, type, cons);
 	}
@@ -397,27 +345,23 @@ public class Builder {
 		return new TypeChoice.Anon(candidateList);
 	}
 	Type toType(Program myProgram, CourierParser.ChoiceTypeNameContext context) {
-		var designator = toReferenceType(myProgram, context.reference());
+		var designator    = toReferenceType(myProgram, context.reference());
 		var candidateList = new ArrayList<NameType>();
 		
 		for(var e: context.candidateNameList().elements) {
 			var type = toType(myProgram, e.type());
 			for(var ee: e.nameList().elements) {
-				var name   = ee.getText();
-				
+				var name = ee.getText();
 				candidateList.add(new NameType(name, type));
 			}
 		}
 		return new TypeChoice.Name(designator, candidateList);
 	}
 	Type toType(Program myProgram, CourierParser.TypeProcedureContext context) {
-		// PROCEDURE argumentList resultList errorList
 		var procedureType = context.procedureType();
-		
-		var argumentList = toNameTypeList(myProgram, procedureType.argumentList().fieldList());
-		var resultList = toNameTypeList(myProgram, procedureType.resultList().fieldList());
-		var errorList = procedureType.errorList().nameList().elements.stream().map(o -> o.getText()).toList();
-		
+		var argumentList  = toNameTypeList(myProgram, procedureType.argumentList().fieldList());
+		var resultList    = toNameTypeList(myProgram, procedureType.resultList().fieldList());
+		var errorList     = procedureType.errorList().nameList().elements.stream().map(o -> o.getText()).toList();
 		return new TypeProcedure(argumentList, resultList, errorList);
 	}
 	Type toType(Program myProgram, CourierParser.TypeErrorContext context) {

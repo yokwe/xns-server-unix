@@ -1,6 +1,8 @@
 package yokwe.courier.app;
 
 import yokwe.courier.program.Builder;
+import yokwe.courier.program.Program.ReferenceCons;
+import yokwe.courier.program.Program.ReferenceType;
 
 public class CheckProgram {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
@@ -24,10 +26,12 @@ public class CheckProgram {
 		}
 		builder.fixReference();
 		
-		logger.info("programMap  {}", builder.programMap.size());
-		logger.info("type        {}  {}", builder.typeMap.size(), builder.typeMapRef.size());
-		logger.info("cons        {}  {}", builder.consMap.size(), builder.consMapRef.size());
-		
+		logger.info("typeMap        {}", builder.typeMap.size());
+		logger.info("consMap        {}", builder.consMap.size());
+		logger.info("typeMapRef     {}", builder.typeMapRef.size());
+		logger.info("consMapRef     {}", builder.consMapRef.size());
+		logger.info("ReferenceType  {}", ReferenceType.all.size());
+		logger.info("ReferenceCons  {}", ReferenceCons.all.size());
 		
 		logger.debug("STOP");
 	}

@@ -248,16 +248,21 @@ public class Program implements Comparable<Program> {
 		}
 	}
 	public static class ReferenceType extends Reference {
+		public static List<ReferenceType> all = new ArrayList<>();
+			
 		public Type value = null;
 		
 		public ReferenceType(Program myProgram, String name) {
 			super(myProgram, name);
+			all.add(this);
 		}
 		public ReferenceType(Program myProgram, String program, String name) {				
 			super(myProgram, program, name);
+			all.add(this);
 		}
 		public ReferenceType(String namespace, String name) {
 			super(namespace, name);
+			all.add(this);
 		}
 		
 		@Override
@@ -266,16 +271,21 @@ public class Program implements Comparable<Program> {
 		}
 	}
 	public static class ReferenceCons extends Reference {
+		public static List<ReferenceCons> all = new ArrayList<>();
+		
 		public Cons value = null;
 		
 		public ReferenceCons(Program myProgram, String name) {
 			super(myProgram, name);
+			all.add(this);
 		}
 		public ReferenceCons(Program myProgram, String program, String name) {				
 			super(myProgram, program, name);
+			all.add(this);
 		}
 		public ReferenceCons(String namespace, String name) {
 			super(namespace, name);
+			all.add(this);
 		}
 		
 		@Override

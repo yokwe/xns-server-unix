@@ -31,6 +31,7 @@
 package yokwe.courier.program;
 
 import yokwe.courier.program.Program.Reference;
+import yokwe.courier.program.Program.ReferenceCons;
 
 public class ConsReference extends Cons {
 	public final Reference ref;
@@ -42,5 +43,9 @@ public class ConsReference extends Cons {
 	@Override
 	public java.lang.String toString() {
 		return ref.toString();
+	}
+	
+	public ReferenceCons toReferenceCons() {
+		return ref.toReferenceCons();
 	}
 }

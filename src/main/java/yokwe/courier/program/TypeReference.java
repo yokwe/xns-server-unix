@@ -31,6 +31,8 @@
 package yokwe.courier.program;
 
 import yokwe.courier.program.Program.Reference;
+import yokwe.courier.program.Program.ReferenceCons;
+import yokwe.courier.program.Program.ReferenceType;
 
 public class TypeReference extends Type {
 	public final Reference ref;
@@ -43,5 +45,12 @@ public class TypeReference extends Type {
 	@Override
 	public String toString() {
 		return String.format("{%s  %s}" , kind, ref);
+	}
+	
+	public ReferenceType toReferenceType() {
+		return ref.toReferenceType();
+	}
+	public ReferenceCons toReferenceCons() {
+		return ref.toReferenceCons();
 	}
 }
