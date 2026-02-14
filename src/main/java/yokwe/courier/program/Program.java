@@ -212,7 +212,13 @@ public class Program implements Comparable<Program> {
 		
 		@Override
 		public String toString() {
-			return String.format("%s%s", fixed() ? "" : "?", toName());
+			if (isReferenceType()) {
+				return toReferenceType().toString();
+			} else if (isReferenceCons()) {
+				return toReferenceCons().toString();
+			} else {
+				throw new UnexpectedException("Unexpected");
+			}
 		}
 		
 		public String toName() {
@@ -269,6 +275,19 @@ public class Program implements Comparable<Program> {
 		public boolean fixed() {
 			return value != null;
 		}
+		
+		@Override
+		public String toString() {
+			if (fixed()) {
+				if (value.isChoice()) {
+					return String.format("%s *CHOICE*", toName());
+				} else {
+					return value.toString();
+				}
+			} else {
+				return String.format("?%s", toName());
+			}
+		}
 	}
 	public static class ReferenceCons extends Reference {
 		public static List<ReferenceCons> all = new ArrayList<>();
@@ -291,6 +310,14 @@ public class Program implements Comparable<Program> {
 		@Override
 		public boolean fixed() {
 			return value != null;
+		}
+		@Override
+		public String toString() {
+			if (fixed()) {
+				return value.toString();
+			} else {
+				return String.format("%s%s", fixed() ? "" : "?", toName());
+			}
 		}
 	}
 	

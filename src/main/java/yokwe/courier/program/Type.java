@@ -78,4 +78,7 @@ public class Type {
 	public boolean isEnum() {
 		return kind == Kind.ENUM;
 	}
+	public boolean isChoice() {
+		return kind == Kind.CHOICE;
+	}
 }

@@ -26,12 +26,20 @@ public class CheckProgram {
 		}
 		builder.fixReference();
 		
+		logger.info("programMap     {}", builder.programMap.size());
 		logger.info("typeMap        {}", builder.typeMap.size());
 		logger.info("consMap        {}", builder.consMap.size());
 		logger.info("typeMapRef     {}", builder.typeMapRef.size());
 		logger.info("consMapRef     {}", builder.consMapRef.size());
 		logger.info("ReferenceType  {}", ReferenceType.all.size());
 		logger.info("ReferenceCons  {}", ReferenceCons.all.size());
+		
+		for(var program: builder.programMap.values()) {
+			logger.info("program  {}", program.self.toString());
+			for(var decl: program.declList) {
+				logger.info("  {}", decl.toString());
+			}
+		}
 		
 		logger.debug("STOP");
 	}
