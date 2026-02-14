@@ -182,145 +182,7 @@ public class Program implements Comparable<Program> {
 			return String.format("{%s  %s}", name, cons.toString());
 		};
 	}
-	
-	// Reference
-	public static abstract class Reference {
-		public final Info   program;
-		public final String namespace;
-		public final String name;
-
-		protected Reference(Program myProgram, String name) {
-			this.program   = myProgram.self;
-			this.namespace = null;
-			this.name      = name;
-		}
-		protected Reference(Program myProgram, String program, String name) {				
-			this.program   = findDependProgram(myProgram, program);
-			this.namespace = null;
-			this.name      = name;
-		}
-		protected Reference(String namespace, String name) {
-			this.name      = name;
-			this.program   = null;
-			this.namespace = namespace;
-		}
 		
-		public abstract boolean fixed();
-		public boolean needsFix() {
-			return !fixed();
-		}
-		
-		@Override
-		public String toString() {
-			if (isReferenceType()) {
-				return toReferenceType().toString();
-			} else if (isReferenceCons()) {
-				return toReferenceCons().toString();
-			} else {
-				throw new UnexpectedException("Unexpected");
-			}
-		}
-		
-		public String toName() {
-			return isExternal() ? String.format("%s::%s", namespace, name) : String.format("%s.%s", program.toName(), name);
-		}
-		
-		public boolean isInternal() {
-			return namespace == null;
-		}
-		public boolean isExternal() {
-			return namespace != null;
-		}
-		
-		boolean isReferenceType() {
-			return this instanceof ReferenceType;
-		}
-		boolean isReferenceCons() {
-			return this instanceof ReferenceCons;
-		}
-		public ReferenceType toReferenceType() {
-			return (ReferenceType)this;
-		}
-		public ReferenceCons toReferenceCons() {
-			return (ReferenceCons)this;
-		}
-
-		private Info findDependProgram(Program myProgram, String name) {
-			for(var e: myProgram.dependList) {
-				if (e.name.equals(name)) return e;
-			}
-			logger.error("name  {}", name);
-			throw new UnexpectedException("Unpexpected");
-		}
-	}
-	public static class ReferenceType extends Reference {
-		public static List<ReferenceType> all = new ArrayList<>();
-			
-		public Type value = null;
-		
-		public ReferenceType(Program myProgram, String name) {
-			super(myProgram, name);
-			all.add(this);
-		}
-		public ReferenceType(Program myProgram, String program, String name) {				
-			super(myProgram, program, name);
-			all.add(this);
-		}
-		public ReferenceType(String namespace, String name) {
-			super(namespace, name);
-			all.add(this);
-		}
-		
-		@Override
-		public boolean fixed() {
-			return value != null;
-		}
-		
-		@Override
-		public String toString() {
-			if (fixed()) {
-				if (value.isChoice()) {
-					return String.format("%s *CHOICE*", toName());
-				} else {
-					return value.toString();
-				}
-			} else {
-				return String.format("?%s", toName());
-			}
-		}
-	}
-	public static class ReferenceCons extends Reference {
-		public static List<ReferenceCons> all = new ArrayList<>();
-		
-		public Cons value = null;
-		
-		public ReferenceCons(Program myProgram, String name) {
-			super(myProgram, name);
-			all.add(this);
-		}
-		public ReferenceCons(Program myProgram, String program, String name) {				
-			super(myProgram, program, name);
-			all.add(this);
-		}
-		public ReferenceCons(String namespace, String name) {
-			super(namespace, name);
-			all.add(this);
-		}
-		
-		@Override
-		public boolean fixed() {
-			return value != null;
-		}
-		@Override
-		public String toString() {
-			if (fixed()) {
-				return value.toString();
-			} else {
-				return String.format("%s%s", fixed() ? "" : "?", toName());
-			}
-		}
-	}
-	
 
 	public final Info       self;
 	public final List<Info> dependList;
@@ -341,4 +203,13 @@ public class Program implements Comparable<Program> {
 	public String toString() {
 		return ToString.withFieldName(this);
 	}
+	
+	public Info findDependProgram(String name) {
+		for(var e: dependList) {
+			if (e.name.equals(name)) return e;
+		}
+		logger.error("name  {}", name);
+		throw new UnexpectedException("Unpexpected");
+	}
+
 }

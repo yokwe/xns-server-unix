@@ -30,14 +30,13 @@
 
 package yokwe.courier.program;
 
-import yokwe.courier.program.Program.Reference;
 import yokwe.util.UnexpectedException;
 
 public class TypeSequence extends Type {
 	public static final int MAX_SIZE = 65535;
 	
 	public final int       size;
-	public final Reference ref; // reference of size
+	public final Reference.CONS ref; // reference of size
 	public final Type      element;
 	
 	public TypeSequence(int size, Type element) {
@@ -49,7 +48,7 @@ public class TypeSequence extends Type {
 		this.ref     = null;
 		this.element = element;
 	}
-	public TypeSequence(Reference ref, Type element) {
+	public TypeSequence(Reference.CONS ref, Type element) {
 		super(Kind.SEQUENCE);
 		
 		this.size    = 0;

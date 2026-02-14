@@ -23,9 +23,6 @@ import yokwe.courier.program.Program.NameCons;
 import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NameType;
 import yokwe.courier.program.Program.NumberName;
-import yokwe.courier.program.Program.Reference;
-import yokwe.courier.program.Program.ReferenceCons;
-import yokwe.courier.program.Program.ReferenceType;
 import yokwe.util.UnexpectedException;
 
 public class Builder {
@@ -35,61 +32,14 @@ public class Builder {
 		
 	public Map<Info, Program> programMap = new TreeMap<>(); // all program
 	
-	public Map<String, Type>  typeMap    = new TreeMap<>(); // all type except TypeReference
-	public Map<String, Cons>  consMap    = new TreeMap<>(); // all cons except ConsRefefernce
-		
-	public Map<String, ReferenceType>  typeMapRef  = new TreeMap<>(); // all reference to type
-	public Map<String, ReferenceCons>  consMapRef  = new TreeMap<>(); // all reference to cons
-	
 	public Builder() {
 		//
 	}
 
-	Type getType(String name) {
-		String newName = name;
-		while(typeMapRef.containsKey(newName)) {
-			var ref = typeMapRef.get(newName);
-			var temp = ref.toName();
-			if (temp.equals(newName)) {
-				logger.error("getType  Unexpected name  {}  {}", name, newName);
-				throw new UnexpectedException("Unexpected");
-			}
-			newName = temp;
-		}
-		
-		if (typeMap.containsKey(newName)) return typeMap.get(newName);
-		logger.error("getType  Unexpected name  {}  {}", name, newName);
-//		return null;
-		throw new UnexpectedException("Unexpected");
-	}
-	Cons getCons(String name) {
-		String newName = name;
-		while(consMapRef.containsKey(newName)) {
-			var ref = consMapRef.get(newName);
-			var temp = ref.toName();
-			if (temp.equals(newName)) {
-				logger.error("getCons  Unexpected name  {}  {}", name, newName);
-				throw new UnexpectedException("Unexpected");
-			}
-			newName = temp;
-		}
-		
-		if (consMap.containsKey(name)) return consMap.get(name);
-		logger.error("getCons  Unexpected name  {}  {}", name, newName);
-//		return null;
-		throw new UnexpectedException("Unexpected");
-	}
 	public void fixReference() {		
 		// fix reference in ReferenceType.all
-		for(var ref: ReferenceType.all) {
-			var name = ref.toName();
-			ref.value = getType(name);
-		}
-		// fix reference in ReferenceCons.all
-		for(var ref: ReferenceCons.all) {
-			var name = ref.toName();
-			ref.value = getCons(name);
-		}
+		Reference.TYPE.fix();
+		Reference.CONS.fix();
 	}
 	
 	public List<Path> getCourierFileList(String pathString) {
@@ -161,7 +111,7 @@ public class Builder {
 		
 		return ret;
 	}
-	
+	// build Program.declList
 	void buildDeclList(Program myProgram, CourierParser.DeclarationListContext context) {
 		if (context == null) return;
 		for(var e: context.elements) {
@@ -173,7 +123,7 @@ public class Builder {
 			myProgram.declList.add(decl);
 		}
 	}
-	// Type
+	// TypeDecl
 	Decl toDecl(Program myProgram, CourierParser.TypeDeclContext context) {
 		var name = context.name.getText();
 		var type = toType(myProgram, context.type());
@@ -182,10 +132,10 @@ public class Builder {
 		if (type.isReference()) {
 			var myName = myProgram.self.toName(name);
 			var refType = type.toTypeReference().toReferenceType();
-			typeMapRef.put(myName, refType);
+			Reference.TYPE.add(myName, refType);
 		} else {
 			var myName = myProgram.self.toName(name);
-			typeMap.put(myName, type);
+			Reference.TYPE.add(myName, type);
 			
 			// special for enum element
 			if (type.isEnum()) {
@@ -193,7 +143,7 @@ public class Builder {
 				for(var e: typeEnum.list) {
 					var key = myProgram.self.toName(e.name);
 					var value = new Cons.Number(e.number);
-					consMap.put(key, value);
+					Reference.CONS.add(key, value);
 				}
 			}
 		}
@@ -201,24 +151,20 @@ public class Builder {
 		
 		return new Decl(name, type);
 	}
+	// ConsDecl
 	Decl toDecl(Program myProgram, CourierParser.ConsDeclContext context) {
 		var name = context.name.getText();
 		var type = toType(myProgram, context.type());
 		var cons = toCons(myProgram, context.cons());
 		
 		/**/
-		if (type.isReference()) {
-			var myName = myProgram.self.toName(name);
-			var refType = type.toTypeReference().toReferenceType();
-			typeMapRef.put(myName, refType);
-		}
 		if (cons.isReference()) {
 			var myName = myProgram.self.toName(name);
 			var refCons = cons.toConsReference().toReferenceCons();
-			consMapRef.put(myName, refCons);
+			Reference.CONS.add(myName, refCons);
 		} else {
 			var myName = myProgram.self.toName(name);
-			consMap.put(myName, cons);
+			Reference.CONS.add(myName, cons);
 		}
 		/**/
 		
@@ -449,41 +395,41 @@ public class Builder {
 		return new ConsReference(ref);
 	}
 	
-	Reference toReferenceType(Program myProgram, CourierParser.ReferenceContext context) {
+	Reference.TYPE toReferenceType(Program myProgram, CourierParser.ReferenceContext context) {
 		var ret= switch(context) {
 			case CourierParser.ReferenceLocalContext ut -> {
 				var name = ut.name.getText();
-				yield new ReferenceType(myProgram, name);
+				yield new Reference.TYPE(myProgram, name);
 			}
 			case CourierParser.ReferenceRemoteContext ut -> {
 				var program = ut.program.getText();
 				var name = ut.name.getText();
-				yield new ReferenceType(myProgram, program, name);
+				yield new Reference.TYPE(myProgram, program, name);
 			}
 			case CourierParser.ReferenceExternalContext ut -> {
 				var program = ut.program.getText();
 				var name = ut.name.getText();
-				yield new ReferenceType(program, name);
+				yield new Reference.TYPE(program, name);
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
 		return ret;
 	}
-	Reference toReferenceCons(Program myProgram, CourierParser.ReferenceContext context) {
+	Reference.CONS toReferenceCons(Program myProgram, CourierParser.ReferenceContext context) {
 		var ret = switch(context) {
 			case CourierParser.ReferenceLocalContext ut -> {
 				var name = ut.name.getText();
-				yield new ReferenceCons(myProgram, name);
+				yield new Reference.CONS(myProgram, name);
 			}
 			case CourierParser.ReferenceRemoteContext ut -> {
 				var program = ut.program.getText();
 				var name = ut.name.getText();
-				yield new ReferenceCons(myProgram, program, name);
+				yield new Reference.CONS(myProgram, program, name);
 			}
 			case CourierParser.ReferenceExternalContext ut -> {
 				var program = ut.program.getText();
 				var name = ut.name.getText();
-				yield new ReferenceCons(program, name);
+				yield new Reference.CONS(program, name);
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};

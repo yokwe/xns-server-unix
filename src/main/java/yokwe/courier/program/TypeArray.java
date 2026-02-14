@@ -30,13 +30,11 @@
 
 package yokwe.courier.program;
 
-import yokwe.courier.program.Program.Reference;
-
 public class TypeArray extends Type {
 	public static final int MAX_SIZE = 65535;
 	
 	public final int       size;
-	public final Reference ref; // reference of size
+	public final Reference.CONS ref; // reference of size
 	public final Type      element;
 	
 	public TypeArray(int size, Type element) {
@@ -46,7 +44,7 @@ public class TypeArray extends Type {
 		this.ref     = null;
 		this.element = element;
 	}
-	public TypeArray(Reference ref, Type element) {
+	public TypeArray(Reference.CONS ref, Type element) {
 		super(Kind.ARRAY);
 		
 		this.size    = 0;

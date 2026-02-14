@@ -34,7 +34,6 @@ import java.util.List;
 
 import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NameType;
-import yokwe.courier.program.Program.Reference;
 
 public class TypeChoice extends Type {
 	public TypeChoice() {
@@ -56,10 +55,10 @@ public class TypeChoice extends Type {
 	}
 	
 	public static class Name extends TypeChoice {
-		public final Reference      designator;
+		public final Reference.TYPE      designator;
 		public final List<NameType> candidateList;
 		
-		public Name(Reference designator, List<NameType> candidateList) {
+		public Name(Reference.TYPE designator, List<NameType> candidateList) {
 			this.designator    = designator;
 			this.candidateList = candidateList;
 		}

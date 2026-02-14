@@ -30,14 +30,10 @@
 
 package yokwe.courier.program;
 
-import yokwe.courier.program.Program.Reference;
-import yokwe.courier.program.Program.ReferenceCons;
-import yokwe.courier.program.Program.ReferenceType;
-
 public class TypeReference extends Type {
-	public final Reference ref;
+	public final Reference<?> ref;
 	
-	public TypeReference(Reference ref) {
+	public TypeReference(Reference<?> ref) {
 		super(Kind.REFERENCE);
 		this.ref = ref;
 	}
@@ -47,10 +43,10 @@ public class TypeReference extends Type {
 		return String.format("{%s  %s}" , kind, ref);
 	}
 	
-	public ReferenceType toReferenceType() {
-		return ref.toReferenceType();
+	public Reference.TYPE toReferenceType() {
+		return (Reference.TYPE)ref;
 	}
-	public ReferenceCons toReferenceCons() {
-		return ref.toReferenceCons();
+	public Reference.CONS toReferenceCons() {
+		return (Reference.CONS)ref;
 	}
 }
