@@ -37,10 +37,7 @@ public class Builder {
 	}
 
 	public boolean needsFix() {
-		if (Reference.TYPE.context.needsFix() || Reference.CONS.context.needsFix()) {
-			return true;
-		}
-		return false;
+		return Reference.TYPE.context.needsFix() || Reference.CONS.context.needsFix();
 	}
 	public void fixReference() {
 		// fix reference in ReferenceType.all
@@ -56,12 +53,12 @@ public class Builder {
 		for(var e: folderPathList) {
 			scanDirectory(e);
 		}
+		fixReference();
 	}
 
 	public void scanDirectory(final String folderPathString) {
 		for(var e: getCourierFileList(folderPathString)) {
 			scanFile(e);
-			fixReference();
 		}
 	}
 
