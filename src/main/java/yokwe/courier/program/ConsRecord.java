@@ -36,18 +36,18 @@ import java.util.List;
 import yokwe.courier.program.Program.NameCons;
 
 public class ConsRecord extends Cons {
-	public static final ConsRecord EMPTY = new ConsRecord(new ArrayList<NameCons>());
-	
+	public static final ConsRecord EMPTY = new ConsRecord(new ArrayList<>());
+
 	public final List<NameCons> nameConsList;
-	
-	public ConsRecord(List<NameCons> nameConsList) {
+
+	public ConsRecord(final List<NameCons> nameConsList) {
 		super(Kind.RECORD);
 		this.nameConsList = nameConsList;
 	}
-	
+
 	@Override
 	public java.lang.String toString() {
-		var list = nameConsList.stream().map(o -> o.toString()).toList();
+		var list = nameConsList.stream().map(NameCons::toString).toList();
 		var string = java.lang.String.join(" ", list);
 		return java.lang.String.format("{%s  [%s]}", kind, string);
 	}

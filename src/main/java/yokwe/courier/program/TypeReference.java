@@ -32,17 +32,17 @@ package yokwe.courier.program;
 
 public class TypeReference extends Type {
 	public final Reference<?> ref;
-	
-	public TypeReference(Reference<?> ref) {
+
+	public TypeReference(final Reference<?> ref) {
 		super(Kind.REFERENCE);
 		this.ref = ref;
 	}
-	
+
 	@Override
 	public String toString() {
 		return String.format("{%s  %s}" , kind, ref);
 	}
-	
+
 	public Reference.TYPE toReferenceType() {
 		return (Reference.TYPE)ref;
 	}

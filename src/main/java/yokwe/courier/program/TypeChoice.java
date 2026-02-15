@@ -39,32 +39,32 @@ public class TypeChoice extends Type {
 	public TypeChoice() {
 		super(Kind.CHOICE);
 	}
-	
+
 	public static class Anon extends TypeChoice {
 		public final List<NameNumberType> candidateList;
-		
-		public Anon(List<NameNumberType>candidateList) {
+
+		public Anon(final List<NameNumberType>candidateList) {
 			this.candidateList = candidateList;
 		}
 		@Override
 		public String toString() {
-			var list = candidateList.stream().map(o -> o.toString()).toList();
+			var list = candidateList.stream().map(NameNumberType::toString).toList();
 			var string = String.format("{%s}", String.join(" ", list));
 			return String.format("{%s  ANON  %s}", kind, string);
 		}
 	}
-	
+
 	public static class Name extends TypeChoice {
 		public final Reference.TYPE      designator;
 		public final List<NameType> candidateList;
-		
-		public Name(Reference.TYPE designator, List<NameType> candidateList) {
+
+		public Name(final Reference.TYPE designator, final List<NameType> candidateList) {
 			this.designator    = designator;
 			this.candidateList = candidateList;
 		}
 		@Override
 		public String toString() {
-			var list = candidateList.stream().map(o -> o.toString()).toList();
+			var list = candidateList.stream().map(NameType::toString).toList();
 			var string = String.format("{%s}", String.join(" ", list));
 			return String.format("{%s  NAME  %s  %s}", kind, designator.toString(), string);
 		}

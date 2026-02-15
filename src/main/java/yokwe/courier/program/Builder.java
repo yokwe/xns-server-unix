@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
 
 import yokwe.courier.antlr.CourierLexer;
 import yokwe.courier.antlr.CourierParser;
@@ -27,22 +27,45 @@ import yokwe.util.UnexpectedException;
 
 public class Builder {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
-	
+
 	public static String COURIER_FILE_SUFFIX = ".cr";
-		
+
 	public Map<Info, Program> programMap = new TreeMap<>(); // all program
-	
+
 	public Builder() {
 		//
 	}
 
-	public void fixReference() {		
+	public boolean needsFix() {
+		if (Reference.TYPE.context.needsFix() || Reference.CONS.context.needsFix()) {
+			return true;
+		}
+		return false;
+	}
+	public void fixReference() {
 		// fix reference in ReferenceType.all
 		Reference.TYPE.fix();
 		Reference.CONS.fix();
 	}
-	
-	public List<Path> getCourierFileList(String pathString) {
+
+	public void scanDirectory(final List<String> folderPathList) {
+		scanDirectory(folderPathList.toArray(String[]::new));
+	}
+
+	public void scanDirectory(final String[] folderPathList) {
+		for(var e: folderPathList) {
+			scanDirectory(e);
+		}
+	}
+
+	public void scanDirectory(final String folderPathString) {
+		for(var e: getCourierFileList(folderPathString)) {
+			scanFile(e);
+			fixReference();
+		}
+	}
+
+	public List<Path> getCourierFileList(final String pathString) {
 		var path = Paths.get(pathString);
 		// sanity check
 		if (!Files.isDirectory(path)) {
@@ -55,65 +78,64 @@ public class Builder {
 			Collections.sort(ret);
 			return ret;
 		} catch (IOException e) {
-			String exceptionName = e.getClass().getSimpleName();
+			var exceptionName = e.getClass().getSimpleName();
 			logger.error("{} {}", exceptionName, e);
 			throw new UnexpectedException(exceptionName, e);
 		}
 	}
-	
-	public void scanDirectory(String folderPathString) {
-		var list = getCourierFileList(folderPathString);
-		for(var e: list) {
-			scanFile(e);
-		}
-	}
-	
-	public void scanFile(Path path) {
-		var context = getContext(path);
+
+	public void scanFile(final Path path) {
+		var context = getCourierProgramContext(path);
 		var program = getProgram(context);
 		programMap.put(program.self, program);
 	}
-	public CourierParser.CourierProgramContext getContext(Path path) {
+
+	public CourierParser.CourierProgramContext getCourierProgramContext(final Path path) {
 		try {
-			CharStream        stream  = CharStreams.fromPath(path);
-			CourierLexer      lexer   = new CourierLexer(stream);
-			CommonTokenStream tokens  = new CommonTokenStream(lexer);
-			CourierParser     parser  = new CourierParser(tokens);
-			
+			var stream  = CharStreams.fromPath(path);
+			var lexer   = new CourierLexer(stream);
+			var tokens  = new CommonTokenStream(lexer);
+			var parser  = new CourierParser(tokens);
+
 			return parser.courierProgram();
 		} catch (IOException e) {
-			String exceptionName = e.getClass().getSimpleName();
+			var exceptionName = e.getClass().getSimpleName();
 			logger.error("{} {}", exceptionName, e);
 			throw new UnexpectedException(exceptionName, e);
 		}
 	}
-	public Program getProgram(CourierParser.CourierProgramContext context) {
+
+	public Program getProgram(final CourierParser.CourierProgramContext context) {
 		var self           = new Info(context.name.getText(), context.program.getText(), context.version.getText());
 		var dependencyList = toInfoList(context.dependencyList());
-		
+
 		var program = new Program(self, dependencyList);
 		buildDeclList(program, context.declarationList());
 		return program;
 	}
-	
+
 	//
 	// Convert CourierParse to Program
 	//
-	List<Info> toInfoList(CourierParser.DependencyListContext context) {
+	List<Info> toInfoList(final CourierParser.DependencyListContext context) {
 		var ret = new ArrayList<Info>();
-		
+
 		var list = context.referencedProgramList();
-		if (list == null) return ret;
-		
+		if (list == null) {
+			return ret;
+		}
+
 		for(var e: list.elements) {
 			ret.add(new Info(e.name.getText(), e.program.getText(), e.version.getText()));
 		}
-		
+
 		return ret;
 	}
 	// build Program.declList
-	void buildDeclList(Program myProgram, CourierParser.DeclarationListContext context) {
-		if (context == null) return;
+	void buildDeclList(final Program myProgram, final CourierParser.DeclarationListContext context) {
+		if (context == null) {
+			return;
+		}
 		for(var e: context.elements) {
 			var decl = switch(e) {
 				case CourierParser.DeclarationTypeContext ut -> toDecl(myProgram, ut.typeDecl());
@@ -124,10 +146,10 @@ public class Builder {
 		}
 	}
 	// TypeDecl
-	Decl toDecl(Program myProgram, CourierParser.TypeDeclContext context) {
+	Decl toDecl(final Program myProgram, final CourierParser.TypeDeclContext context) {
 		var name = context.name.getText();
 		var type = toType(myProgram, context.type());
-		
+
 		/**/
 		if (type.isReference()) {
 			var myName = myProgram.self.toName(name);
@@ -136,7 +158,7 @@ public class Builder {
 		} else {
 			var myName = myProgram.self.toName(name);
 			Reference.TYPE.add(myName, type);
-			
+
 			// special for enum element
 			if (type.isEnum()) {
 				var typeEnum = type.toTypeEnum();
@@ -148,15 +170,15 @@ public class Builder {
 			}
 		}
 		/**/
-		
+
 		return new Decl(name, type);
 	}
 	// ConsDecl
-	Decl toDecl(Program myProgram, CourierParser.ConsDeclContext context) {
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclContext context) {
 		var name = context.name.getText();
 		var type = toType(myProgram, context.type());
 		var cons = toCons(myProgram, context.cons());
-		
+
 		/**/
 		if (cons.isReference()) {
 			var myName = myProgram.self.toName(name);
@@ -167,14 +189,14 @@ public class Builder {
 			Reference.CONS.add(myName, cons);
 		}
 		/**/
-		
+
 		return new Decl(name, type, cons);
 	}
-	
+
 	//
 	// Type
 	//
-	Type toType(Program myProgram, CourierParser.TypeContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeContext context) {
 		return switch(context) {
 			case CourierParser.TypeBooleanContext      ut -> Type.BOOLEAN;
 			case CourierParser.TypeCardinalContext     ut -> Type.CARDINAL;
@@ -196,18 +218,18 @@ public class Builder {
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Type toType(Program myProgram, CourierParser.TypeEnumerationContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeEnumerationContext context) {
 		var list = new ArrayList<NumberName>();
-			
+
 		for(var e: context.enumerationType().correspondenceList().elements) {
 			var number = Util.parseInt(e.number.getText());
 			var name   = e.name.getText();
 			list.add(new NumberName(number, name));
 		}
-		
+
 		return new TypeEnum(list);
 	}
-	Type toType(Program myProgram, CourierParser.TypeArrayContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeArrayContext context) {
 		return switch(context.arrayType()) {
 			case CourierParser.ArrayTypeNumberContext    ut -> {
 				var size = Util.parseInt(ut.positiveNumber().NUMBER().getText());
@@ -222,7 +244,7 @@ public class Builder {
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Type toType(Program myProgram, CourierParser.TypeSequenceContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeSequenceContext context) {
 		return switch(context.sequenceType()) {
 		case CourierParser.SequenceTypeEmptyContext    ut -> {
 			var type = toType(myProgram, ut.type());
@@ -231,7 +253,7 @@ public class Builder {
 		case CourierParser.SequenceTypeNumberContext   ut -> {
 			var size = Util.parseInt(ut.positiveNumber().NUMBER().getText());
 			var type = toType(myProgram, ut.type());
-			
+
 			yield new TypeSequence(size, type);
 		}
 		case CourierParser.SequenceTypeReferenceContext ut -> {
@@ -242,7 +264,7 @@ public class Builder {
 		default -> throw new UnexpectedException("Unexpected");
 	};
 	}
-	Type toType(Program myProgram, CourierParser.TypeRecordContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeRecordContext context) {
 		return switch (context.recordType()) {
 		case CourierParser.RecordTypeEmptyContext ut -> TypeRecord.EMPTY;
 		case CourierParser.RecordTypeListContext ut -> {
@@ -252,48 +274,50 @@ public class Builder {
 		default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	List<NameType> toNameTypeList(Program myProgram, CourierParser.FieldListContext context) {
+	List<NameType> toNameTypeList(final Program myProgram, final CourierParser.FieldListContext context) {
 		var ret = new ArrayList<NameType>();
-		
-		if (context == null) return ret;
-		
+
+		if (context == null) {
+			return ret;
+		}
+
 		for(var e: context.elements) {
-			var nameList = e.nameList().elements.stream().map(o -> o.getText()).toList();
+			var nameList = e.nameList().elements.stream().map(Token::getText).toList();
 			var type = toType(myProgram, e.type());
-			
+
 			for(var name: nameList) {
 				ret.add(new NameType(name, type));
 			}
 		}
-		
+
 		return ret;
 	}
-	
-	Type toType(Program myProgram, CourierParser.TypeChoiceContext context) {
+
+	Type toType(final Program myProgram, final CourierParser.TypeChoiceContext context) {
 		return switch(context.choiceType()) {
 		case CourierParser.ChoiceTypeAnonContext ut -> toType(myProgram, ut);
 		case CourierParser.ChoiceTypeNameContext ut -> toType(myProgram, ut);
 		default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Type toType(Program myProgram, CourierParser.ChoiceTypeAnonContext context) {
+	Type toType(final Program myProgram, final CourierParser.ChoiceTypeAnonContext context) {
 		var candidateList = new ArrayList<NameNumberType>();
-		
+
 		for(var e: context.candidateList().elements) {
 			var type = toType(myProgram, e.type());
 			for(var ee: e.designatorList().elements) {
 				var name   = ee.name.getText();
 				var number = Util.parseInt(ee.positiveNumber().getText());
-				
+
 				candidateList.add(new NameNumberType(name, number, type));
 			}
 		}
 		return new TypeChoice.Anon(candidateList);
 	}
-	Type toType(Program myProgram, CourierParser.ChoiceTypeNameContext context) {
+	Type toType(final Program myProgram, final CourierParser.ChoiceTypeNameContext context) {
 		var designator    = toReferenceType(myProgram, context.reference());
 		var candidateList = new ArrayList<NameType>();
-		
+
 		for(var e: context.candidateNameList().elements) {
 			var type = toType(myProgram, e.type());
 			for(var ee: e.nameList().elements) {
@@ -303,27 +327,27 @@ public class Builder {
 		}
 		return new TypeChoice.Name(designator, candidateList);
 	}
-	Type toType(Program myProgram, CourierParser.TypeProcedureContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeProcedureContext context) {
 		var procedureType = context.procedureType();
 		var argumentList  = toNameTypeList(myProgram, procedureType.argumentList().fieldList());
 		var resultList    = toNameTypeList(myProgram, procedureType.resultList().fieldList());
-		var errorList     = procedureType.errorList().nameList().elements.stream().map(o -> o.getText()).toList();
+		var errorList     = procedureType.errorList().nameList().elements.stream().map(Token::getText).toList();
 		return new TypeProcedure(argumentList, resultList, errorList);
 	}
-	Type toType(Program myProgram, CourierParser.TypeErrorContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeErrorContext context) {
 		var argumentList = toNameTypeList(myProgram, context.errorType().argumentList().fieldList());
 		return new TypeError(argumentList);
 	}
-	Type toType(Program myProgram, CourierParser.TypeReferenceContext context) {
+	Type toType(final Program myProgram, final CourierParser.TypeReferenceContext context) {
 		var ref = toReferenceType(myProgram, context.reference());
 		return new TypeReference(ref);
 	}
-	
-	
+
+
 	//
 	// Cons
 	//
-	Cons toCons(Program myProgram, CourierParser.ConsContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsContext context) {
 		return switch(context) {
 			case CourierParser.ConsBooleanContext   ut -> toCons(myProgram, ut);
 			case CourierParser.ConsPositiveContext  ut -> toCons(myProgram, ut);
@@ -338,23 +362,23 @@ public class Builder {
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsBooleanContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsBooleanContext context) {
 		return switch(context.booleanConstant()) {
 			case CourierParser.BooleanConstantTrueContext  ut -> Cons.Boolean.TRUE;
 			case CourierParser.BooleanConstantFalseContext ut -> Cons.Boolean.FALSE;
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsPositiveContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsPositiveContext context) {
 		return new Cons.Number(Util.parseInt(context.positiveNumber().getText()));
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsNegativeContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsNegativeContext context) {
 		return new Cons.Number(-1 * Util.parseInt(context.negativeNumber().getText()));
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsStringContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsStringContext context) {
 		return new Cons.String(context.stringConstant().getText());
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsArrayContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsArrayContext context) {
 		return switch(context.arrayConstant()) {
 			case CourierParser.ArrayConstantListContext  ut -> {
 				var valueList = ut.elementList().elements.stream().map(o -> toCons(myProgram, o)).toList();
@@ -364,39 +388,39 @@ public class Builder {
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsRecordContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsRecordContext context) {
 		return switch(context.recordConstant()) {
 		case CourierParser.RecordConstantListContext ut -> {
 			var list = new ArrayList<NameCons>();
-			
+
 			for(var e: ut.componentList().elements) {
-				var nameList = e.nameList().elements.stream().map(o -> o.getText()).toList();
+				var nameList = e.nameList().elements.stream().map(Token::getText).toList();
 				var cons = toCons(myProgram, e.cons());
-				
+
 				for(var name: nameList) {
 					list.add(new NameCons(name, cons));
 				}
 			}
-			
+
 			yield new ConsRecord(list);
 		}
 		case CourierParser.RecordConstantEmptyContext ut -> ConsRecord.EMPTY;
 		default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsChoiceContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsChoiceContext context) {
 		var choiceConstant = context.choiceConstant();
 		var name           = choiceConstant.ID().getText();
 		var cons           = toCons(myProgram, choiceConstant.cons());
 		return new ConsChoice(name, cons);
 	}
-	Cons toCons(Program myProgram, CourierParser.ConsReferenceContext context) {
+	Cons toCons(final Program myProgram, final CourierParser.ConsReferenceContext context) {
 		var ref = toReferenceCons(myProgram, context.reference());
 		return new ConsReference(ref);
 	}
-	
-	Reference.TYPE toReferenceType(Program myProgram, CourierParser.ReferenceContext context) {
-		var ret= switch(context) {
+
+	Reference.TYPE toReferenceType(final Program myProgram, final CourierParser.ReferenceContext context) {
+		return switch(context) {
 			case CourierParser.ReferenceLocalContext ut -> {
 				var name = ut.name.getText();
 				yield new Reference.TYPE(myProgram, name);
@@ -413,10 +437,9 @@ public class Builder {
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
-		return ret;
 	}
-	Reference.CONS toReferenceCons(Program myProgram, CourierParser.ReferenceContext context) {
-		var ret = switch(context) {
+	Reference.CONS toReferenceCons(final Program myProgram, final CourierParser.ReferenceContext context) {
+		return switch(context) {
 			case CourierParser.ReferenceLocalContext ut -> {
 				var name = ut.name.getText();
 				yield new Reference.CONS(myProgram, name);
@@ -433,6 +456,5 @@ public class Builder {
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
-		return ret;
 	}
 }

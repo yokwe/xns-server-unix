@@ -36,16 +36,16 @@ import yokwe.courier.program.Program.NameType;
 
 public class TypeError extends Type {
 	public final List<NameType>  argumentList;
-	
-	public TypeError(List<NameType> argumentList) {
+
+	public TypeError(final List<NameType> argumentList) {
 		super(Kind.ERROR);
-		
+
 		this.argumentList = argumentList;
 	}
-	
+
 	@Override
 	public String toString() {
-		var string = argumentList.isEmpty() ? "" : String.format(" %s", String.join(" ", argumentList.stream().map(o -> o.toString()).toList()));
+		var string = argumentList.isEmpty() ? "" : String.format(" %s", String.join(" ", argumentList.stream().map(NameType::toString).toList()));
 		return String.format("{%s%s}", kind, string);
 	}
 }

@@ -32,32 +32,34 @@ package yokwe.courier.program;
 
 public class TypeArray extends Type {
 	public static final int MAX_SIZE = 65535;
-	
+
 	public final int       size;
 	public final Reference.CONS ref; // reference of size
 	public final Type      element;
-	
-	public TypeArray(int size, Type element) {
+
+	public TypeArray(final int size_, final Type element_) {
 		super(Kind.ARRAY);
-		
-		this.size    = size;
-		this.ref     = null;
-		this.element = element;
+
+		size    = size_;
+		ref     = null;
+		element = element_;
 	}
-	public TypeArray(Reference.CONS ref, Type element) {
+	public TypeArray(final Reference.CONS ref_, final Type element_) {
 		super(Kind.ARRAY);
-		
-		this.size    = 0;
-		this.ref     = ref;
-		this.element = element;
+
+		size    = 0;
+		ref     = ref_;
+		element = element_;
 	}
-	
+
 	@Override
 	public String toString() {
-		if (ref == null) return String.format("{%s  %d  %s}", kind, size, element.toString());
-		else return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
+		if (ref == null) {
+			return String.format("{%s  %d  %s}", kind, size, element.toString());
+		}
+		return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
 	}
-	
+
 	boolean hasReference() {
 		return ref != null;
 	}

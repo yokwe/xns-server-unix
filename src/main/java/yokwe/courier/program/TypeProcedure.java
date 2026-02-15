@@ -38,22 +38,20 @@ public class TypeProcedure extends Type {
 	public final List<NameType>  argumentList;
 	public final List<NameType>  resultList;
 	public final List<String> errorList;
-	
-	public TypeProcedure(List<NameType>  argumentList, List<NameType>  resultList, List<String> errorList) {
+
+	public TypeProcedure(final List<NameType>  argumentList, final List<NameType>  resultList, final List<String> errorList) {
 		super(Kind.PROCEDURE);
-		
+
 		this.argumentList = argumentList;
 		this.resultList   = resultList;
 		this.errorList    = errorList;
 	}
-	
+
 	@Override
 	public String toString() {
-		var argument = argumentList.isEmpty() ? "" : String.format(" [%s]", String.join(" ", argumentList.stream().map(o -> o.toString()).toList()));
-		var result = resultList.isEmpty() ? "" : String.format(" RETURNS [%s]", String.join(" ", resultList.stream().map(o -> o.toString()).toList()));
-		var error = errorList.isEmpty() ? "" : String.format(" REPORTS [%s]", String.join(" ", errorList));
-		var string = argument + result + error;
-		if (!string.isEmpty() && string.charAt(0) == ' ') string = string.substring(1);
-		return string;
+		var argument = argumentList.isEmpty() ? "" : String.format("[%s]", String.join(" ", argumentList.stream().map(NameType::toString).toList()));
+		var result   = resultList.isEmpty() ? "" : String.format(" RETURNS [%s]", String.join(" ", resultList.stream().map(NameType::toString).toList()));
+		var error    = errorList.isEmpty() ? "" : String.format(" REPORTS [%s]", String.join(" ", errorList));
+		return argument + result + error;
 	}
 }

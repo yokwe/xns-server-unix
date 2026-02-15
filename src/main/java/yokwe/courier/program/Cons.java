@@ -38,18 +38,18 @@ public class Cons {
 		ARRAY, CHOICE, RECORD,
 		REFERENCE,
 	}
-	
+
 	public static class Boolean extends Cons {
 		public static final Cons TRUE  = new Boolean(true);
 		public static final Cons FALSE = new Boolean(false);
-		
+
 		public final boolean value;
-		
-		public Boolean(boolean value) {
+
+		public Boolean(final boolean value) {
 			super(Kind.BOOLEAN);
 			this.value = value;
 		}
-		
+
 		@Override
 		public java.lang.String toString() {
 			return value ? "TRUE" : "FALSE";
@@ -57,16 +57,16 @@ public class Cons {
 	}
 	public static class Number extends Cons {
 		public final int value;
-		
-		public Number(int value) {
+
+		public Number(final int value) {
 			super(Kind.NUMBER);
 			this.value = value;
 		}
-		public Number(java.lang.String value) {
+		public Number(final java.lang.String value) {
 			super(Kind.NUMBER);
 			this.value = (int)Util.parseLong(value);
 		}
-		
+
 		@Override
 		public java.lang.String toString() {
 			return java.lang.String.format("%d", value);
@@ -74,8 +74,8 @@ public class Cons {
 	}
 	public static class String extends Cons {
 		public final java.lang.String value;
-		
-		public String(java.lang.String value) {
+
+		public String(final java.lang.String value) {
 			super(Kind.STRING);
 			this.value = value;
 		}
@@ -84,41 +84,38 @@ public class Cons {
 			return "\"" + value.replace("\"", "\\\"") + "\"";
 		}
 	}
-	
+
 	public final Kind kind;
-	
-	public Cons(Kind type) {
-		this.kind = type;
+
+	public Cons(final Kind type) {
+		kind = type;
 	}
-	
+
 	@Override
-	public boolean equals(Object o) {
-		return (o instanceof Cons) ? this.kind == ((Cons)o).kind : false;
+	public boolean equals(final Object o) {
+		return o instanceof Cons c ? kind == c.kind : false;
 	}
-	
+
 	// getValueXXX
 	public boolean getValueBoolean() {
 		if (this instanceof Boolean) {
 			return ((Boolean)this).value;
-		} else {
-			throw new UnexpectedException("Unexpected");
 		}
+		throw new UnexpectedException("Unexpected");
 	}
 	public int getValueNumber() {
 		if (this instanceof Number) {
 			return ((Number)this).value;
-		} else {
-			throw new UnexpectedException("Unexpected");
 		}
+		throw new UnexpectedException("Unexpected");
 	}
 	public java.lang.String getValueSting() {
 		if (this instanceof Number) {
 			return ((String)this).value;
-		} else {
-			throw new UnexpectedException("Unexpected");
 		}
+		throw new UnexpectedException("Unexpected");
 	}
-	
+
 	// toXXX
 	public ConsReference toConsReference() {
 		return (ConsReference)this;

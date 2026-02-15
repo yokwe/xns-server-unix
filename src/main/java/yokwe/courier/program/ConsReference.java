@@ -32,8 +32,8 @@ package yokwe.courier.program;
 
 public class ConsReference extends Cons {
 	public final Reference.CONS ref;
-	
-	public ConsReference(Reference.CONS ref) {
+
+	public ConsReference(final Reference.CONS ref) {
 		super(Kind.REFERENCE);
 		this.ref = ref;
 	}
@@ -41,7 +41,7 @@ public class ConsReference extends Cons {
 	public java.lang.String toString() {
 		return ref.toString();
 	}
-	
+
 	public Reference.CONS toReferenceCons() {
 		return ref;
 	}

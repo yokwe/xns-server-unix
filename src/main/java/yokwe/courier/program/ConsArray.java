@@ -35,17 +35,17 @@ import java.util.List;
 
 public class ConsArray extends Cons {
 	public static final ConsArray EMPTY = new ConsArray(new ArrayList<>());
-	
+
 	public List<Cons> constList;
-	
-	public ConsArray(List<Cons> valueList) {
+
+	public ConsArray(final List<Cons> valueList) {
 		super(Kind.ARRAY);
-		this.constList = valueList;
+		constList = valueList;
 	}
-	
+
 	@Override
 	public java.lang.String toString() {
-		var list = constList.stream().map(o -> o.toString()).toList();
+		var list = constList.stream().map(Cons::toString).toList();
 		var string = java.lang.String.join(" ", list);
 		return java.lang.String.format("{%s  [%s]}", kind, string);
 	}

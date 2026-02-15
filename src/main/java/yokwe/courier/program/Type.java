@@ -38,7 +38,7 @@ public class Type {
 	public static final Type LONG_INTEGER  = new Type(Kind.LONG_INTEGER);
 	public static final Type STRING        = new Type(Kind.STRING);
 	public static final Type UNSPECIFIED   = new Type(Kind.UNSPECIFIED);
-	
+
 	public enum Kind {
 		// predefined
 		BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED,
@@ -49,20 +49,20 @@ public class Type {
 	}
 
 	public final Kind kind;
-	
-	public Type(Kind kind) {
+
+	public Type(final Kind kind) {
 		this.kind = kind;
 	}
-	
+
 	@Override
-	public boolean equals(Object o) {
-		return (o instanceof Type) ? this.kind == ((Type)o).kind : false;
+	public boolean equals(final Object o) {
+		return o instanceof Type t ? kind == t.kind : false;
 	}
 	@Override
 	public String toString() {
 		return kind.toString();
 	}
-	
+
 	// toXXX
 	public TypeReference toTypeReference() {
 		return (TypeReference)this;
@@ -70,7 +70,7 @@ public class Type {
 	public TypeEnum toTypeEnum() {
 		return (TypeEnum)this;
 	}
-	
+
 	// isXXX
 	public boolean isReference() {
 		return kind == Kind.REFERENCE;

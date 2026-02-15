@@ -36,15 +36,15 @@ import yokwe.courier.program.Program.NumberName;
 
 public class TypeEnum extends Type {
 	public final List<NumberName> list;
-	
-	public TypeEnum(List<NumberName> list) {
+
+	public TypeEnum(final List<NumberName> list) {
 		super(Type.Kind.ENUM);
 		this.list = list;
 	}
-		
+
 	@Override
 	public String toString() {
-		var ret = list.stream().map(o -> o.toString()).toList();
+		var ret = list.stream().map(NumberName::toString).toList();
 		return String.format("{%s %s}", kind, String.join(" ", ret));
 	}
 

@@ -37,21 +37,23 @@ import yokwe.courier.program.Program.NameType;
 
 public class TypeRecord extends Type {
 	public static final TypeRecord EMPTY = new TypeRecord(new ArrayList<>());
-	
+
 	public List<NameType> fieldList;
-	
-	public TypeRecord(List<NameType> fieldList) {
+
+	public TypeRecord(final List<NameType> fieldList) {
 		super(Kind.RECORD);
-		
+
 		this.fieldList = fieldList;
 	}
-	
-	
+
+
 	@Override
 	public String toString() {
-		if (fieldList.isEmpty()) return String.format("{%s}", kind);
-		
-		var stringList = fieldList.stream().map(o -> o.toString()).toList();
+		if (fieldList.isEmpty()) {
+			return String.format("{%s}", kind);
+		}
+
+		var stringList = fieldList.stream().map(NameType::toString).toList();
 		return String.format("{%s  %s}", kind, String.join(" ", stringList));
 	}
 }

@@ -36,35 +36,28 @@ import java.util.TreeMap;
 import yokwe.util.UnexpectedException;
 
 public class Util {
-	public static long parseLong(String text) {
-		int length = text.length();
-		
+	public static long parseLong(final String text) {
+		var length = text.length();
+
 		try {
-			switch(text.charAt(length - 1)) {
-			case 'b':
-			case 'B':
-				return Long.parseUnsignedLong(text.substring(0, length - 1), 8);
-			case 'h':
-			case 'H':
-				return Long.parseUnsignedLong(text.substring(0, length - 1), 16);
-			case 'd':
-			case 'D':
-				return Long.parseUnsignedLong(text.substring(0, length - 1), 10);
-			default:
-				return Long.parseUnsignedLong(text, 10);
-			}
+			return switch (text.charAt(length - 1)) {
+			case 'b', 'B' -> Long.parseUnsignedLong(text.substring(0, length - 1), 8);
+			case 'h', 'H' -> Long.parseUnsignedLong(text.substring(0, length - 1), 16);
+			case 'd', 'D' -> Long.parseUnsignedLong(text.substring(0, length - 1), 10);
+			default -> Long.parseUnsignedLong(text, 10);
+			};
 		} catch (NumberFormatException e) {
 			throw new UnexpectedException(String.format("text = %s", text), e);
 		}
 	}
-	public static int parseInt(String text) {
+	public static int parseInt(final String text) {
 		return (int)parseLong(text);
 	}
-	public static String toJavaConstName(String name) {
-		StringBuilder ret = new StringBuilder();
-		boolean lastCharIsUpper = false;
-		for(int i = 0; i < name.length(); i++) {
-			char c = name.charAt(i);
+	public static String toJavaConstName(final String name) {
+		var ret = new StringBuilder();
+		var lastCharIsUpper = false;
+		for(var i = 0; i < name.length(); i++) {
+			var c = name.charAt(i);
 
 			if (Character.isLowerCase(c)) {
 				ret.append(Character.toUpperCase(c));
@@ -85,7 +78,7 @@ public class Util {
 		}
 		return ret.toString();
 	}
-	
+
 	private static Map<String, String> sanitizeMap = new TreeMap<>();
 	static {
 		sanitizeMap.put("abort",  "abort__");
@@ -95,7 +88,7 @@ public class Util {
 		sanitizeMap.put("return", "return__");
 	}
 
-	public static String sanitizeSymbol(String symbol) {
+	public static String sanitizeSymbol(final String symbol) {
 		if (sanitizeMap.containsKey(symbol)) {
 			return sanitizeMap.get(symbol);
 		}
