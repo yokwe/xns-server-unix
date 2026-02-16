@@ -62,14 +62,9 @@ public class Program implements Comparable<Program> {
 		}
 		@Override
 		public int compareTo(final Info that) {
-			var ret = program - that.program;
-			if (ret == 0) {
-				ret = version - that.version;
-			}
-			if (ret == 0) {
-				ret = name.compareTo(that.name);
-			}
-			return ret;
+			var thisName = this.toName();
+			var thatName = that.toName();
+			return thisName.compareTo(thatName);
 		}
 
 		@Override
