@@ -232,15 +232,23 @@ public class Compiler {
 	public interface CompileCons {
 		void compile(Context context, String name, Type type, Cons cons);
 	}
-
-	private static Map<Cons.Kind, CompileCons> headerConsMap = Map.ofEntries(
-			Map.entry(Cons.Kind.BOOLEAN,   new HeaderCons.BOOLEAN()),
-			Map.entry(Cons.Kind.NUMBER,    new HeaderCons.NUMBER()),
-			Map.entry(Cons.Kind.STRING,    new HeaderCons.STRING()),
-			Map.entry(Cons.Kind.ARRAY,     new HeaderCons.ARRAY()),
-			Map.entry(Cons.Kind.CHOICE,    new HeaderCons.CHOICE()),
-			Map.entry(Cons.Kind.RECORD,    new HeaderCons.RECORD()),
-			Map.entry(Cons.Kind.REFERENCE, new HeaderCons.REFERENCE())
+	CompileCons a = new HeaderCons.BOOLEAN();
+	private static Map<Type.Kind, CompileCons> headerConsMap = Map.ofEntries(
+			Map.entry(Type.Kind.BOOLEAN,       new HeaderCons.BOOLEAN()),
+			Map.entry(Type.Kind.CARDINAL,      new HeaderCons.CARDINAL()),
+			Map.entry(Type.Kind.INTEGER,       new HeaderCons.INTEGER()),
+			Map.entry(Type.Kind.LONG_CARDINAL, new HeaderCons.LONG_CARDINAL()),
+			Map.entry(Type.Kind.LONG_INTEGER,  new HeaderCons.LONG_INTEGER()),
+			Map.entry(Type.Kind.STRING,        new HeaderCons.STRING()),
+			Map.entry(Type.Kind.UNSPECIFIED,   new HeaderCons.UNSPECIFIED()),
+			Map.entry(Type.Kind.ARRAY,         new HeaderCons.ARRAY()),
+			Map.entry(Type.Kind.CHOICE,        new HeaderCons.CHOICE()),
+			Map.entry(Type.Kind.ENUM,          new HeaderCons.ENUM()),
+			Map.entry(Type.Kind.ERROR,         new HeaderCons.ERROR()),
+			Map.entry(Type.Kind.PROCEDURE,     new HeaderCons.PROCEDURE()),
+			Map.entry(Type.Kind.RECORD,        new HeaderCons.RECORD()),
+			Map.entry(Type.Kind.SEQUENCE,      new HeaderCons.SEQUENCE()),
+			Map.entry(Type.Kind.REFERENCE,     new HeaderCons.REFERENCE())
 	);
 
 	public static class HeaderCons {
@@ -250,13 +258,37 @@ public class Compiler {
 				// FIXME
 			}
 		}
-		public static class NUMBER implements CompileCons {
+		public static class CARDINAL implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class INTEGER implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class LONG_CARDINAL implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class LONG_INTEGER implements CompileCons {
 			@Override
 			public void compile(final Context context, final String name, final Type type, final Cons cons) {
 				// FIXME
 			}
 		}
 		public static class STRING implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class UNSPECIFIED implements CompileCons {
 			@Override
 			public void compile(final Context context, final String name, final Type type, final Cons cons) {
 				// FIXME
@@ -274,7 +306,31 @@ public class Compiler {
 				// FIXME
 			}
 		}
+		public static class ENUM implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class ERROR implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class PROCEDURE implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
 		public static class RECORD implements CompileCons {
+			@Override
+			public void compile(final Context context, final String name, final Type type, final Cons cons) {
+				// FIXME
+			}
+		}
+		public static class SEQUENCE implements CompileCons {
 			@Override
 			public void compile(final Context context, final String name, final Type type, final Cons cons) {
 				// FIXME
@@ -283,7 +339,7 @@ public class Compiler {
 		public static class REFERENCE implements CompileCons {
 			@Override
 			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
+				// TODO Auto-generated method stub
 			}
 		}
 	}
@@ -294,7 +350,7 @@ public class Compiler {
 		compiler.compile(context, name, type);
 	}
 	void compileHeader(final Context context, final String name, final Type type, final Cons cons) {
-		var compiler = headerConsMap.get(cons.kind);
+		var compiler = headerConsMap.get(type.kind);
 		compiler.compile(context, name, type, cons);
 	}
 
