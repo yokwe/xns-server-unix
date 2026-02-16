@@ -84,21 +84,24 @@ public class Program implements Comparable<Program> {
 		public enum Kind {TYPE, CONS}
 
 		public final Kind   kind;
+		public final int    line;
 		public final String name;
 		public final Type   type;
 		public final Cons   cons;
 
-		public Decl(final String name, final Type type) {
+		public Decl(final int line_, final String name_, final Type type_) {
 			kind = Kind.TYPE;
-			this.name = name;
-			this.type = type;
+			line = line_;
+			name = name_;
+			type = type_;
 			cons = null;
 		}
-		public Decl(final String name, final Type type, final Cons cons) {
+		public Decl(int line_, final String name_, final Type type_, final Cons cons_) {
 			kind = Kind.CONS;
-			this.name = name;
-			this.type = type;
-			this.cons = cons;
+			line = line_;
+			name = name_;
+			type = type_;
+			cons = cons_;
 		}
 
 		@Override
