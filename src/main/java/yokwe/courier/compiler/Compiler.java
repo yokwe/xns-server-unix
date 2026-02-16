@@ -1,3 +1,33 @@
+/*******************************************************************************
+ * Copyright (c) 2026, Yasuhiro Hasegawa
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *******************************************************************************/
+
 package yokwe.courier.compiler;
 
 import java.io.File;
@@ -9,8 +39,8 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import yokwe.courier.program.Cons;
 import yokwe.courier.program.Program;
+import yokwe.courier.program.Program.Decl;
 import yokwe.courier.program.Program.Info;
 import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
@@ -18,17 +48,6 @@ import yokwe.util.UnexpectedException;
 
 public class Compiler {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
-
-	// TYPE  name: TYPE = XXX;
-
-	//	// predefined
-	//	BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED,
-	//	// constructed
-	//	ARRAY, CHOICE, ENUM, ERROR, PROCEDURE, RECORD, SEQUENCE,
-	//	// reference
-	//	REFERENCE
-
-	// CONS  name: TYPE = XXX
 
 	public static final String sourceDir = "src/courier";
 
@@ -103,255 +122,17 @@ public class Compiler {
 
 		// process declList
 		for(var decl: program.declList) {
+			var compiler = compilerMap.get(decl.type.kind);
 			if (decl.isType()) {
-				compileHeader(context, decl.name, decl.type);
+				compiler.compileTypeHeader(context, decl);
 			}
 			if (decl.isCons()) {
-				compileHeader(context, decl.name, decl.type, decl.cons);
+				compiler.compileConsHeader(context, decl);
 			}
 		}
 
 		// postamble
 		out.println("}");
-	}
-
-	private interface CompileType {
-		void compile(Context context, String name, Type type);
-	}
-	private static Map<Type.Kind, CompileType> headerTypeMap = Map.ofEntries(
-			Map.entry(Type.Kind.BOOLEAN,       new HeaderType.BOOLEAN()),
-			Map.entry(Type.Kind.CARDINAL,      new HeaderType.CARDINAL()),
-			Map.entry(Type.Kind.INTEGER,       new HeaderType.INTEGER()),
-			Map.entry(Type.Kind.LONG_CARDINAL, new HeaderType.LONG_CARDINAL()),
-			Map.entry(Type.Kind.LONG_INTEGER,  new HeaderType.LONG_INTEGER()),
-			Map.entry(Type.Kind.STRING,        new HeaderType.STRING()),
-			Map.entry(Type.Kind.UNSPECIFIED,   new HeaderType.UNSPECIFIED()),
-			Map.entry(Type.Kind.ARRAY,         new HeaderType.ARRAY()),
-			Map.entry(Type.Kind.CHOICE,        new HeaderType.CHOICE()),
-			Map.entry(Type.Kind.ENUM,          new HeaderType.ENUM()),
-			Map.entry(Type.Kind.ERROR,         new HeaderType.ERROR()),
-			Map.entry(Type.Kind.PROCEDURE,     new HeaderType.PROCEDURE()),
-			Map.entry(Type.Kind.RECORD,        new HeaderType.RECORD()),
-			Map.entry(Type.Kind.SEQUENCE,      new HeaderType.SEQUENCE()),
-			Map.entry(Type.Kind.REFERENCE,     new HeaderType.REFERENCE())
-	);
-
-	public static class HeaderType {
-		public static class BOOLEAN implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class CARDINAL implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class INTEGER implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class LONG_CARDINAL implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class LONG_INTEGER implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class STRING implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class UNSPECIFIED implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class ARRAY implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class CHOICE implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class ENUM implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class ERROR implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class PROCEDURE implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class RECORD implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class SEQUENCE implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-		public static class REFERENCE implements CompileType {
-			@Override
-			public void compile(final Context context, final String name, final Type type) {
-				// FIXME
-			}
-		}
-	}
-
-	public interface CompileCons {
-		void compile(Context context, String name, Type type, Cons cons);
-	}
-	CompileCons a = new HeaderCons.BOOLEAN();
-	private static Map<Type.Kind, CompileCons> headerConsMap = Map.ofEntries(
-			Map.entry(Type.Kind.BOOLEAN,       new HeaderCons.BOOLEAN()),
-			Map.entry(Type.Kind.CARDINAL,      new HeaderCons.CARDINAL()),
-			Map.entry(Type.Kind.INTEGER,       new HeaderCons.INTEGER()),
-			Map.entry(Type.Kind.LONG_CARDINAL, new HeaderCons.LONG_CARDINAL()),
-			Map.entry(Type.Kind.LONG_INTEGER,  new HeaderCons.LONG_INTEGER()),
-			Map.entry(Type.Kind.STRING,        new HeaderCons.STRING()),
-			Map.entry(Type.Kind.UNSPECIFIED,   new HeaderCons.UNSPECIFIED()),
-			Map.entry(Type.Kind.ARRAY,         new HeaderCons.ARRAY()),
-			Map.entry(Type.Kind.CHOICE,        new HeaderCons.CHOICE()),
-			Map.entry(Type.Kind.ENUM,          new HeaderCons.ENUM()),
-			Map.entry(Type.Kind.ERROR,         new HeaderCons.ERROR()),
-			Map.entry(Type.Kind.PROCEDURE,     new HeaderCons.PROCEDURE()),
-			Map.entry(Type.Kind.RECORD,        new HeaderCons.RECORD()),
-			Map.entry(Type.Kind.SEQUENCE,      new HeaderCons.SEQUENCE()),
-			Map.entry(Type.Kind.REFERENCE,     new HeaderCons.REFERENCE())
-	);
-
-	public static class HeaderCons {
-		public static class BOOLEAN implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class CARDINAL implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class INTEGER implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class LONG_CARDINAL implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class LONG_INTEGER implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class STRING implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class UNSPECIFIED implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class ARRAY implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class CHOICE implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class ENUM implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class ERROR implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class PROCEDURE implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class RECORD implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class SEQUENCE implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// FIXME
-			}
-		}
-		public static class REFERENCE implements CompileCons {
-			@Override
-			public void compile(final Context context, final String name, final Type type, final Cons cons) {
-				// TODO Auto-generated method stub
-			}
-		}
-	}
-
-
-	void compileHeader(final Context context, final String name, final Type type) {
-		var compiler = headerTypeMap.get(type.kind);
-		compiler.compile(context, name, type);
-	}
-	void compileHeader(final Context context, final String name, final Type type, final Cons cons) {
-		var compiler = headerConsMap.get(type.kind);
-		compiler.compile(context, name, type, cons);
 	}
 
 
@@ -372,22 +153,40 @@ public class Compiler {
 
 		// process declList
 		for(var decl: program.declList) {
+			var compiler = compilerMap.get(decl.type.kind);
 			if (decl.isType()) {
-				compileSource(context, decl.name, decl.type);
+				compiler.compileTypeSource(context, decl);
 			}
 			if (decl.isCons()) {
-				compileSource(context, decl.name, decl.type, decl.cons);
+				compiler.compileConsSource(context, decl);
 			}
 		}
 
 		// postamble
 		out.println("}");
 	}
-	void compileSource(final Context context, final String name, final Type type) {
-		// FIXME
-	}
-	void compileSource(final Context context, final String name, final Type type, final Cons cons) {
-		// FIXME
-	}
 
+	interface CompileDecl {
+		void compileTypeHeader(Context context, Decl decl);
+		void compileConsHeader(Context context, Decl decl);
+		void compileTypeSource(Context context, Decl decl);
+		void compileConsSource(Context context, Decl decl);
+	}
+	private static Map<Type.Kind, CompileDecl> compilerMap = Map.ofEntries(
+		Map.entry(Type.Kind.BOOLEAN,       new CompilerBoolean()),
+		Map.entry(Type.Kind.CARDINAL,      new CompilerCardinal()),
+		Map.entry(Type.Kind.INTEGER,       new CpmpilerInteger()),
+		Map.entry(Type.Kind.LONG_CARDINAL, new CompilerLongCardinal()),
+		Map.entry(Type.Kind.LONG_INTEGER,  new CompilerLongInteger()),
+		Map.entry(Type.Kind.STRING,        new CompilerString()),
+		Map.entry(Type.Kind.UNSPECIFIED,   new CompilerUnspecified()),
+		Map.entry(Type.Kind.ARRAY,         new CompilerArray()),
+		Map.entry(Type.Kind.CHOICE,        new CompilerChoice()),
+		Map.entry(Type.Kind.ENUM,          new CompilerEnum()),
+		Map.entry(Type.Kind.ERROR,         new CompilerError()),
+		Map.entry(Type.Kind.PROCEDURE,     new CompilerProcedure()),
+		Map.entry(Type.Kind.RECORD,        new CompilerRecord()),
+		Map.entry(Type.Kind.SEQUENCE,      new CompilerSequence()),
+		Map.entry(Type.Kind.REFERENCE,     new CompilerReference())
+	);
 }
