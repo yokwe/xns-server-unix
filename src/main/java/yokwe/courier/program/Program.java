@@ -40,31 +40,19 @@ public class Program implements Comparable<Program> {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
 	public static class Info implements Comparable<Info> {
-		final String name;
-		final int    program;
-		final int    version;
+		public final String name;
+		public final int    programNo;
+		public final int    versionNo;
+		public final String nameString;
 
-		public Info(final String name, final int program, final int version) {
-			this.name    = name;
-			this.program = program;
-			this.version = version;
+		public Info(final String name_, final int programNo_, final int versionNo_) {
+			name       = name_;
+			programNo  = programNo_;
+			versionNo  = versionNo_;
+			nameString = versionNo == 0 ? name : String.format("%s%d", name, versionNo);
 		}
 		public Info(final String name, final String program, final String version) {
 			this(name, Util.parseInt(program), Util.parseInt(version));
-		}
-
-		@Override
-		public boolean equals(final Object o) {
-			if (o instanceof Info that) {
-				return program == that.program && version == that.version;
-			}
-			return false;
-		}
-		@Override
-		public int compareTo(final Info that) {
-			var thisName = this.toName();
-			var thatName = that.toName();
-			return thisName.compareTo(thatName);
 		}
 
 		@Override
@@ -72,11 +60,27 @@ public class Program implements Comparable<Program> {
 			return ToString.withFieldName(this);
 		}
 
-		public String toName() {
-			return version == 0 ? name : String.format("%s%d", name, version);
+		@Override
+		public boolean equals(final Object o) {
+			if (o instanceof Info that) {
+				return this.programNo == that.programNo && this.versionNo == that.versionNo && this.name.equals(that.name);
+			}
+			return false;
 		}
-		public String toName(final String myName) {
-			return String.format("%s.%s", toName(), myName);
+		@Override
+		public int compareTo(final Info that) {
+			return this.nameString.compareTo(that.nameString);
+		}
+
+
+		public String toName() {
+			return nameString;
+		}
+		public String toQName(final String myName) {
+			return nameString + "::" + myName;
+		}
+		public String toQName(final Info that, final String myName) {
+			return this.equals(that) ? myName : toQName(myName);
 		}
 	}
 

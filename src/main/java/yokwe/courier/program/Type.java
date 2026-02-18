@@ -70,6 +70,12 @@ public class Type {
 	public TypeEnum toTypeEnum() {
 		return (TypeEnum)this;
 	}
+	public TypeRecord toTypeRecord() {
+		return (TypeRecord)this;
+	}
+	public TypeArray toTypeArray() {
+		return (TypeArray)this;
+	}
 
 	// isXXX
 	public boolean isReference() {
@@ -80,5 +86,8 @@ public class Type {
 	}
 	public boolean isChoice() {
 		return kind == Kind.CHOICE;
+	}
+	public boolean isBoolean() {
+		return kind == Kind.BOOLEAN;
 	}
 }

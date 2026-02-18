@@ -96,6 +96,11 @@ public class Cons {
 		return o instanceof Cons c ? kind == c.kind : false;
 	}
 
+	@Override
+	public java.lang.String toString() {
+		return kind.toString();
+	}
+
 	// getValueXXX
 	public boolean getValueBoolean() {
 		if (this instanceof Boolean) {
@@ -122,12 +127,6 @@ public class Cons {
 	}
 
 	// isXXX
-	public boolean isConcrete() {
-		return kind != Kind.REFERENCE;
-	}
-	public boolean isReference() {
-		return kind == Kind.REFERENCE;
-	}
 	public boolean isBoolean() {
 		return kind == Kind.BOOLEAN;
 	}
@@ -136,5 +135,17 @@ public class Cons {
 	}
 	public boolean isString() {
 		return kind == Kind.STRING;
+	}
+	public boolean isArray() {
+		return kind == Kind.ARRAY;
+	}
+	public boolean isChoice() {
+		return kind == Kind.CHOICE;
+	}
+	public boolean isRecord() {
+		return kind == Kind.STRING;
+	}
+	public boolean isReference() {
+		return kind == Kind.REFERENCE;
 	}
 }

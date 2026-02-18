@@ -59,8 +59,4 @@ public class TypeArray extends Type {
 		}
 		return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
 	}
-
-	boolean hasReference() {
-		return ref != null;
-	}
 }

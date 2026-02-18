@@ -42,6 +42,7 @@ public class ConsChoice extends Cons {
 
 	@Override
 	public java.lang.String toString() {
-		return java.lang.String.format("{%s  %s  %s}", kind, name, cons.toString());
+//		return java.lang.String.format("{%s  %s  %s}", kind, name, cons.toString());
+		return java.lang.String.format("{%s  %s  %s}", kind, name, cons.kind.toString());
 	}
 }

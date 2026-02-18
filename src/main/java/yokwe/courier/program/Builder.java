@@ -180,18 +180,18 @@ public class Builder {
 
 		/**/
 		if (type.isReference()) {
-			var myName = myProgram.self.toName(name);
+			var myName = myProgram.self.toQName(name);
 			var refType = type.toTypeReference().toReferenceType();
 			Reference.TYPE.add(myName, refType);
 		} else {
-			var myName = myProgram.self.toName(name);
+			var myName = myProgram.self.toQName(name);
 			Reference.TYPE.add(myName, type);
 
 			// special for enum element
 			if (type.isEnum()) {
 				var typeEnum = type.toTypeEnum();
 				for(var e: typeEnum.list) {
-					var key = myProgram.self.toName(e.name);
+					var key = myProgram.self.toQName(e.name);
 					var value = new Cons.Number(e.number);
 					Reference.CONS.add(key, value);
 				}
@@ -210,11 +210,11 @@ public class Builder {
 
 		/**/
 		if (cons.isReference()) {
-			var myName = myProgram.self.toName(name);
+			var myName = myProgram.self.toQName(name);
 			var refCons = cons.toConsReference().toReferenceCons();
 			Reference.CONS.add(myName, refCons);
 		} else {
-			var myName = myProgram.self.toName(name);
+			var myName = myProgram.self.toQName(name);
 			Reference.CONS.add(myName, cons);
 		}
 		/**/

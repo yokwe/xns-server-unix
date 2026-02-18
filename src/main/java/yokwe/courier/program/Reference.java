@@ -143,6 +143,10 @@ public abstract class Reference<V> {
 		public String toString() {
 			return String.format("%s%s", needsFix() ? "?" : "", toName());
 		}
+
+		public Type toType() {
+			return value;
+		}
 	}
 	public static class CONS extends Reference<Cons> {
 		public static Context<CONS, Cons> context = new Context<>();
@@ -177,6 +181,10 @@ public abstract class Reference<V> {
 		public String toString() {
 			return String.format("%s%s", needsFix() ? "?" : "", toName());
 		}
+
+		public Cons toCons() {
+			return value;
+		}
 	}
 
 
@@ -186,26 +194,30 @@ public abstract class Reference<V> {
 	public final Info   program;
 	public final String namespace;
 	public final String name;
+	public final String nameString;
 
 	public V value;
 
 	protected Reference(final Kind kind_, final Program myProgram, final String name_) {
-		kind      = kind_;
-		program   = myProgram.self;
-		namespace = null;
-		name      = name_;
+		kind       = kind_;
+		program    = myProgram.self;
+		namespace  = null;
+		name       = name_;
+		nameString = program.toQName(name);
 	}
 	protected Reference(final Kind kind_, final Program myProgram, final String program_, final String name_) {
-		kind      = kind_;
-		program   = myProgram.findDependProgram(program_);
-		namespace = null;
-		name      = name_;
+		kind       = kind_;
+		program    = myProgram.findDependProgram(program_);
+		namespace  = null;
+		name       = name_;
+		nameString = program.toQName(name);
 	}
 	protected Reference(final Kind kind_, final String namespace_, final String name_) {
-		kind      = kind_;
-		program   = null;
-		namespace = namespace_;
-		name      = name_;
+		kind       = kind_;
+		program    = null;
+		namespace  = namespace_;
+		name       = name_;
+		nameString = namespace + "::" + name;
 	}
 
 	public boolean fixed() {
@@ -221,7 +233,7 @@ public abstract class Reference<V> {
 	}
 
 	public String toName() {
-		return isExternal() ? String.format("%s::%s", namespace, name) : String.format("%s.%s", program.toName(), name);
+		return nameString;
 	}
 
 	// isXXX
@@ -230,5 +242,13 @@ public abstract class Reference<V> {
 	}
 	public boolean isExternal() {
 		return namespace != null;
+	}
+
+	// toXXX
+	public Reference.TYPE toTYPE() {
+		return (Reference.TYPE)this;
+	}
+	public Reference.CONS toCONS() {
+		return (Reference.CONS)this;
 	}
 }
