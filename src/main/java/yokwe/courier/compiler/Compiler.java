@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import yokwe.courier.program.Cons;
 import yokwe.courier.program.Program;
 import yokwe.courier.program.Program.Decl;
 import yokwe.courier.program.Program.Info;
@@ -61,6 +62,8 @@ public class Compiler {
 		public final AutoIndentPrintWriter outHeader;
 		public final AutoIndentPrintWriter outSource;
 
+		public Decl decl;
+
 		public Context(final Program program_) {
 			program    = program_;
 			name       = program.self.toName();
@@ -68,6 +71,8 @@ public class Compiler {
 			pathHeader = Paths.get("src", "courier", name + ".h");
 			outSource  = new AutoIndentPrintWriter(toOutputStream(pathSouce.toFile()));
 			outHeader  = new AutoIndentPrintWriter(toOutputStream(pathHeader.toFile()));
+
+			decl = null;
 		}
 
 		@Override
@@ -122,13 +127,15 @@ public class Compiler {
 
 		// process declList
 		for(var decl: program.declList) {
-			var compiler = compilerMap.get(decl.type.kind);
+			context.decl = decl;
+			var compiler = compilerMap.get(decl.type.kind).header;
 			if (decl.isType()) {
-				compiler.compileTypeHeader(context, decl);
+				compiler.compileType(context, out, decl.name, decl.type);
 			}
 			if (decl.isCons()) {
-				compiler.compileConsHeader(context, decl);
+				compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
 			}
+			context.decl = null;
 		}
 
 		// postamble
@@ -153,29 +160,40 @@ public class Compiler {
 
 		// process declList
 		for(var decl: program.declList) {
-			var compiler = compilerMap.get(decl.type.kind);
+			context.decl = decl;
+			var compiler = compilerMap.get(decl.type.kind).source;
 			if (decl.isType()) {
-				compiler.compileTypeSource(context, decl);
+				compiler.compileType(context, out, decl.name, decl.type);
 			}
 			if (decl.isCons()) {
-				compiler.compileConsSource(context, decl);
+				compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
 			}
+			context.decl = null;
 		}
 
 		// postamble
 		out.println("}");
 	}
 
-	interface CompileDecl {
-		void compileTypeHeader(Context context, Decl decl);
-		void compileConsHeader(Context context, Decl decl);
-		void compileTypeSource(Context context, Decl decl);
-		void compileConsSource(Context context, Decl decl);
+	public interface CompilerDecl {
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
+		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons);
 	}
-	private static Map<Type.Kind, CompileDecl> compilerMap = Map.ofEntries(
+
+	public static class CompilerPair {
+		public final CompilerDecl header;
+		public final CompilerDecl source;
+
+		public CompilerPair(CompilerDecl header_, CompilerDecl source_) {
+			header = header_;
+			source = source_;
+		}
+	}
+
+	private static Map<Type.Kind, CompilerPair> compilerMap = Map.ofEntries(
 		Map.entry(Type.Kind.BOOLEAN,       new CompilerBoolean()),
 		Map.entry(Type.Kind.CARDINAL,      new CompilerCardinal()),
-		Map.entry(Type.Kind.INTEGER,       new CpmpilerInteger()),
+		Map.entry(Type.Kind.INTEGER,       new CompilerInteger()),
 		Map.entry(Type.Kind.LONG_CARDINAL, new CompilerLongCardinal()),
 		Map.entry(Type.Kind.LONG_INTEGER,  new CompilerLongInteger()),
 		Map.entry(Type.Kind.STRING,        new CompilerString()),

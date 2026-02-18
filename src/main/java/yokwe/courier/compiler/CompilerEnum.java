@@ -30,25 +30,36 @@
 
 package yokwe.courier.compiler;
 
-import yokwe.courier.compiler.Compiler.CompileDecl;
+import yokwe.courier.compiler.Compiler.CompilerDecl;
+import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
-import yokwe.courier.program.Program.Decl;
+import yokwe.courier.program.Cons;
+import yokwe.courier.program.Type;
+import yokwe.util.AutoIndentPrintWriter;
 
-public class CompilerEnum implements CompileDecl {
-	@Override
-	public void compileTypeHeader(final Context context, final Decl decl) {
-		// FIXME
+public class CompilerEnum extends CompilerPair {
+	private static class CompileHeader implements CompilerDecl {
+		@Override
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+			// TODO Auto-generated method stub
+		}
+		@Override
+		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+			// TODO Auto-generated method stub
+		}
 	}
-	@Override
-	public void compileConsHeader(final Context context, final Decl decl) {
-		// FIXME
+	private static class CompileSource implements CompilerDecl {
+		@Override
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+			// TODO Auto-generated method stub
+		}
+		@Override
+		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+			// TODO Auto-generated method stub
+		}
 	}
-	@Override
-	public void compileTypeSource(final Context context, final Decl decl) {
-		// FIXME
-	}
-	@Override
-	public void compileConsSource(final Context context, final Decl decl) {
-		// FIXME
+
+	public CompilerEnum() {
+		super(new CompileHeader(), new CompileSource());
 	}
 }
