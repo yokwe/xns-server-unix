@@ -41,11 +41,11 @@ public class CompilerError extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			// TODO Auto-generated method stub
+			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
-			// TODO Auto-generated method stub
+			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {

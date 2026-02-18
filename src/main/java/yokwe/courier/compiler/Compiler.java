@@ -190,7 +190,11 @@ public class Compiler {
 		}
 	}
 
-	private static Map<Type.Kind, CompilerPair> compilerMap = Map.ofEntries(
+	public static CompilerPair getCompilerPair(Type type) {
+		return compilerMap.get(type.kind);
+	}
+
+	private static final Map<Type.Kind, CompilerPair> compilerMap = Map.ofEntries(
 		Map.entry(Type.Kind.BOOLEAN,       new CompilerBoolean()),
 		Map.entry(Type.Kind.CARDINAL,      new CompilerCardinal()),
 		Map.entry(Type.Kind.INTEGER,       new CompilerInteger()),
