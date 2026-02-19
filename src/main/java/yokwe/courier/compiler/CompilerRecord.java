@@ -36,6 +36,7 @@ import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerRecord extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
@@ -55,6 +56,9 @@ public class CompilerRecord extends CompilerPair {
 			}
 			// output record
 			out.println("struct %s {", name);
+
+			// output field
+			out.prepareLayout();
 			for(var field: typeRecord.fieldList) {
 				String fieldTypeString;
 				if (field.type.isConstructedType()) {
@@ -64,6 +68,18 @@ public class CompilerRecord extends CompilerPair {
 				}
 				out.println("%s  %s;", fieldTypeString, field.name);
 			}
+			out.layout(Layout.LEFT, Layout.LEFT);
+			out.println();
+
+			// output methods
+		    var nameListString = String.join(", ", typeRecord.fieldList.stream().map(o -> o.name).toList());
+			out.println("void read(const ByteBuffer& bb) {");
+			out.println("bb.read(%s);", nameListString);
+			out.println("}");
+			out.println("void write(ByteBuffer& bb) const {");
+			out.println("bb.write(%s);", nameListString);
+			out.println("}");
+			// FIXME output toString()
 
 			out.println("};");
 		}
