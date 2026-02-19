@@ -32,6 +32,8 @@ package yokwe.courier.program;
 
 import java.util.Map;
 
+import yokwe.util.UnexpectedException;
+
 public class Type {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
@@ -84,13 +86,13 @@ public class Type {
 		return (TypeSequence)this;
 	}
 
-	public boolean isPredefined() {
+	public boolean isConstructedType() {
 		return switch(kind) {
-			case BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED -> true;
+			case ARRAY, CHOICE, ENUM, ERROR, PROCEDURE, RECORD, SEQUENCE -> true;
 			default -> false;
 		};
 	}
-	private static final Map<Kind, String> typeStringMap = Map.ofEntries(
+	private static final Map<Kind, String> simpleTypeNameMap = Map.ofEntries(
 			Map.entry(Kind.BOOLEAN,       "uint16_t"),
 			Map.entry(Kind.CARDINAL,      "uint16_t"),
 			Map.entry(Kind.INTEGER,       "int16_t"),
@@ -100,17 +102,17 @@ public class Type {
 			Map.entry(Kind.UNSPECIFIED,   "uint16_t")
 	);
 	public String toTypeString(Program.Info that) {
-		if (typeStringMap.containsKey(kind)) {
-			return typeStringMap.get(kind);
+		if (simpleTypeNameMap.containsKey(kind)) {
+			return simpleTypeNameMap.get(kind);
 		}
 
 		if (isReference()) {
 			return toTypeReference().toReferenceType().toQName(that);
 		}
 
-		// FIXME
-		logger.info("XX  toTypeString  {}", toString());
-		return null;
+		logger.error("Unexpected type");
+		logger.error("  type  {}", toString());
+		throw new UnexpectedException("Unexpected type");
 	}
 
 

@@ -44,9 +44,18 @@ public class CompilerSequence extends CompilerPair {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
 			var typeSequence = type.toTypeSequence();
-			var elementType  = typeSequence.element.toTypeString(context.program.self);
+			var element = typeSequence.element;
 
-			out.println("using %s = std::vector<%s>;", name, elementType);
+			String elementString;
+
+			if (element.isConstructedType()) {
+				elementString = name + "_ELEMENT";
+				var compiler = Compiler.getCompilerPair(element);
+				compiler.header.compileType(context, out, elementString, element);
+			} else {
+				elementString = element.toTypeString(context.program.self);
+			}
+			out.println("using %s = std::vector<%s>;", name, elementString);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
