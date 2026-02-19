@@ -30,7 +30,11 @@
 
 package yokwe.courier.program;
 
+import java.util.Map;
+
 public class Type {
+	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+
 	public static final Type BOOLEAN       = new Type(Kind.BOOLEAN);
 	public static final Type CARDINAL      = new Type(Kind.CARDINAL);
 	public static final Type LONG_CARDINAL = new Type(Kind.LONG_CARDINAL);
@@ -76,6 +80,39 @@ public class Type {
 	public TypeArray toTypeArray() {
 		return (TypeArray)this;
 	}
+	public TypeSequence toTypeSequence() {
+		return (TypeSequence)this;
+	}
+
+	public boolean isPredefined() {
+		return switch(kind) {
+			case BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED -> true;
+			default -> false;
+		};
+	}
+	private static final Map<Kind, String> typeStringMap = Map.ofEntries(
+			Map.entry(Kind.BOOLEAN,       "uint16_t"),
+			Map.entry(Kind.CARDINAL,      "uint16_t"),
+			Map.entry(Kind.INTEGER,       "int16_t"),
+			Map.entry(Kind.LONG_CARDINAL, "uint32_t"),
+			Map.entry(Kind.LONG_INTEGER,  "int16_t"),
+			Map.entry(Kind.STRING,        "std::string"),
+			Map.entry(Kind.UNSPECIFIED,   "uint16_t")
+	);
+	public String toTypeString(Program.Info that) {
+		if (typeStringMap.containsKey(kind)) {
+			return typeStringMap.get(kind);
+		}
+
+		if (isReference()) {
+			return toTypeReference().toReferenceType().toQName(that);
+		}
+
+		// FIXME
+		logger.info("XX  toTypeString  {}", toString());
+		return null;
+	}
+
 
 	// isXXX
 	public boolean isReference() {

@@ -42,6 +42,11 @@ public class CompilerSequence extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+
+			var typeSequence = type.toTypeSequence();
+			var elementType  = typeSequence.element.toTypeString(context.program.self);
+
+			out.println("using %s = std::vector<%s>;", name, elementType);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

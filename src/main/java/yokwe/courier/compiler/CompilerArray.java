@@ -42,6 +42,11 @@ public class CompilerArray extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+
+			var typeArray   = type.toTypeArray();
+			var elementType = typeArray.element.toTypeString(context.program.self);
+			var size        = typeArray.size;
+			out.println("using %s = std::array<%s, %d>;", name, elementType, size);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

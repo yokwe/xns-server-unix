@@ -42,6 +42,10 @@ public class CompilerReference extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+
+			var ref = type.toTypeReference().toReferenceType().toTYPE();
+			var refName = ref.toQName(context.program.self);
+			out.println("using %s = %s;", name, refName);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

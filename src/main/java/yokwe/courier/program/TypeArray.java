@@ -33,30 +33,18 @@ package yokwe.courier.program;
 public class TypeArray extends Type {
 	public static final int MAX_SIZE = 65535;
 
-	public final int       size;
-	public final Reference.CONS ref; // reference of size
-	public final Type      element;
+	public final int  size;
+	public final Type element;
 
 	public TypeArray(final int size_, final Type element_) {
 		super(Kind.ARRAY);
 
 		size    = size_;
-		ref     = null;
-		element = element_;
-	}
-	public TypeArray(final Reference.CONS ref_, final Type element_) {
-		super(Kind.ARRAY);
-
-		size    = 0;
-		ref     = ref_;
 		element = element_;
 	}
 
 	@Override
 	public String toString() {
-		if (ref == null) {
-			return String.format("{%s  %d  %s}", kind, size, element.toString());
-		}
-		return String.format("{%s  %s  %s}", kind, ref.toString(), element.toString());
+		return String.format("{%s  %d  %s}", kind, size, element.toString());
 	}
 }

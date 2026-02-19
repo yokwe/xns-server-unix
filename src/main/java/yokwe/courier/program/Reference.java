@@ -235,6 +235,9 @@ public abstract class Reference<V> {
 	public String toName() {
 		return nameString;
 	}
+	public String toQName(Program.Info that) {
+		return (program == null) ? nameString : program.toQName(that, name);
+	}
 
 	// isXXX
 	public boolean isInternal() {

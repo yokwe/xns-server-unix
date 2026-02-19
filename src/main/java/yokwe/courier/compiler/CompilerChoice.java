@@ -42,6 +42,10 @@ public class CompilerChoice extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+
+			out.println("struct %s {  // CHOICE", name);
+			// FIXME
+			out.println("};");
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

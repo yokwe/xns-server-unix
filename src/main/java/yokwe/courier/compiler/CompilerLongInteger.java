@@ -38,14 +38,18 @@ import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerLongInteger extends CompilerPair {
+	public static final String MY_TYPE = "int32_t";
+
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+			out.println("using %s = %s;", name, MY_TYPE);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+			out.println("inline %s %s = %d;", MY_TYPE, name, cons.toConsNumber().value);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {

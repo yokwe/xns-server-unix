@@ -265,11 +265,6 @@ public class Builder {
 				var type = toType(myProgram, ut.type());
 				yield new TypeArray(size, type);
 			}
-			case CourierParser.ArrayTypeReferenceContext ut -> {
-				var ref  = toReferenceCons(myProgram, ut.reference());
-				var type = toType(myProgram, ut.type());
-				yield new TypeArray(ref, type);
-			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
@@ -284,11 +279,6 @@ public class Builder {
 			var type = toType(myProgram, ut.type());
 
 			yield new TypeSequence(size, type);
-		}
-		case CourierParser.SequenceTypeReferenceContext ut -> {
-			var ref  = toReferenceCons(myProgram, ut.reference());
-			var type = toType(myProgram, ut.type());
-			yield new TypeSequence(ref, type);
 		}
 		default -> throw new UnexpectedException("Unexpected");
 	};

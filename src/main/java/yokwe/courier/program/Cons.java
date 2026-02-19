@@ -81,7 +81,7 @@ public class Cons {
 		}
 		@Override
 		public java.lang.String toString() {
-			return "\"" + value.replace("\"", "\\\"") + "\"";
+			return value;
 		}
 	}
 
@@ -122,6 +122,24 @@ public class Cons {
 	}
 
 	// toXXX
+	public Boolean toConsBoolean() {
+		return (Boolean)this;
+	}
+	public Number toConsNumber() {
+		return (Number)this;
+	}
+	public String toConsString() {
+		return (String)this;
+	}
+	public ConsArray toConsArray() {
+		return (ConsArray)this;
+	}
+	public ConsChoice toConsChoice() {
+		return (ConsChoice)this;
+	}
+	public ConsRecord toConsRecord() {
+		return (ConsRecord)this;
+	}
 	public ConsReference toConsReference() {
 		return (ConsReference)this;
 	}
@@ -143,7 +161,7 @@ public class Cons {
 		return kind == Kind.CHOICE;
 	}
 	public boolean isRecord() {
-		return kind == Kind.STRING;
+		return kind == Kind.RECORD;
 	}
 	public boolean isReference() {
 		return kind == Kind.REFERENCE;
