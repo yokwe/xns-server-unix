@@ -30,20 +30,7 @@
 
 package yokwe.courier.program;
 
-import java.util.Map;
-
-import yokwe.courier.compiler.CompilerBoolean;
-import yokwe.courier.compiler.CompilerCardinal;
-import yokwe.courier.compiler.CompilerInteger;
-import yokwe.courier.compiler.CompilerLongCardinal;
-import yokwe.courier.compiler.CompilerLongInteger;
-import yokwe.courier.compiler.CompilerString;
-import yokwe.courier.compiler.CompilerUnspecified;
-import yokwe.util.UnexpectedException;
-
 public class Type {
-	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
-
 	public static final Type BOOLEAN       = new Type(Kind.BOOLEAN);
 	public static final Type CARDINAL      = new Type(Kind.CARDINAL);
 	public static final Type LONG_CARDINAL = new Type(Kind.LONG_CARDINAL);
@@ -99,30 +86,6 @@ public class Type {
 			default -> false;
 		};
 	}
-
-	private static final Map<Kind, String> typeStringMap = Map.ofEntries(
-		Map.entry(Kind.BOOLEAN,       CompilerBoolean.TYPE_STRING),
-		Map.entry(Kind.CARDINAL,      CompilerCardinal.TYPE_STRING),
-		Map.entry(Kind.INTEGER,       CompilerInteger.TYPE_STRING),
-		Map.entry(Kind.LONG_CARDINAL, CompilerLongCardinal.TYPE_STRING),
-		Map.entry(Kind.LONG_INTEGER,  CompilerLongInteger.TYPE_STRING),
-		Map.entry(Kind.STRING,        CompilerString.TYPE_STRING),
-		Map.entry(Kind.UNSPECIFIED,   CompilerUnspecified.TYPE_STRING)
-	);
-	public String toTypeString(Program.Info that) {
-		if (typeStringMap.containsKey(kind)) {
-			return typeStringMap.get(kind);
-		}
-
-		if (isReference()) {
-			return toTypeReference().toReferenceType().toQName(that);
-		}
-
-		logger.error("Unexpected type");
-		logger.error("  type  {}", toString());
-		throw new UnexpectedException("Unexpected type");
-	}
-
 
 	// isXXX
 	public boolean isReference() {

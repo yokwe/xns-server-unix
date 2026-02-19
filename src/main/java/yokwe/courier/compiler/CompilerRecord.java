@@ -64,7 +64,7 @@ public class CompilerRecord extends CompilerPair {
 				if (field.type.isConstructedType()) {
 					fieldTypeString = name + "_" + field.name;
 				} else {
-					fieldTypeString = field.type.toTypeString(context.program.self);
+					fieldTypeString = toTypeString(context.program.self, field.type);
 				}
 				out.println("%s  %s;", fieldTypeString, field.name);
 			}

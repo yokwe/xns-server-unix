@@ -54,7 +54,7 @@ public class CompilerArray extends CompilerPair {
 				var compiler = Compiler.getCompilerPair(element);
 				compiler.header.compileType(context, out, elementString, element);
 			} else {
-				elementString = element.toTypeString(context.program.self);
+				elementString = toTypeString(context.program.self, element);
 			}
 
 			out.println("using %s = std::array<%s, %d>;", name, elementString, size);

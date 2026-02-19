@@ -221,6 +221,29 @@ public class Compiler {
 	}
 
 	public static class CompilerPair {
+		private static final Map<Type.Kind, String> typeStringMap = Map.ofEntries(
+			Map.entry(Type.Kind.BOOLEAN,       CompilerBoolean.TYPE_STRING),
+			Map.entry(Type.Kind.CARDINAL,      CompilerCardinal.TYPE_STRING),
+			Map.entry(Type.Kind.INTEGER,       CompilerInteger.TYPE_STRING),
+			Map.entry(Type.Kind.LONG_CARDINAL, CompilerLongCardinal.TYPE_STRING),
+			Map.entry(Type.Kind.LONG_INTEGER,  CompilerLongInteger.TYPE_STRING),
+			Map.entry(Type.Kind.STRING,        CompilerString.TYPE_STRING),
+			Map.entry(Type.Kind.UNSPECIFIED,   CompilerUnspecified.TYPE_STRING)
+		);
+		public static String toTypeString(Program.Info that, Type type) {
+			if (typeStringMap.containsKey(type.kind)) {
+				return typeStringMap.get(type.kind);
+			}
+
+			if (type.isReference()) {
+				return type.toTypeReference().toReferenceType().toQName(that);
+			}
+
+			logger.error("Unexpected type");
+			logger.error("  type  {}", type.toString());
+			throw new UnexpectedException("Unexpected type");
+		}
+
 		public final CompilerDecl header;
 		public final CompilerDecl source;
 

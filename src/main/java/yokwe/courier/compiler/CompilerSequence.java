@@ -53,7 +53,7 @@ public class CompilerSequence extends CompilerPair {
 				var compiler = Compiler.getCompilerPair(element);
 				compiler.header.compileType(context, out, elementString, element);
 			} else {
-				elementString = element.toTypeString(context.program.self);
+				elementString = toTypeString(context.program.self, element);
 			}
 			out.println("using %s = std::vector<%s>;", name, elementString);
 		}
