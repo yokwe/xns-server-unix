@@ -38,18 +38,18 @@ import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerString extends CompilerPair {
-	public static final String MY_TYPE = "std::string";
+	public static final String TYPE_STRING = "std::string";
 
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("using %s = %s;", name, MY_TYPE);
+			out.println("using %s = %s;", name, TYPE_STRING);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("inline %s %s = %s;", MY_TYPE, name, cons.toConsString().toString());
+			out.println("inline %s %s = %s;", TYPE_STRING, name, cons.toConsString().toString());
 		}
 	}
 	private static class CompileSource implements CompilerDecl {

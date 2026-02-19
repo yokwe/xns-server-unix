@@ -38,18 +38,18 @@ import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerBoolean extends CompilerPair {
-	public static final String MY_TYPE = "uint16_t";
+	public static final String TYPE_STRING = "BOOL";
 
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("using %s = %s; // BOOL", name, MY_TYPE);
+			out.println("using %s = %s;", name, TYPE_STRING);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("inline const constexpr %s %s = %d; // BOOL", MY_TYPE, name, cons.toConsBoolean().value ? 1 : 0);
+			out.println("inline const constexpr %s %s = %d;", TYPE_STRING, name, cons.toConsBoolean().value ? 1 : 0);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
