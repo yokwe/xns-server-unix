@@ -173,56 +173,56 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	T visitTypeReference(CourierParser.TypeReferenceContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsBoolean}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsBoolean(CourierParser.ConsBooleanContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsPositive}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsPositive(CourierParser.ConsPositiveContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsNegative}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsNegative(CourierParser.ConsNegativeContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsString}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsString(CourierParser.ConsStringContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsArray}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsArray(CourierParser.ConsArrayContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsRecord}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsRecord(CourierParser.ConsRecordContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsChoice}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitConsChoice(CourierParser.ConsChoiceContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsReference}
-	 * labeled alternative in {@link CourierParser#value}.
+	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
@@ -354,13 +354,6 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArrayTypeNumber(CourierParser.ArrayTypeNumberContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code ArrayTypeReference}
-	 * labeled alternative in {@link CourierParser#arrayType}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitArrayTypeReference(CourierParser.ArrayTypeReferenceContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code ArrayConstantList}
 	 * labeled alternative in {@link CourierParser#arrayConstant}.
 	 * @param ctx the parse tree
@@ -394,13 +387,6 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSequenceTypeNumber(CourierParser.SequenceTypeNumberContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code SequenceTypeReference}
-	 * labeled alternative in {@link CourierParser#sequenceType}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSequenceTypeReference(CourierParser.SequenceTypeReferenceContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code RecordTypeEmpty}
 	 * labeled alternative in {@link CourierParser#recordType}.

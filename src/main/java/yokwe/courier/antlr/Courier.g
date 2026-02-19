@@ -235,7 +235,6 @@ correspondence
 /* 3.5.2 Array */
 arrayType
     :    ARRAY positiveNumber OF type # ArrayTypeNumber
-    |    ARRAY reference      OF type # ArrayTypeReference
     ;
 
 arrayConstant
@@ -251,7 +250,6 @@ elementList
 sequenceType
     :    SEQUENCE /* EMPTY */    OF type # SequenceTypeEmpty
     |    SEQUENCE positiveNumber OF type # SequenceTypeNumber
-    |    SEQUENCE reference      OF type # SequenceTypeReference
     ;
 
 /* 3.5.4 Record */
