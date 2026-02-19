@@ -38,6 +38,8 @@ import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerUnspecified extends CompilerPair {
+	public static final String MY_TYPE = "uint16_t";
+
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
@@ -46,6 +48,7 @@ public class CompilerUnspecified extends CompilerPair {
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+			out.println("inline constexpr %s %s = %d;", MY_TYPE, name, cons.toConsNumber().value);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {

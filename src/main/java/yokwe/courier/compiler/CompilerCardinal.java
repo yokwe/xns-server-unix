@@ -49,7 +49,7 @@ public class CompilerCardinal extends CompilerPair {
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("inline %s %s = %d;", MY_TYPE, name, cons.toConsNumber().value);
+			out.println("inline constexpr %s %s = %d;", MY_TYPE, name, cons.toConsNumber().value);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {

@@ -49,7 +49,7 @@ public class CompilerBoolean extends CompilerPair {
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-			out.println("inline %s %s = %d; // BOOL", MY_TYPE, name, cons.toConsBoolean().value ? 1 : 0);
+			out.println("inline const constexpr %s %s = %d; // BOOL", MY_TYPE, name, cons.toConsBoolean().value ? 1 : 0);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
