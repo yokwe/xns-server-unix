@@ -43,8 +43,28 @@ public class CompilerRecord extends CompilerPair {
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
+			var typeRecord = type.toTypeRecord();
+
+			// output complex type
+			for(var field: typeRecord.fieldList) {
+				if (field.type.isConstructedType()) {
+					var newName = name + "_" + field.name;
+					var compiler = Compiler.getCompilerPair(field.type);
+					compiler.header.compileType(context, out, newName, field.type);
+				}
+			}
+			// output record
 			out.println("struct %s {", name);
-			// FIXME
+			for(var field: typeRecord.fieldList) {
+				String fieldTypeString;
+				if (field.type.isConstructedType()) {
+					fieldTypeString = name + "_" + field.name;
+				} else {
+					fieldTypeString = field.type.toTypeString(context.program.self);
+				}
+				out.println("%s  %s;", fieldTypeString, field.name);
+			}
+
 			out.println("};");
 		}
 		@Override
