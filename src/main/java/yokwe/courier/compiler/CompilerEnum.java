@@ -35,17 +35,34 @@ import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
+import yokwe.courier.program.TypeEnum;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerEnum extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
+
+		void compileToString(AutoIndentPrintWriter out, String name, TypeEnum typeEnum) {
+			out.println("inline std::string toString(%s value) {", name);
+			out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
+			for(var e: typeEnum.list) {
+				out.println("{%s::%s, \"%d\"},", name, e.name, e.number);
+			}
+			out.println("};");
+			out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
+			out.println("};");
+		}
+
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
+			var typeEnum = type.toTypeEnum();
 			out.println("enum class %s {", name);
-			// FIXME
+			for(var e: typeEnum.list) {
+				out.println("%s = %d,", e.name, e.number);
+			}
 			out.println("};");
+			compileToString(out, name, typeEnum);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
