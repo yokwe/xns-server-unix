@@ -41,25 +41,12 @@ import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerEnum extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
-
-		void compileToString(AutoIndentPrintWriter out, String name, TypeEnum typeEnum) {
-			out.println("inline std::string toString(%s value) {", name);
-			out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
-			out.prepareLayout();
-			for(var e: typeEnum.list) {
-				out.println("{%s::%s, \"%d\"},", name, e.name, e.number);
-			}
-			out.layout(Layout.LEFT, Layout.RIGHT);
-			out.println("};");
-			out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
-			out.println("};");
-		}
-
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeEnum = type.toTypeEnum();
+		    out.println("//  %s", name);
 			out.println("enum class %s {", name);
 			out.prepareLayout();
 			for(var e: typeEnum.list) {
@@ -67,7 +54,8 @@ public class CompilerEnum extends CompilerPair {
 			}
 			out.layout(Layout.LEFT, Layout.LEFT, Layout.RIGHT);
 			out.println("};");
-			compileToString(out, name, typeEnum);
+			out.println("std::string toString(%s);", name);
+			out.println();
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
@@ -77,7 +65,8 @@ public class CompilerEnum extends CompilerPair {
 	private static class CompileSource implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			// TODO Auto-generated method stub
+		    out.println("//  %s", name);
+			compileToString(out, name, type.toTypeEnum());
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
@@ -87,5 +76,19 @@ public class CompilerEnum extends CompilerPair {
 
 	public CompilerEnum() {
 		super(new CompileHeader(), new CompileSource());
+	}
+
+	private static void compileToString(AutoIndentPrintWriter out, String name, TypeEnum typeEnum) {
+		out.println("std::string toString(%s value) {", name);
+		out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
+		out.prepareLayout();
+		for(var e: typeEnum.list) {
+			out.println("{%s::%s, \"%d\"},", name, e.name, e.number);
+		}
+		out.layout(Layout.LEFT, Layout.RIGHT);
+		out.println("};");
+		out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
+		out.println("};");
+		out.println();
 	}
 }
