@@ -42,7 +42,7 @@ public class CompilerRecord extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeRecord = type.toTypeRecord();
 
@@ -72,16 +72,11 @@ public class CompilerRecord extends CompilerPair {
 			out.println();
 
 			// output methods
-		    var nameListString = String.join(", ", typeRecord.fieldList.stream().map(o -> o.name).toList());
-			out.println("void read(const ByteBuffer& bb) {");
-			out.println("bb.read(%s);", nameListString);
-			out.println("}");
-			out.println("void write(ByteBuffer& bb) const {");
-			out.println("bb.write(%s);", nameListString);
-			out.println("}");
-			// FIXME output toString()
-
+			out.println("void read(const ByteBuffer& bb);");
+			out.println("void write(ByteBuffer& bb) const;");
+			out.println("std::string toString() const;");
 			out.println("};");
+			out.println();
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
@@ -91,7 +86,31 @@ public class CompilerRecord extends CompilerPair {
 	private static class CompileSource implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			// TODO Auto-generated method stub
+			var typeRecord = type.toTypeRecord();
+			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+		    var fieldNameListString = String.join(", ", fieldNameArray);
+
+		    out.println("//  %s", name);
+			out.println("void %s::read(const ByteBuffer& bb) {", name);
+			out.println("bb.read(%s);", fieldNameListString);
+			out.println("}");
+			out.println("void %s::write(ByteBuffer& bb) const {", name);
+			out.println("bb.write(%s);", fieldNameListString);
+			out.println("}");
+			out.println("std::string %s::toString() const {", name);
+			out.println("std::string ret;");
+			out.println("ret += \"[\";");
+
+			for(int i = 0; i < fieldNameArray.length; i++) {
+				if (i != 0) {
+					out.println("ret += \" \";");
+				}
+				out.println("ret += ::toString(%s);", fieldNameArray[i]);
+			}
+			out.println("ret += \"]\";");
+			out.println("return ret;");
+			out.println("}");
+			out.println();
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
