@@ -49,9 +49,9 @@ public class TypeProcedure extends Type {
 
 	@Override
 	public String toString() {
-		var argument = argumentList.isEmpty() ? "" : String.format("[%s]", String.join(" ", argumentList.stream().map(NameType::toString).toList()));
-		var result   = resultList.isEmpty() ? "" : String.format(" RETURNS [%s]", String.join(" ", resultList.stream().map(NameType::toString).toList()));
-		var error    = errorList.isEmpty() ? "" : String.format(" REPORTS [%s]", String.join(" ", errorList));
-		return argument + result + error;
+		var argument = argumentList.isEmpty() ? "" : String.format(" {%s}", String.join(" ", argumentList.stream().map(NameType::toString).toList()));
+		var result   = resultList.isEmpty() ? "" : String.format(" RETURNS {%s}", String.join(" ", resultList.stream().map(NameType::toString).toList()));
+		var error    = errorList.isEmpty() ? "" : String.format(" REPORTS {%s}", String.join(" ", errorList));
+		return String.format("{%s%s%s%s}", kind, argument, result, error);
 	}
 }
