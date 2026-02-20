@@ -297,31 +297,92 @@ struct StringLiteral {
 };
 
 //
-// toStringX()
+// toString()
 //
+
 template<typename T>
-concept has_toStringA = requires (const T& o) {
+concept has_to_string_function_ = requires (const T& o) {
     { toString(o) } -> std::same_as<std::string>;
 };
 template<typename T>
-concept has_toStringB = requires (const T& o) {
+concept has_to_string_function = has_to_string_function_<std::remove_cvref_t<T>>;
+
+template<typename T>
+concept has_to_string_method_ = requires (const T& o) {
     { o.toString() } -> std::same_as<std::string>;
 };
 template<typename T>
-concept has_toString = has_toStringA<T> || has_toStringB<T>;
+concept has_to_string_method = has_to_string_method_<std::remove_cvref_t<T>>;
 
-template <has_toString T>
+template<typename T>
+std::string toString(const T& value) {
+    if constexpr (std::is_unsigned_v<T>) {
+        return std_sprintf("%u", value);
+    } else if constexpr (std::is_signed_v<T>) {
+        return std_sprintf("%d", value);
+    } else if constexpr (std::is_same_v<std::string, std::remove_cvref_t<T>>) {
+        return value;
+    } else if constexpr (has_to_string_function<T>) {
+        return toString(value);
+    } else if constexpr (has_to_string_method<T>) {
+        return toString(value.toString());
+    } else {
+        static_assert(false, "Unexptected");
+        getLogger().info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(T).name()));
+    }
+}
+template<typename T>
+std::string toString(const std::vector<T>& vector) {
+    std::string ret;
+    ret += "[";
+    for(size_t i = 0; i < vector.size(); i++) {
+        if (i) ret += " ";
+        ret += toString(vector[i]);
+    }
+    ret += "]";
+
+    return ret;
+}
+template<typename T, std::size_t N>
+std::string toString(const std::array<T, N>& vector) {
+    std::string ret;
+    ret += "[";
+    for(size_t i = 0; i < vector.size(); i++) {
+        if (i) ret += " ";
+        ret += toString(vector[i]);
+    }
+    ret += "]";
+
+    return ret;
+}
+
+
+//
+// toStringX()
+//
+template<typename T>
+concept has_toStringXA = requires (const T& o) {
+    { toString(o) } -> std::same_as<std::string>;
+};
+template<typename T>
+concept has_toStringXB = requires (const T& o) {
+    { o.toString() } -> std::same_as<std::string>;
+};
+template<typename T>
+concept has_toStringX = has_toStringXA<T> || has_toStringXB<T>;
+
+template <has_toStringX T>
 std::string toStringX(T o) {
 	using U = std::remove_cvref<T>;
-	if constexpr (has_toStringA<U>) {
+	if constexpr (has_toStringXA<U>) {
 		return toSring(o);
-	} else if constexpr (has_toStringB<U>) {
+	} else if constexpr (has_toStringXB<U>) {
 		return o.toString();
 	} else {
 		static_assert(false, "Unexpected");
 	}
 }
-std::string toStringX(has_toStringB auto o) {
+std::string toStringX(has_toStringXB auto o) {
 	return o.toString();
 }
 
