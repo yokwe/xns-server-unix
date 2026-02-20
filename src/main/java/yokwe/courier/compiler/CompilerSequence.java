@@ -41,7 +41,7 @@ public class CompilerSequence extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
 			var typeSequence = type.toTypeSequence();
 			var element = typeSequence.element;
@@ -56,6 +56,7 @@ public class CompilerSequence extends CompilerPair {
 				elementString = toTypeString(context.program.self, element);
 			}
 			out.println("using %s = std::vector<%s>;", name, elementString);
+			out.println("inline constexpr uint32_t %s_MAX_SIZE = %d;", name, typeSequence.size);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

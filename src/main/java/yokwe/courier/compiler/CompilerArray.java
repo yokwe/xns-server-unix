@@ -41,7 +41,7 @@ public class CompilerArray extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
 			var typeArray     = type.toTypeArray();
 			var element       = typeArray.element;
@@ -58,6 +58,7 @@ public class CompilerArray extends CompilerPair {
 			}
 
 			out.println("using %s = std::array<%s, %d>;", name, elementString, size);
+			out.println("inline constexpr uint32_t %s_SIZE = %d;", name, typeArray.size);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

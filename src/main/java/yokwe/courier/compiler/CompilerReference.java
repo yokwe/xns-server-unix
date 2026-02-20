@@ -41,7 +41,7 @@ public class CompilerReference extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
 			var ref = type.toTypeReference().toReferenceType().toTYPE();
 			var refName = ref.toQName(context.program.self);
