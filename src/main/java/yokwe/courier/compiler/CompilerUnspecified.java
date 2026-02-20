@@ -43,22 +43,21 @@ public class CompilerUnspecified extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
+			out.println("using %s = %s;", name, TYPE_STRING);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
-			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
 			out.println("inline constexpr %s %s = %d;", TYPE_STRING, name, cons.toConsNumber().value);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			// TODO Auto-generated method stub
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
-			// TODO Auto-generated method stub
 		}
 	}
 
