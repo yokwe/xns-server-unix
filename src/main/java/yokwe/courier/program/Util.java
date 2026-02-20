@@ -81,18 +81,15 @@ public class Util {
 
 	private static Map<String, String> sanitizeMap = new TreeMap<>();
 	static {
-		sanitizeMap.put("abort",  "abort__");
-		sanitizeMap.put("and",    "and__");
-		sanitizeMap.put("not",    "not__");
-		sanitizeMap.put("or",     "or__");
-		sanitizeMap.put("return", "return__");
+		sanitizeMap.put("abort",  "abort_");
+		sanitizeMap.put("and",    "and_");
+		sanitizeMap.put("not",    "not_");
+		sanitizeMap.put("or",     "or_");
+		sanitizeMap.put("return", "return_");
 	}
 
 	public static String sanitizeSymbol(final String symbol) {
-		if (sanitizeMap.containsKey(symbol)) {
-			return sanitizeMap.get(symbol);
-		}
-		return symbol;
+		return sanitizeMap.containsKey(symbol) ? sanitizeMap.get(symbol) : symbol;
 	}
 
 }

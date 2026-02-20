@@ -92,6 +92,7 @@ public class Compiler {
 		}
 	}
 
+
 	public void compile(final Program program) {
 		try (var context = new Context(program)) {
 			compileHeader(context);
@@ -148,7 +149,6 @@ public class Compiler {
 		// postamble
 		out.println("}");
 	}
-
 
 	void compileSource(final Context context) {
 		var program = context.program;

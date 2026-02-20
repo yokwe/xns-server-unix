@@ -30,23 +30,178 @@
 
 package yokwe.courier.compiler;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
+import yokwe.courier.program.Program.NameNumberType;
+import yokwe.courier.program.Program.NumberName;
 import yokwe.courier.program.Type;
+import yokwe.courier.program.TypeChoice;
+import yokwe.courier.program.TypeEnum;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.UnexpectedException;
 
 public class CompilerChoice extends CompilerPair {
+	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+			var typeChoice = type.toTypeChoice();
+			if (typeChoice instanceof TypeChoice.Anon) {
+				compileType(context, out, name, typeChoice.toAnon());
+			} else if (typeChoice instanceof TypeChoice.Name) {
+				compileType(context, out, name, typeChoice.toName());
+			} else {
+				logger.error("typeChoice {}", typeChoice);
+				throw new UnexpectedException("Unexpected");
+			}
+		}
 
-			out.println("struct %s {  // CHOICE", name);
-			// FIXME
+		boolean findType(List<Type> typeList, String qName) {
+			for(var type: typeList) {
+				if (type.isRecord()) {
+					for(var field: type.toTypeRecord().fieldList) {
+						if (field.type.isReference()) {
+							var myName = field.type.toTypeReference().toReferenceType().toName();
+							if (myName.equals(qName)) {
+								return true;
+							}
+						}
+					}
+				}
+			}
+			return false;
+		}
+		boolean findType(TypeChoice.Anon type, String qName) {
+			var typeList = type.candidateList.stream().map(o -> o.type).toList();
+			return findType(typeList, qName);
+		}
+		boolean findType(TypeChoice.Name type, String qName) {
+			var typeList = type.candidateList.stream().map(o -> o.type).toList();
+			return findType(typeList, qName);
+		}
+		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
+			// Check recursive of self
+			{
+				var qName = context.program.self.toQName(name);
+				if (findType(type, qName)) {
+					logger.error("Skip for recursive  {}", qName);
+					out.println("// Skip for recursive  %s", qName);
+					return;
+				}
+			}
+
+			out.println("struct %s {  // CHOICE ANON", name);
+
+			var candidateList = type.candidateList;
+			Collections.sort(candidateList);
+
+			// output enum type
+			String enumName = "Key";
+			{
+				TypeEnum anonEnum = new TypeEnum(candidateList.stream().map(o -> new NumberName(o.number, o.name)).toList());
+				var compiler = Compiler.getCompilerPair(anonEnum);
+				compiler.header.compileType(context, out, enumName, anonEnum);
+			}
+
+			// output candidate
+			out.println("// output candidate");
+			List<String> nameList = new ArrayList<>();
+			for(var e: candidateList) {
+				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
+					var myName = "EMPTY_RECORD";
+					nameList.add(myName);
+				} else if (e.type.isReference()) {
+					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
+					nameList.add(myName);
+				} else if (e.type.isConstructedType()) {
+					out.println("// %s", e.name);
+					var myName = String.format("Choice_%d", e.number);
+					var myType = e.type;
+					var compiler = Compiler.getCompilerPair(myType);
+					compiler.header.compileType(context, out, myName, myType);
+					nameList.add(myName);
+				} else {
+					var myName = toTypeString(context.program.self, e.type);
+					nameList.add(myName);
+				}
+			}
+
+			// output enum field
+			out.println("Key key;");
+
+			// output variant
+			out.println("std::variant<%s> variant;", String.join(", ", nameList));
+			out.println();
+			out.println("void read(const ByteBuffer& bb);");
+			out.println("void write(ByteBuffer& bb) const;");
+			out.println("std::string toString() const;");
+
 			out.println("};");
 		}
+		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
+			// FIXME
+			{
+				var qName = context.program.self.toQName(name);
+				if (findType(type, qName)) {
+					logger.error("Skip for recursive  {}", qName);
+					out.println("// Skip for recursive  %s", qName);
+					return;
+				}
+			}
+
+			out.println("struct %s {  // CHOICE NAME", name);
+
+			var keyName = type.designator.toTYPE().toQName(context.program.self);
+			var numberMap = type.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
+
+			var candidateList = type.candidateList.stream().map(o -> new NameNumberType(o.name, numberMap.get(o.name), o.type)).collect(Collectors.toList());
+			Collections.sort(candidateList);
+
+			// output candidate
+			out.println("// output candidate");
+			List<String> nameList = new ArrayList<>();
+			for(var e: candidateList) {
+				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
+					var myName = "EMPTY_RECORD";
+					nameList.add(myName);
+				} else if (e.type.isReference()) {
+					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
+					nameList.add(myName);
+				} else if (e.type.isConstructedType()) {
+					out.println("//  %s", e.name);
+					var myName = String.format("Choice_%d", e.number);
+					var myType = e.type;
+					var compiler = Compiler.getCompilerPair(myType);
+					compiler.header.compileType(context, out, myName, myType);
+					nameList.add(myName);
+				} else {
+					var myName = toTypeString(context.program.self, e.type);
+					nameList.add(myName);
+				}
+			}
+
+			// output enum field
+			out.println("%s key;", keyName);
+
+			// output variant
+			out.println("std::variant<%s> variant;", String.join(", ", nameList));
+			out.println();
+			out.println("void read(const ByteBuffer& bb);");
+			out.println("void write(ByteBuffer& bb) const;");
+			out.println("std::string toString() const;");
+
+			out.println("};");
+		}
+
+
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME

@@ -46,7 +46,12 @@ public class CompilerRecord extends CompilerPair {
 
 			var typeRecord = type.toTypeRecord();
 
-			// output complex type
+			if (typeRecord.fieldList.isEmpty()) {
+				out.println("using %s = EMPTY_RECORD;", name);
+				return;
+			}
+
+			// output constructed type
 			for(var field: typeRecord.fieldList) {
 				if (field.type.isConstructedType()) {
 					var newName = name + "_" + field.name;
@@ -57,19 +62,21 @@ public class CompilerRecord extends CompilerPair {
 			// output record
 			out.println("struct %s {", name);
 
-			// output field
-			out.prepareLayout();
-			for(var field: typeRecord.fieldList) {
-				String fieldTypeString;
-				if (field.type.isConstructedType()) {
-					fieldTypeString = name + "_" + field.name;
-				} else {
-					fieldTypeString = toTypeString(context.program.self, field.type);
+			if (!typeRecord.fieldList.isEmpty()) {
+				// output field
+				out.prepareLayout();
+				for(var field: typeRecord.fieldList) {
+					String fieldTypeString;
+					if (field.type.isConstructedType()) {
+						fieldTypeString = name + "_" + field.name;
+					} else {
+						fieldTypeString = toTypeString(context.program.self, field.type);
+					}
+					out.println("%s  %s;", fieldTypeString, field.name);
 				}
-				out.println("%s  %s;", fieldTypeString, field.name);
+				out.layout(Layout.LEFT, Layout.LEFT);
+				out.println();
 			}
-			out.layout(Layout.LEFT, Layout.LEFT);
-			out.println();
 
 			// output methods
 			out.println("void read(const ByteBuffer& bb);");
@@ -88,28 +95,35 @@ public class CompilerRecord extends CompilerPair {
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeRecord = type.toTypeRecord();
 			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
-		    var fieldNameListString = String.join(", ", fieldNameArray);
 
 		    out.println("//  %s", name);
-			out.println("void %s::read(const ByteBuffer& bb) {", name);
-			out.println("bb.read(%s);", fieldNameListString);
-			out.println("}");
-			out.println("void %s::write(ByteBuffer& bb) const {", name);
-			out.println("bb.write(%s);", fieldNameListString);
-			out.println("}");
-			out.println("std::string %s::toString() const {", name);
-			out.println("std::string ret;");
-			out.println("ret += \"[\";");
+			if (fieldNameArray.length == 0) {
+				out.println("void %s::read(const ByteBuffer& bb) {}", name);
+				out.println("void %s::write(ByteBuffer& bb) const {}", name);
+				out.println("std::string %s::toString() const { return \"\"; }", name);
+			} else {
+			    var fieldNameListString = String.join(", ", fieldNameArray);
 
-			for(int i = 0; i < fieldNameArray.length; i++) {
-				if (i != 0) {
-					out.println("ret += \" \";");
+				out.println("void %s::read(const ByteBuffer& bb) {", name);
+				out.println("bb.read(%s);", fieldNameListString);
+				out.println("}");
+				out.println("void %s::write(ByteBuffer& bb) const {", name);
+				out.println("bb.write(%s);", fieldNameListString);
+				out.println("}");
+				out.println("std::string %s::toString() const {", name);
+				out.println("std::string ret;");
+				out.println("ret += \"[\";");
+
+				for(int i = 0; i < fieldNameArray.length; i++) {
+					if (i != 0) {
+						out.println("ret += \" \";");
+					}
+					out.println("ret += ::toString(%s);", fieldNameArray[i]);
 				}
-				out.println("ret += ::toString(%s);", fieldNameArray[i]);
+				out.println("ret += \"]\";");
+				out.println("return ret;");
+				out.println("}");
 			}
-			out.println("ret += \"]\";");
-			out.println("return ret;");
-			out.println("}");
 			out.println();
 		}
 		@Override

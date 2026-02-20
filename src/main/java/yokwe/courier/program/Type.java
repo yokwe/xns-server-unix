@@ -79,6 +79,9 @@ public class Type {
 	public TypeSequence toTypeSequence() {
 		return (TypeSequence)this;
 	}
+	public TypeChoice toTypeChoice() {
+		return (TypeChoice)this;
+	}
 
 	public boolean isConstructedType() {
 		return switch(kind) {
@@ -99,5 +102,20 @@ public class Type {
 	}
 	public boolean isBoolean() {
 		return kind == Kind.BOOLEAN;
+	}
+	public boolean isRecord() {
+		return kind == Kind.RECORD;
+	}
+	public boolean isSequence() {
+		return kind == Kind.SEQUENCE;
+	}
+	public boolean isString() {
+		return kind == Kind.STRING;
+	}
+	public boolean isLongCardinal() {
+		return kind == Kind.LONG_CARDINAL;
+	}
+	public boolean isCardinal() {
+		return kind == Kind.CARDINAL;
 	}
 }

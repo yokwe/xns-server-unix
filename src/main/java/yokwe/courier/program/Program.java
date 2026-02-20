@@ -128,7 +128,7 @@ public class Program implements Comparable<Program> {
 	}
 
 	// name number
-	public static class NumberName {
+	public static class NumberName implements Comparable<NumberName> {
 		public final int    number;
 		public final String name;
 
@@ -141,10 +141,15 @@ public class Program implements Comparable<Program> {
 		public String toString() {
 			return String.format("{%s  %d}", name, number);
 		}
+
+		@Override
+		public int compareTo(NumberName that) {
+			return Integer.compare(this.number, that.number);
+		}
 	}
 
 	// name number type
-	public static class NameNumberType {
+	public static class NameNumberType implements Comparable<NameNumberType> {
 		public final String name;
 		public final int    number;
 		public final Type   type;
@@ -159,10 +164,15 @@ public class Program implements Comparable<Program> {
 		public String toString() {
 			return String.format("{%s  %d  %s}", name, number, type.toString());
 		}
+
+		@Override
+		public int compareTo(NameNumberType that) {
+			return Integer.compare(this.number, that.number);
+		}
 	}
 
 	// name type
-	public static class NameType {
+	public static class NameType implements Comparable<NameType> {
 		public final String name;
 		public final Type   type;
 		public NameType(final String name, final Type type) {
@@ -174,10 +184,15 @@ public class Program implements Comparable<Program> {
 		public String toString() {
 			return String.format("{%s  %s}", name, type.toString());
 		}
+
+		@Override
+		public int compareTo(NameType that) {
+			return this.name.compareTo(that.name);
+		}
 	}
 
 	// name cons
-	public static class NameCons {
+	public static class NameCons implements Comparable<NameCons> {
 		public final String name;
 		public final Cons   cons;
 		public NameCons(final String name, final Cons cons) {
@@ -188,6 +203,11 @@ public class Program implements Comparable<Program> {
 		@Override
 		public String toString() {
 			return String.format("{%s  %s}", name, cons.toString());
+		}
+
+		@Override
+		public int compareTo(NameCons that) {
+			return this.name.compareTo(that.name);
 		}
 	}
 

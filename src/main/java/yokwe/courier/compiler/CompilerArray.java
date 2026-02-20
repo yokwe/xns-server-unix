@@ -58,7 +58,7 @@ public class CompilerArray extends CompilerPair {
 			}
 
 			out.println("using %s = std::array<%s, %d>;", name, elementString, size);
-			out.println("inline constexpr uint32_t %s_SIZE = %d;", name, typeArray.size);
+			out.println("static inline constexpr uint32_t %s_SIZE = %d;", name, typeArray.size);
 		}
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {

@@ -39,8 +39,7 @@ public class GenCourier {
 		logger.debug("START");
 
 		String[] pathList = {
-			"data/courier/custom",
-			"data/courier/XNSonUX",
+			"data/courier/private",
 		};
 
 		var builder = new Builder();

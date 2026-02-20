@@ -64,7 +64,7 @@ public class Cons {
 		}
 		public Number(final java.lang.String value) {
 			super(Kind.NUMBER);
-			this.value = (int)Util.parseLong(value);
+			this.value = Util.parseInt(value);
 		}
 
 		@Override

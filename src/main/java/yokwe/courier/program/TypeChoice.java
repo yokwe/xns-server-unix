@@ -40,6 +40,13 @@ public class TypeChoice extends Type {
 		super(Kind.CHOICE);
 	}
 
+	public Anon toAnon() {
+		return (Anon)this;
+	}
+	public Name toName() {
+		return (Name)this;
+	}
+
 	public static class Anon extends TypeChoice {
 		public final List<NameNumberType> candidateList;
 
@@ -55,7 +62,7 @@ public class TypeChoice extends Type {
 	}
 
 	public static class Name extends TypeChoice {
-		public final Reference.TYPE      designator;
+		public final Reference.TYPE designator;
 		public final List<NameType> candidateList;
 
 		public Name(final Reference.TYPE designator, final List<NameType> candidateList) {
