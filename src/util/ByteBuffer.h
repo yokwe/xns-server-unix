@@ -485,7 +485,7 @@ void from_bb(const ByteBuffer& bb, std::vector<T>& vector) {
     for(int i = 0; i < size; i++) {
         T value;
         bb.read(value);
-        vector.push_back(value);
+        vector[i] = value;
     }
 }
 //
@@ -504,9 +504,10 @@ template<typename T, std::size_t N>
 void from_bb(const ByteBuffer& bb, std::array<T, N>& array) {
     int size = array.size();
     if (65535 < size) ERROR()
+    if (size != N) ERROR()
     for(int i = 0; i < size; i++) {
         T value;
         bb.read(value);
-        array.push_back(value);
+        array[i] = value;
     }
 }
