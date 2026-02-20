@@ -113,6 +113,10 @@ public class Compiler {
 
 			#pragma once
 
+			#include <string>
+			#include <vector>
+			#include <array>
+
 			#include "../util/ByteBuffer.h"
 
 			#include "Courier.h"
