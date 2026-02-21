@@ -33,6 +33,7 @@ package yokwe.courier.compiler;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import yokwe.courier.compiler.Compiler.CompilerDecl;
@@ -41,6 +42,7 @@ import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NumberName;
+import yokwe.courier.util.Util;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeChoice;
 import yokwe.courier.program.TypeEnum;
@@ -50,6 +52,15 @@ import yokwe.util.UnexpectedException;
 public class CompilerChoice extends CompilerPair {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
+	static boolean findSelf(Context context, AutoIndentPrintWriter out, String name, TypeChoice type) {
+		var qName = context.program.self.toQName(name);
+		var ret = findType(type, qName);
+		if (ret) {
+			logger.warn("Skip for recursive  {}", qName);
+			out.println("// Skip for recursive  %s", qName);
+		}
+		return ret;
+	}
 	static boolean findType(TypeChoice type, String qName) {
 		return switch(type) {
 			case TypeChoice.Anon ut -> findType(ut, qName);
@@ -81,19 +92,45 @@ public class CompilerChoice extends CompilerPair {
 		return false;
 	}
 
+	static List<NameNumberType> toCandidateList(TypeChoice.Name type) {
+		var numberMap = type.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
+		return type.candidateList.stream().map(o -> new NameNumberType(o.name, numberMap.get(o.name), o.type)).collect(Collectors.toList());
+	}
+
+	static Set<String> toTypeNameSet(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
+		var ret = new LinkedHashSet<String>();
+		ret.add("std::monostate");
+
+		for(var e: candidateList) {
+			if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
+				// std::monostate
+			} else if (e.type.isReference()) {
+				var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
+				ret.add(myName);
+			} else if (e.type.isConstructedType()) {
+				out.println("// %s", e.name);
+//				var myName = String.format("Choice_%d", e.number);
+				var myName = Util.capitalizeName(e.name);
+				var myType = e.type;
+				var compiler = Compiler.getCompilerPair(myType);
+				compiler.header.compileType(context, out, myName, myType);
+				ret.add(myName);
+			} else {
+				var myName = toTypeString(context.program.self, e.type);
+				ret.add(myName);
+			}
+		}
+
+		return ret;
+	}
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeChoice = type.toTypeChoice();
 
 			// Check recursive to self
-			{
-				var qName = context.program.self.toQName(name);
-				if (findType(typeChoice, qName)) {
-					logger.warn("Skip for recursive  {}", qName);
-					out.println("// Skip for recursive  %s", qName);
-					return;
-				}
+			if (findSelf(context, out, name, typeChoice)) {
+				return;
 			}
 
 			switch(typeChoice) {
@@ -119,86 +156,41 @@ public class CompilerChoice extends CompilerPair {
 
 			// output candidate
 			out.println("// output candidate");
-			var nameSet = new LinkedHashSet<String>();
-			nameSet.add("std::monostate");
-
-			for(var e: candidateList) {
-				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
-					// std::monostate
-				} else if (e.type.isReference()) {
-					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
-					nameSet.add(myName);
-				} else if (e.type.isConstructedType()) {
-					out.println("// %s", e.name);
-					var myName = String.format("Choice_%d", e.number);
-					var myType = e.type;
-					var compiler = Compiler.getCompilerPair(myType);
-					compiler.header.compileType(context, out, myName, myType);
-					nameSet.add(myName);
-				} else {
-					var myName = toTypeString(context.program.self, e.type);
-					nameSet.add(myName);
-				}
-			}
+			var typeNameSet = toTypeNameSet(context, out, candidateList);
 
 			// output enum field
 			out.println("Key key;");
 
-			// output variant
-			out.println("std::variant<%s> variant;", String.join(", ", nameSet));
-			out.println();
-			out.println("void read(const ByteBuffer& bb);");
-			out.println("void write(ByteBuffer& bb) const;");
-			out.println("std::string toString() const;");
+			// output variables and methods
+			outputVariableMethod(out, typeNameSet);
 
 			out.println("};");
 		}
 		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
 			out.println("struct %s {  // CHOICE NAME", name);
 
-			var keyName = type.designator.toTYPE().toQName(context.program.self);
-			var numberMap = type.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
-
-			var candidateList = type.candidateList.stream().map(o -> new NameNumberType(o.name, numberMap.get(o.name), o.type)).collect(Collectors.toList());
+			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
 			// output candidate
 			out.println("// output candidate");
-			var nameSet = new LinkedHashSet<String>();
-			nameSet.add("std::monostate");
-
-			for(var e: candidateList) {
-				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
-					// std::monostate
-				} else if (e.type.isReference()) {
-					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
-					nameSet.add(myName);
-				} else if (e.type.isConstructedType()) {
-					out.println("//  %s", e.name);
-					var myName = String.format("Choice_%d", e.number);
-					var myType = e.type;
-					var compiler = Compiler.getCompilerPair(myType);
-					compiler.header.compileType(context, out, myName, myType);
-					nameSet.add(myName);
-				} else {
-					var myName = toTypeString(context.program.self, e.type);
-					nameSet.add(myName);
-				}
-			}
+			var typeNameSet = toTypeNameSet(context, out, candidateList);
 
 			// output enum field
-			out.println("%s key;", keyName);
+			var keyTypeName = type.designator.toTYPE().toQName(context.program.self);
+			out.println("%s key;", keyTypeName);
 
-			// output variant
-			out.println("std::variant<%s> variant;", String.join(", ", nameSet));
+			// output variables and methods
+			outputVariableMethod(out, typeNameSet);
+		}
+
+		void outputVariableMethod(AutoIndentPrintWriter out, Set<String> typeNameSet) {
+			out.println("std::variant<%s> variant;", String.join(", ", typeNameSet));
 			out.println();
 			out.println("void read(const ByteBuffer& bb);");
 			out.println("void write(ByteBuffer& bb) const;");
 			out.println("std::string toString() const;");
-
-			out.println("};");
 		}
-
 
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
@@ -211,13 +203,8 @@ public class CompilerChoice extends CompilerPair {
 			var typeChoice = type.toTypeChoice();
 
 			// Check recursive to self
-			{
-				var qName = context.program.self.toQName(name);
-				if (findType(typeChoice, qName)) {
-					logger.warn("Skip for recursive  {}", qName);
-					out.println("// Skip for recursive  %s", qName);
-					return;
-				}
+			if (findSelf(context, out, name, typeChoice)) {
+				return;
 			}
 
 			switch(typeChoice) {
@@ -227,45 +214,95 @@ public class CompilerChoice extends CompilerPair {
 			}
 		}
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
+			var candidateList = type.candidateList;
+			Collections.sort(candidateList);
+
 		    out.println("//  CHOICE ANON  %s", name);
-
-		    // output read
-			out.println("void %s::read(const ByteBuffer& bb) {", name);
-			out.println("bb.read(key); // FIXME");
-			// FIXME
-			out.println("}");
-
-		    // output write
-			out.println("void %s::write(ByteBuffer& bb) const {", name);
-			out.println("bb.write(key); // FIXME");
-			// FIXME
-			out.println("}");
-
-		    // output toString
-			out.println("std::string %s::toString() const {", name);
-			out.println("return \"\"; // FIXME");
-			// FIXME
-			out.println("}");
+		    outputMethod(context, out, name, candidateList);
 		}
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
-		    out.println("//  CHOICE NAME  %s", name);
+			var candidateList = toCandidateList(type);
+			Collections.sort(candidateList);
 
+		    out.println("//  CHOICE NAME  %s", name);
+		    outputMethod(context, out, name, candidateList);
+		}
+
+		void outputMethod(Context context, AutoIndentPrintWriter out, String name, List<NameNumberType> candidateList) {
 		    // output read
 			out.println("void %s::read(const ByteBuffer& bb) {", name);
-			out.println("bb.read(key); // FIXME");
-			// FIXME
+			out.println("bb.read(key);");
+			out.println("auto number = std::to_underlying(key);");
+			out.println("switch(number) {");
+			for(var e: candidateList) {
+				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+
+				out.println("case %d:", e.number);
+				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+					out.println("variant = std::monostate{}; // Empty record  %s", myName);
+					out.println("break;");
+					continue;
+				}
+
+				out.println("{");
+				out.println("%s value;", myName);
+				out.println("bb.read(value);");
+				out.println("variant = value;");
+				out.println("}");
+				out.println("break;");
+			}
+			out.println("default: ERROR()");
+			out.println("}");
 			out.println("}");
 
 		    // output write
 			out.println("void %s::write(ByteBuffer& bb) const {", name);
-			out.println("bb.write(key); // FIXME");
-			// FIXME
+			out.println("bb.write(key);");
+			out.println("auto number = std::to_underlying(key);");
+			out.println("switch(number) {");
+			for(var e: candidateList) {
+				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+
+				out.println("case %d:", e.number);
+				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+					out.println("// Empty record  %s", myName);
+					out.println("break;");
+					continue;
+				}
+
+				out.println("{");
+				out.println("auto value = std::get<%s>(variant);", myName);
+				out.println("bb.write(value);");
+				out.println("}");
+				out.println("break;");
+			}
+			out.println("default: ERROR()");
+			out.println("}");
 			out.println("}");
 
 		    // output toString
 			out.println("std::string %s::toString() const {", name);
-			out.println("return \"\"; // FIXME");
-			// FIXME
+			out.println("std::string ret;");
+
+			out.println("auto number = std::to_underlying(key);");
+
+			out.println("switch(number) {");
+			for(var e: candidateList) {
+				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+
+				out.println("case %d:", e.number);
+				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+					out.println(String.format("return \"{%s  {}}\";", myName));
+					continue;
+				}
+
+				out.println("{");
+				out.println("auto value = std::get<%s>(variant);", myName);
+				out.println(String.format("return \"{%s  \" + value.toString() + \"}\";", myName));
+				out.println("}");
+			}
+			out.println("default: ERROR()");
+			out.println("}");
 			out.println("}");
 		}
 
