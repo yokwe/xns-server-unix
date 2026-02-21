@@ -92,4 +92,14 @@ public class Util {
 		return sanitizeMap.containsKey(symbol) ? sanitizeMap.get(symbol) : symbol;
 	}
 
+	public static String capitalizeName(String name) {
+		var firstLetter = name.substring(0, 1);
+		var firstLetterNew = firstLetter.toUpperCase();
+		if (firstLetterNew.equals(firstLetter)) {
+			return name + "_";
+		} else {
+			return firstLetterNew + name.substring(1);
+		}
+	}
+
 }
