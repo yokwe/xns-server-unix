@@ -36,6 +36,7 @@ import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeEnum;
+import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
@@ -50,7 +51,7 @@ public class CompilerEnum extends CompilerPair {
 			out.println("enum class %s : uint16_t {", name);
 			out.prepareLayout();
 			for(var e: typeEnum.list) {
-				out.println("%s = %d,", e.name, e.number);
+				out.println("%s = %d,", Util.sanitizeSymbol(e.name), e.number);
 			}
 			out.layout(Layout.LEFT, Layout.LEFT, Layout.RIGHT);
 			out.println("};");
@@ -83,7 +84,7 @@ public class CompilerEnum extends CompilerPair {
 		out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
 		out.prepareLayout();
 		for(var e: typeEnum.list) {
-			out.println("{%s::%s, \"%d\"},", name, e.name, e.number);
+			out.println("{%s::%s, \"%d\"},", name, Util.sanitizeSymbol(e.name), e.number);
 		}
 		out.layout(Layout.LEFT, Layout.RIGHT);
 		out.println("};");
