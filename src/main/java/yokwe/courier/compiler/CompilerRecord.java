@@ -39,44 +39,51 @@ import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerRecord extends CompilerPair {
+	private static String newName(String name) {
+		var firstLetter = name.substring(0, 1);
+		var firstLetterNew = firstLetter.toUpperCase();
+		if (firstLetterNew.equals(firstLetter)) {
+			return name + "_";
+		} else {
+			return firstLetterNew + name.substring(1);
+		}
+	}
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeRecord = type.toTypeRecord();
-
 			if (typeRecord.fieldList.isEmpty()) {
 				out.println("using %s = EMPTY_RECORD;", name);
 				return;
 			}
 
+			// output record
+			out.println("struct %s {", name);
+
 			// output constructed type
 			for(var field: typeRecord.fieldList) {
 				if (field.type.isConstructedType()) {
-					var newName = name + "_" + field.name;
+					var newName = newName(field.name);
 					var compiler = Compiler.getCompilerPair(field.type);
 					compiler.header.compileType(context, out, newName, field.type);
 				}
 			}
-			// output record
-			out.println("struct %s {", name);
 
-			if (!typeRecord.fieldList.isEmpty()) {
-				// output field
-				out.prepareLayout();
-				for(var field: typeRecord.fieldList) {
-					String fieldTypeString;
-					if (field.type.isConstructedType()) {
-						fieldTypeString = name + "_" + field.name;
-					} else {
-						fieldTypeString = toTypeString(context.program.self, field.type);
-					}
-					out.println("%s  %s;", fieldTypeString, field.name);
+			// output field
+			out.prepareLayout();
+			for(var field: typeRecord.fieldList) {
+				String fieldTypeString;
+				if (field.type.isConstructedType()) {
+					fieldTypeString = newName(field.name);
+				} else {
+					fieldTypeString = toTypeString(context.program.self, field.type);
 				}
-				out.layout(Layout.LEFT, Layout.LEFT);
-				out.println();
+				out.println("%s  %s;", fieldTypeString, field.name);
 			}
+			out.layout(Layout.LEFT, Layout.LEFT);
+			out.println();
 
 			// output methods
 			out.println("void read(const ByteBuffer& bb);");
@@ -94,36 +101,45 @@ public class CompilerRecord extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeRecord = type.toTypeRecord();
+			if (typeRecord.fieldList.isEmpty()) {
+				return;
+			}
+
 			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+		    var fieldNameListString = String.join(", ", fieldNameArray);
+
+			// output constructed type
+			for(var field: typeRecord.fieldList) {
+				if (field.type.isConstructedType()) {
+					var newName = name + "::" + newName(field.name);
+					var compiler = Compiler.getCompilerPair(field.type);
+					compiler.source.compileType(context, out, newName, field.type);
+				}
+			}
 
 		    out.println("//  %s", name);
-			if (fieldNameArray.length == 0) {
-				out.println("void %s::read(const ByteBuffer& bb) {}", name);
-				out.println("void %s::write(ByteBuffer& bb) const {}", name);
-				out.println("std::string %s::toString() const { return \"\"; }", name);
-			} else {
-			    var fieldNameListString = String.join(", ", fieldNameArray);
 
-				out.println("void %s::read(const ByteBuffer& bb) {", name);
-				out.println("bb.read(%s);", fieldNameListString);
-				out.println("}");
-				out.println("void %s::write(ByteBuffer& bb) const {", name);
-				out.println("bb.write(%s);", fieldNameListString);
-				out.println("}");
-				out.println("std::string %s::toString() const {", name);
-				out.println("std::string ret;");
-				out.println("ret += \"[\";");
+		    // output read
+			out.println("void %s::read(const ByteBuffer& bb) {", name);
+			out.println("bb.read(%s);", fieldNameListString);
+			out.println("}");
 
-				for(int i = 0; i < fieldNameArray.length; i++) {
-					if (i != 0) {
-						out.println("ret += \" \";");
-					}
-					out.println("ret += ::toString(%s);", fieldNameArray[i]);
+			// output write
+			out.println("void %s::write(ByteBuffer& bb) const {", name);
+			out.println("bb.write(%s);", fieldNameListString);
+			out.println("}");
+
+			// output toString
+			out.println("std::string %s::toString() const {", name);
+			var buf = new StringBuilder();
+			for(int i = 0; i < fieldNameArray.length; i++) {
+				if (i != 0) {
+					buf.append(" + \" \" + ");
 				}
-				out.println("ret += \"]\";");
-				out.println("return ret;");
-				out.println("}");
+				buf.append(String.format("::toString(%s)", fieldNameArray[i]));
 			}
+			out.println("return \"{\" + %s + \"}\";", buf.toString());
+			out.println("}");
 			out.println();
 		}
 		@Override
