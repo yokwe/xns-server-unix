@@ -30,8 +30,8 @@
 
 package yokwe.courier.compiler;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,54 +50,60 @@ import yokwe.util.UnexpectedException;
 public class CompilerChoice extends CompilerPair {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			var typeChoice = type.toTypeChoice();
-			if (typeChoice instanceof TypeChoice.Anon) {
-				compileType(context, out, name, typeChoice.toAnon());
-			} else if (typeChoice instanceof TypeChoice.Name) {
-				compileType(context, out, name, typeChoice.toName());
-			} else {
-				logger.error("typeChoice {}", typeChoice);
-				throw new UnexpectedException("Unexpected");
-			}
-		}
-
-		boolean findType(List<Type> typeList, String qName) {
-			for(var type: typeList) {
-				if (type.isRecord()) {
-					for(var field: type.toTypeRecord().fieldList) {
-						if (field.type.isReference()) {
-							var myName = field.type.toTypeReference().toReferenceType().toName();
-							if (myName.equals(qName)) {
-								return true;
-							}
+	static boolean findType(TypeChoice type, String qName) {
+		return switch(type) {
+			case TypeChoice.Anon ut -> findType(ut, qName);
+			case TypeChoice.Name ut -> findType(ut, qName);
+			default -> throw new UnexpectedException("Unexpected");
+		};
+	}
+	static boolean findType(TypeChoice.Anon type, String qName) {
+		var typeList = type.candidateList.stream().map(o -> o.type).toList();
+		return findType(typeList, qName);
+	}
+	static boolean findType(TypeChoice.Name type, String qName) {
+		var typeList = type.candidateList.stream().map(o -> o.type).toList();
+		return findType(typeList, qName);
+	}
+	static boolean findType(List<Type> typeList, String qName) {
+		for(var type: typeList) {
+			if (type.isRecord()) {
+				for(var field: type.toTypeRecord().fieldList) {
+					if (field.type.isReference()) {
+						var myName = field.type.toTypeReference().toReferenceType().toName();
+						if (myName.equals(qName)) {
+							return true;
 						}
 					}
 				}
 			}
-			return false;
 		}
-		boolean findType(TypeChoice.Anon type, String qName) {
-			var typeList = type.candidateList.stream().map(o -> o.type).toList();
-			return findType(typeList, qName);
-		}
-		boolean findType(TypeChoice.Name type, String qName) {
-			var typeList = type.candidateList.stream().map(o -> o.type).toList();
-			return findType(typeList, qName);
-		}
-		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
-			// Check recursive of self
+		return false;
+	}
+
+	private static class CompileHeader implements CompilerDecl {
+		@Override
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+			var typeChoice = type.toTypeChoice();
+
+			// Check recursive to self
 			{
 				var qName = context.program.self.toQName(name);
-				if (findType(type, qName)) {
-					logger.error("Skip for recursive  {}", qName);
+				if (findType(typeChoice, qName)) {
+					logger.warn("Skip for recursive  {}", qName);
 					out.println("// Skip for recursive  %s", qName);
 					return;
 				}
 			}
 
+			switch(typeChoice) {
+			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
+			case TypeChoice.Name ut -> compileType(context, out, name, ut);
+			default -> throw new UnexpectedException("Unexpected");
+			}
+		}
+
+		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
 			out.println("struct %s {  // CHOICE ANON", name);
 
 			var candidateList = type.candidateList;
@@ -113,24 +119,25 @@ public class CompilerChoice extends CompilerPair {
 
 			// output candidate
 			out.println("// output candidate");
-			List<String> nameList = new ArrayList<>();
+			var nameSet = new LinkedHashSet<String>();
+			nameSet.add("std::monostate");
+
 			for(var e: candidateList) {
 				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
-					var myName = "EMPTY_RECORD";
-					nameList.add(myName);
+					// std::monostate
 				} else if (e.type.isReference()) {
 					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
-					nameList.add(myName);
+					nameSet.add(myName);
 				} else if (e.type.isConstructedType()) {
 					out.println("// %s", e.name);
 					var myName = String.format("Choice_%d", e.number);
 					var myType = e.type;
 					var compiler = Compiler.getCompilerPair(myType);
 					compiler.header.compileType(context, out, myName, myType);
-					nameList.add(myName);
+					nameSet.add(myName);
 				} else {
 					var myName = toTypeString(context.program.self, e.type);
-					nameList.add(myName);
+					nameSet.add(myName);
 				}
 			}
 
@@ -138,7 +145,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("Key key;");
 
 			// output variant
-			out.println("std::variant<%s> variant;", String.join(", ", nameList));
+			out.println("std::variant<%s> variant;", String.join(", ", nameSet));
 			out.println();
 			out.println("void read(const ByteBuffer& bb);");
 			out.println("void write(ByteBuffer& bb) const;");
@@ -147,16 +154,6 @@ public class CompilerChoice extends CompilerPair {
 			out.println("};");
 		}
 		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
-			// FIXME
-			{
-				var qName = context.program.self.toQName(name);
-				if (findType(type, qName)) {
-					logger.error("Skip for recursive  {}", qName);
-					out.println("// Skip for recursive  %s", qName);
-					return;
-				}
-			}
-
 			out.println("struct %s {  // CHOICE NAME", name);
 
 			var keyName = type.designator.toTYPE().toQName(context.program.self);
@@ -167,24 +164,25 @@ public class CompilerChoice extends CompilerPair {
 
 			// output candidate
 			out.println("// output candidate");
-			List<String> nameList = new ArrayList<>();
+			var nameSet = new LinkedHashSet<String>();
+			nameSet.add("std::monostate");
+
 			for(var e: candidateList) {
 				if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
-					var myName = "EMPTY_RECORD";
-					nameList.add(myName);
+					// std::monostate
 				} else if (e.type.isReference()) {
 					var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
-					nameList.add(myName);
+					nameSet.add(myName);
 				} else if (e.type.isConstructedType()) {
 					out.println("//  %s", e.name);
 					var myName = String.format("Choice_%d", e.number);
 					var myType = e.type;
 					var compiler = Compiler.getCompilerPair(myType);
 					compiler.header.compileType(context, out, myName, myType);
-					nameList.add(myName);
+					nameSet.add(myName);
 				} else {
 					var myName = toTypeString(context.program.self, e.type);
-					nameList.add(myName);
+					nameSet.add(myName);
 				}
 			}
 
@@ -192,7 +190,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("%s key;", keyName);
 
 			// output variant
-			out.println("std::variant<%s> variant;", String.join(", ", nameList));
+			out.println("std::variant<%s> variant;", String.join(", ", nameSet));
 			out.println();
 			out.println("void read(const ByteBuffer& bb);");
 			out.println("void write(ByteBuffer& bb) const;");
@@ -210,8 +208,68 @@ public class CompilerChoice extends CompilerPair {
 	private static class CompileSource implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
-			// TODO Auto-generated method stub
+			var typeChoice = type.toTypeChoice();
+
+			// Check recursive to self
+			{
+				var qName = context.program.self.toQName(name);
+				if (findType(typeChoice, qName)) {
+					logger.warn("Skip for recursive  {}", qName);
+					out.println("// Skip for recursive  %s", qName);
+					return;
+				}
+			}
+
+			switch(typeChoice) {
+			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
+			case TypeChoice.Name ut -> compileType(context, out, name, ut);
+			default -> throw new UnexpectedException("Unexpected");
+			}
 		}
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
+		    out.println("//  CHOICE ANON  %s", name);
+
+		    // output read
+			out.println("void %s::read(const ByteBuffer& bb) {", name);
+			out.println("bb.read(key); // FIXME");
+			// FIXME
+			out.println("}");
+
+		    // output write
+			out.println("void %s::write(ByteBuffer& bb) const {", name);
+			out.println("bb.write(key); // FIXME");
+			// FIXME
+			out.println("}");
+
+		    // output toString
+			out.println("std::string %s::toString() const {", name);
+			out.println("return \"\"; // FIXME");
+			// FIXME
+			out.println("}");
+		}
+		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
+		    out.println("//  CHOICE NAME  %s", name);
+
+		    // output read
+			out.println("void %s::read(const ByteBuffer& bb) {", name);
+			out.println("bb.read(key); // FIXME");
+			// FIXME
+			out.println("}");
+
+		    // output write
+			out.println("void %s::write(ByteBuffer& bb) const {", name);
+			out.println("bb.write(key); // FIXME");
+			// FIXME
+			out.println("}");
+
+		    // output toString
+			out.println("std::string %s::toString() const {", name);
+			out.println("return \"\"; // FIXME");
+			// FIXME
+			out.println("}");
+		}
+
+
 		@Override
 		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
 			// TODO Auto-generated method stub
