@@ -36,17 +36,6 @@ import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NameType;
 
 public class TypeChoice extends Type {
-	public TypeChoice() {
-		super(Kind.CHOICE);
-	}
-
-	public Anon toAnon() {
-		return (Anon)this;
-	}
-	public Name toName() {
-		return (Name)this;
-	}
-
 	public static class Anon extends TypeChoice {
 		public final List<NameNumberType> candidateList;
 
@@ -76,4 +65,26 @@ public class TypeChoice extends Type {
 			return String.format("{%s  NAME  %s  %s}", kind, designator.toString(), string);
 		}
 	}
+
+	public TypeChoice() {
+		super(Kind.CHOICE);
+	}
+
+	// isXXX
+	public boolean isAnon() {
+		return this instanceof Anon;
+	}
+	public boolean isName() {
+		return this instanceof Name;
+	}
+
+	// toXXX
+	public Anon toAnon() {
+		return (Anon)this;
+	}
+	public Name toName() {
+		return (Name)this;
+	}
+
+
 }
