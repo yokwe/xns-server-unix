@@ -46,7 +46,6 @@ public class TypeRecord extends Type {
 		this.fieldList = fieldList;
 	}
 
-
 	@Override
 	public String toString() {
 		if (fieldList.isEmpty()) {
@@ -55,5 +54,10 @@ public class TypeRecord extends Type {
 
 		var stringList = fieldList.stream().map(NameType::toString).toList();
 		return String.format("{%s  %s}", kind, String.join(" ", stringList));
+	}
+
+	// isXXX
+	public boolean isEmpty() {
+		return fieldList.isEmpty();
 	}
 }
