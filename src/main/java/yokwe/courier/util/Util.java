@@ -28,7 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-package yokwe.courier.program;
+package yokwe.courier.util;
 
 import java.util.Map;
 import java.util.TreeMap;

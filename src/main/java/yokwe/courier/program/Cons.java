@@ -30,6 +30,7 @@
 
 package yokwe.courier.program;
 
+import yokwe.courier.util.Util;
 import yokwe.util.UnexpectedException;
 
 public class Cons {
