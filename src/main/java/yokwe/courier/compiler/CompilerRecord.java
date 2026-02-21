@@ -35,26 +35,20 @@ import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
+import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerRecord extends CompilerPair {
-	private static String newName(String name) {
-		var firstLetter = name.substring(0, 1);
-		var firstLetterNew = firstLetter.toUpperCase();
-		if (firstLetterNew.equals(firstLetter)) {
-			return name + "_";
-		} else {
-			return firstLetterNew + name.substring(1);
-		}
-	}
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeRecord = type.toTypeRecord();
-			if (typeRecord.fieldList.isEmpty()) {
+
+			// if record has no field
+			if (typeRecord.isEmpty()) {
 				out.println("using %s = EMPTY_RECORD;", name);
 				return;
 			}
@@ -65,7 +59,7 @@ public class CompilerRecord extends CompilerPair {
 			// output constructed type
 			for(var field: typeRecord.fieldList) {
 				if (field.type.isConstructedType()) {
-					var newName = newName(field.name);
+					var newName = Util.capitalizeName(field.name);
 					var compiler = Compiler.getCompilerPair(field.type);
 					compiler.header.compileType(context, out, newName, field.type);
 				}
@@ -76,7 +70,7 @@ public class CompilerRecord extends CompilerPair {
 			for(var field: typeRecord.fieldList) {
 				String fieldTypeString;
 				if (field.type.isConstructedType()) {
-					fieldTypeString = newName(field.name);
+					fieldTypeString = Util.capitalizeName(field.name);
 				} else {
 					fieldTypeString = toTypeString(context.program.self, field.type);
 				}
@@ -101,21 +95,23 @@ public class CompilerRecord extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeRecord = type.toTypeRecord();
-			if (typeRecord.fieldList.isEmpty()) {
+
+			// if record has no field
+			if (typeRecord.isEmpty()) {
 				return;
 			}
-
-			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
-		    var fieldNameListString = String.join(", ", fieldNameArray);
 
 			// output constructed type
 			for(var field: typeRecord.fieldList) {
 				if (field.type.isConstructedType()) {
-					var newName = name + "::" + newName(field.name);
+					var newName = name + "::" + Util.capitalizeName(field.name);
 					var compiler = Compiler.getCompilerPair(field.type);
 					compiler.source.compileType(context, out, newName, field.type);
 				}
 			}
+
+			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+		    var fieldNameListString = String.join(", ", fieldNameArray);
 
 		    out.println("//  %s", name);
 
