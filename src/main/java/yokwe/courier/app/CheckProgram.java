@@ -40,7 +40,8 @@ public class CheckProgram {
 		logger.debug("START");
 
 		String[] pathList = {
-			"data/courier/private",
+			"data/courier/custom",
+			"data/courier/XNSonUX",
 		};
 
 		var builder = new Builder();

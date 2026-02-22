@@ -1,8 +1,8 @@
 Boot: PROGRAM 0 VERSION 0 =
 BEGIN
-  DEPENDS UPON
-    IDP(0) VERSION 0,
-    SequencedPacket(0) VERSION 0;
+--  DEPENDS UPON
+--    IDP(0) VERSION 0,
+--    SequencedPacket(0) VERSION 0;
 
   EtherBootPacketType: TYPE = {simpleRequest(1), simpleData(2), sppRequest(3)};
   
