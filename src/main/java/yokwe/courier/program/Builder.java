@@ -50,9 +50,9 @@ import yokwe.courier.antlr.CourierParser;
 import yokwe.courier.program.Program.Decl;
 import yokwe.courier.program.Program.Info;
 import yokwe.courier.program.Program.NameCons;
-import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NameType;
 import yokwe.courier.program.Program.NumberName;
+import yokwe.courier.program.TypeChoice.CandidateName;
 import yokwe.courier.util.Util;
 import yokwe.util.UnexpectedException;
 
@@ -321,31 +321,32 @@ public class Builder {
 		};
 	}
 	Type toType(final Program myProgram, final CourierParser.ChoiceTypeAnonContext context) {
-		var candidateList = new ArrayList<NameNumberType>();
+		var candidateList = new ArrayList<TypeChoice.Candidate>();
 
 		for(var e: context.candidateList().elements) {
-			var type = toType(myProgram, e.type());
+			var designatorList = new ArrayList<NumberName>();
+			var type           = toType(myProgram, e.type());
+
 			for(var ee: e.designatorList().elements) {
 				var name   = ee.name.getText();
 				var number = Util.parseInt(ee.positiveNumber().getText());
-
-				candidateList.add(new NameNumberType(name, number, type));
+				designatorList.add(new NumberName(number, name));
 			}
+
+			candidateList.add(new TypeChoice.Candidate(designatorList, type));
 		}
 		return new TypeChoice.Anon(candidateList);
 	}
 	Type toType(final Program myProgram, final CourierParser.ChoiceTypeNameContext context) {
-		var designator    = toReferenceType(myProgram, context.reference());
-		var candidateList = new ArrayList<NameType>();
+		var designator        = toReferenceType(myProgram, context.reference()).toTYPE();
+		var candidateNameList = new ArrayList<CandidateName>();
 
 		for(var e: context.candidateNameList().elements) {
+			var nameList = e.nameList().elements.stream().map(o -> o.getText()).toList();
 			var type = toType(myProgram, e.type());
-			for(var ee: e.nameList().elements) {
-				var name = ee.getText();
-				candidateList.add(new NameType(name, type));
-			}
+			candidateNameList.add(new CandidateName(nameList, type));
 		}
-		return new TypeChoice.Name(designator, candidateList);
+		return new TypeChoice.Name(designator, candidateNameList);
 	}
 	Type toType(final Program myProgram, final CourierParser.TypeProcedureContext context) {
 		var procedureType = context.procedureType();
