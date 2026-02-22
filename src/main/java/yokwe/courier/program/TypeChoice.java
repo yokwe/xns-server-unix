@@ -32,36 +32,63 @@ package yokwe.courier.program;
 
 import java.util.List;
 
-import yokwe.courier.program.Program.NameNumberType;
-import yokwe.courier.program.Program.NameType;
+import yokwe.courier.program.Program.NumberName;
 
 public class TypeChoice extends Type {
-	public static class Anon extends TypeChoice {
-		public final List<NameNumberType> candidateList;
+	public static class Candidate {
+		public final List<NumberName> designatorList;
+		public final Type             type;
 
-		public Anon(final List<NameNumberType>candidateList) {
-			this.candidateList = candidateList;
+		public Candidate(final List<NumberName> designatorList_, final Type type_) {
+			designatorList = designatorList_;
+			type           = type_;
+		}
+
+		@Override
+		public String toString() {
+			var string = String.join(" ", designatorList.stream().map(NumberName::toString).toList());
+			return String.format("{{%s}  %s}", string, type.toString());
+		}
+	}
+	public static class Anon extends TypeChoice {
+		public final List<Candidate> candidateList;
+
+		public Anon(final List<Candidate>candidateList_) {
+			candidateList = candidateList_;
 		}
 		@Override
 		public String toString() {
-			var list = candidateList.stream().map(NameNumberType::toString).toList();
-			var string = String.format("{%s}", String.join(" ", list));
-			return String.format("{%s  ANON  %s}", kind, string);
+			var string = String.join(" ", candidateList.stream().map(Candidate::toString).toList());
+			return String.format("{%s  ANON  {%s}}", kind, string);
+		}
+	}
+
+	public static class CandidateName {
+		public final List<String> nameList;
+		public final Type         type;
+
+		public CandidateName(final List<String> nameList_, final Type type_) {
+			nameList = nameList_;
+			type     = type_;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("{{%s}  %s}", String.join(" ", nameList), type.toString());
 		}
 	}
 
 	public static class Name extends TypeChoice {
-		public final Reference.TYPE designator;
-		public final List<NameType> candidateList;
+		public final Reference.TYPE       designator;
+		public final List<CandidateName>  candidateNameList;     // for each arm of choice
 
-		public Name(final Reference.TYPE designator, final List<NameType> candidateList) {
-			this.designator    = designator;
-			this.candidateList = candidateList;
+		public Name(final Reference.TYPE designator_, final List<CandidateName>  candidateNameList_) {
+			designator        = designator_;
+			candidateNameList = candidateNameList_;
 		}
 		@Override
 		public String toString() {
-			var list = candidateList.stream().map(NameType::toString).toList();
-			var string = String.format("{%s}", String.join(" ", list));
+			var string = String.format("{%s}", String.join(" ", candidateNameList.stream().map(CandidateName::toString).toList()));
 			return String.format("{%s  NAME  %s  %s}", kind, designator.toString(), string);
 		}
 	}
@@ -85,6 +112,4 @@ public class TypeChoice extends Type {
 	public Name toName() {
 		return (Name)this;
 	}
-
-
 }
