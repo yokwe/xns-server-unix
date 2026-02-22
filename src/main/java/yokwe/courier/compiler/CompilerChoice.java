@@ -288,11 +288,7 @@ public class CompilerChoice extends CompilerPair {
 
 		    // output toString
 			out.println("std::string %s::toString() const {", name);
-			out.println("std::string ret;");
-
-			out.println("auto number = std::to_underlying(key);");
-
-			out.println("switch(number) {");
+			out.println("switch(key) {");
 			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 

@@ -83,9 +83,9 @@ public class CompilerEnum extends CompilerPair {
 		out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
 		out.prepareLayout();
 		for(var e: typeEnum.list) {
-			out.println("{%s::%s, \"%d\"},", name, Util.sanitizeSymbol(e.name), e.number);
+			out.println("{%s::%s, \"%s\"},", name, Util.sanitizeSymbol(e.name), e.name);
 		}
-		out.layout(Layout.LEFT, Layout.RIGHT);
+		out.layout(Layout.LEFT, Layout.LEFT);
 		out.println("};");
 		out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
 		out.println("};");
