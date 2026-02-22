@@ -30,10 +30,11 @@
 
 package yokwe.courier.compiler;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import yokwe.courier.compiler.Compiler.CompilerDecl;
@@ -42,97 +43,100 @@ import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Program.NameNumberType;
 import yokwe.courier.program.Program.NumberName;
-import yokwe.courier.util.Util;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeChoice;
 import yokwe.courier.program.TypeEnum;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.AutoIndentPrintWriter.Layout;
 import yokwe.util.UnexpectedException;
 
 public class CompilerChoice extends CompilerPair {
-	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+//	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
-	static boolean findSelf(Context context, AutoIndentPrintWriter out, String name, TypeChoice type) {
-		var qName = context.program.self.toQName(name);
-		var ret = findType(type, qName);
-		if (ret) {
-			logger.warn("Skip for recursive  {}", qName);
-			out.println("// Skip for recursive  %s", qName);
-		}
-		return ret;
-	}
-	static boolean findType(TypeChoice type, String qName) {
-		return switch(type) {
-			case TypeChoice.Anon ut -> findType(ut, qName);
-			case TypeChoice.Name ut -> findType(ut, qName);
-			default -> throw new UnexpectedException("Unexpected");
-		};
-	}
-	static boolean findType(TypeChoice.Anon type, String qName) {
-		var typeList = type.candidateList.stream().map(o -> o.type).toList();
-		return findType(typeList, qName);
-	}
-	static boolean findType(TypeChoice.Name type, String qName) {
-		var typeList = type.candidateList.stream().map(o -> o.type).toList();
-		return findType(typeList, qName);
-	}
-	static boolean findType(List<Type> typeList, String qName) {
-		for(var type: typeList) {
-			if (type.isRecord()) {
-				for(var field: type.toTypeRecord().fieldList) {
-					if (field.type.isReference()) {
-						var myName = field.type.toTypeReference().toReferenceType().toName();
-						if (myName.equals(qName)) {
-							return true;
-						}
-					}
-				}
+	private static List<NameNumberType> toCandidateList(TypeChoice.Name typeChoiceName) {
+		Map<String, Integer> map = typeChoiceName.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
+
+		var ret = new ArrayList<NameNumberType>();
+
+		for(var e: typeChoiceName.candidateNameList) {
+			var type = e.type;
+			for(var ee: e.nameList) {
+				var name = ee;
+				var number = map.get(name);
+
+				ret.add(new NameNumberType(name, number, type));
 			}
 		}
-		return false;
+
+		return ret;
+	}
+	private static List<NameNumberType> toCandidateList(TypeChoice.Anon typeChoiceAnon) {
+		var ret = new ArrayList<NameNumberType>();
+
+		for(var e: typeChoiceAnon.candidateList) {
+			var type = e.type;
+			for(var ee: e.designatorList) {
+				var name   = ee.name;
+				var number = ee.number;
+
+				ret.add(new NameNumberType(name, number, type));
+			}
+		}
+
+		return ret;
 	}
 
-	static List<NameNumberType> toCandidateList(TypeChoice.Name type) {
-		var numberMap = type.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
-		return type.candidateList.stream().map(o -> new NameNumberType(o.name, numberMap.get(o.name), o.type)).collect(Collectors.toList());
-	}
-
-	static Set<String> toTypeNameSet(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
-		var ret = new LinkedHashSet<String>();
-		ret.add("std::monostate");
-
-		for(var e: candidateList) {
-			if (e.type.isRecord() && e.type.toTypeRecord().fieldList.isEmpty()) {
-				// std::monostate
-			} else if (e.type.isReference()) {
-				var myName = e.type.toTypeReference().toReferenceType().toQName(context.program.self);
-				ret.add(myName);
-			} else if (e.type.isConstructedType()) {
-				out.println("// %s", e.name);
-//				var myName = String.format("Choice_%d", e.number);
-				var myName = Util.capitalizeName(e.name);
-				var myType = e.type;
-				var compiler = Compiler.getCompilerPair(myType);
-				compiler.header.compileType(context, out, myName, myType);
-				ret.add(myName);
+	private static List<String> toTypeNameList(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
+		var typeNameList = new ArrayList<String>();
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+				typeNameList.add("std::monostate");
+			} else if (candidate.type.isReference()) {
+				var typeName = candidate.type.toTypeReference().toReferenceType().toQName(context.program.self);
+				typeNameList.add(typeName);
+			} else if (candidate.type.isConstructedType()) {
+				var typeName = String.format("Choice_%d", i);
+				typeNameList.add(typeName);
 			} else {
-				var myName = toTypeString(context.program.self, e.type);
-				ret.add(myName);
+				var myName = toTypeString(context.program.self, candidate.type);
+				typeNameList.add(myName);
 			}
 		}
 
-		return ret;
+		// output choice and type
+		out.prepareLayout();
+		out.println("// number name type");
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			out.println("//  %d  %s  %s", i, candidate.name, typeNameList.get(i));
+		}
+		out.layout(Layout.LEFT, Layout.RIGHT, Layout.LEFT, Layout.LEFT);
+		out.println();
+
+		return typeNameList;
 	}
+
+	private static void compileConsructedType(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+
+			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+				//
+			} else if (candidate.type.isConstructedType()) {
+				var typeName = String.format("Choice_%d", i);
+				var myType = candidate.type;
+				var compiler = Compiler.getCompilerPair(myType);
+				compiler.header.compileType(context, out, typeName, myType);
+			}
+		}
+	}
+
+
 	private static class CompileHeader implements CompilerDecl {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeChoice = type.toTypeChoice();
-
-			// Check recursive to self
-			if (findSelf(context, out, name, typeChoice)) {
-				return;
-			}
-
 			switch(typeChoice) {
 			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
 			case TypeChoice.Name ut -> compileType(context, out, name, ut);
@@ -143,48 +147,50 @@ public class CompilerChoice extends CompilerPair {
 		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
 			out.println("struct %s {  // CHOICE ANON", name);
 
-			var candidateList = type.candidateList;
-			Collections.sort(candidateList);
-
 			// output enum type
 			String enumName = "Key";
 			{
-				TypeEnum anonEnum = new TypeEnum(candidateList.stream().map(o -> new NumberName(o.number, o.name)).toList());
+				var list = new ArrayList<NumberName>();
+				for(var e: type.candidateList) {
+					list.addAll(e.designatorList);
+				}
+
+				TypeEnum anonEnum = new TypeEnum(list);
 				var compiler = Compiler.getCompilerPair(anonEnum);
 				compiler.header.compileType(context, out, enumName, anonEnum);
 			}
 
-			// output candidate
-			out.println("// output candidate");
-			var typeNameSet = toTypeNameSet(context, out, candidateList);
+			var candidateList = toCandidateList(type);
 
-			// output enum field
-			out.println("Key key;");
-
-			// output variables and methods
-			outputVariableMethod(out, typeNameSet);
+			outputBody(context, out, enumName, candidateList);
 
 			out.println("};");
 		}
 		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
 			out.println("struct %s {  // CHOICE NAME", name);
 
+			var enumName = type.designator.toName();
 			var candidateList = toCandidateList(type);
-			Collections.sort(candidateList);
 
-			// output candidate
-			out.println("// output candidate");
-			var typeNameSet = toTypeNameSet(context, out, candidateList);
+			outputBody(context, out, enumName, candidateList);
 
-			// output enum field
-			var keyTypeName = type.designator.toTYPE().toQName(context.program.self);
-			out.println("%s key;", keyTypeName);
-
-			// output variables and methods
-			outputVariableMethod(out, typeNameSet);
+			out.println("};");
 		}
 
-		void outputVariableMethod(AutoIndentPrintWriter out, Set<String> typeNameSet) {
+		void outputBody(Context context, AutoIndentPrintWriter out, String enumName, List<NameNumberType> candidateList) {
+			// create typeNameList and output mapping of enum and type
+			var typeNameList = toTypeNameList(context, out, candidateList);
+
+			// compile constructed type in candidateList
+			compileConsructedType(context, out, candidateList);
+
+			// output enum field
+			out.println("%s key;", enumName);
+
+			// output variables and methods
+			var typeNameSet  = new LinkedHashSet<String>(typeNameList);
+			typeNameSet.addFirst("std::monostate");
+
 			out.println("std::variant<%s> variant;", String.join(", ", typeNameSet));
 			out.println();
 			out.println("void read(const ByteBuffer& bb);");
@@ -201,12 +207,6 @@ public class CompilerChoice extends CompilerPair {
 		@Override
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
 			var typeChoice = type.toTypeChoice();
-
-			// Check recursive to self
-			if (findSelf(context, out, name, typeChoice)) {
-				return;
-			}
-
 			switch(typeChoice) {
 			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
 			case TypeChoice.Name ut -> compileType(context, out, name, ut);
@@ -214,7 +214,7 @@ public class CompilerChoice extends CompilerPair {
 			}
 		}
 		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
-			var candidateList = type.candidateList;
+			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
 		    out.println("//  CHOICE ANON  %s", name);
@@ -229,23 +229,29 @@ public class CompilerChoice extends CompilerPair {
 		}
 
 		void outputMethod(Context context, AutoIndentPrintWriter out, String name, List<NameNumberType> candidateList) {
+			// create typeNameList and output mapping of enum and type
+			var typeNameList = toTypeNameList(context, out, candidateList);
+
 		    // output read
 			out.println("void %s::read(const ByteBuffer& bb) {", name);
 			out.println("bb.read(key);");
 			out.println("auto number = std::to_underlying(key);");
 			out.println("switch(number) {");
-			for(var e: candidateList) {
-				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+			for(int i = 0; i < candidateList.size(); i++) {
+				var candidate = candidateList.get(i);
 
-				out.println("case %d:", e.number);
-				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+				var myName = candidate.name;
+				var myTypeName = typeNameList.get(i);
+
+				out.println("case %d:", candidate.number);
+				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println("variant = std::monostate{}; // Empty record  %s", myName);
 					out.println("break;");
 					continue;
 				}
 
 				out.println("{");
-				out.println("%s value;", myName);
+				out.println("%s value;", myTypeName);
 				out.println("bb.read(value);");
 				out.println("variant = value;");
 				out.println("}");
@@ -260,18 +266,21 @@ public class CompilerChoice extends CompilerPair {
 			out.println("bb.write(key);");
 			out.println("auto number = std::to_underlying(key);");
 			out.println("switch(number) {");
-			for(var e: candidateList) {
-				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+			for(int i = 0; i < candidateList.size(); i++) {
+				var candidate = candidateList.get(i);
 
-				out.println("case %d:", e.number);
-				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+				var myName = candidate.name;
+				var myTypeName = typeNameList.get(i);
+
+				out.println("case %d:", candidate.number);
+				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println("// Empty record  %s", myName);
 					out.println("break;");
 					continue;
 				}
 
 				out.println("{");
-				out.println("auto value = std::get<%s>(variant);", myName);
+				out.println("auto value = std::get<%s>(variant);", myTypeName);
 				out.println("bb.write(value);");
 				out.println("}");
 				out.println("break;");
@@ -287,18 +296,21 @@ public class CompilerChoice extends CompilerPair {
 			out.println("auto number = std::to_underlying(key);");
 
 			out.println("switch(number) {");
-			for(var e: candidateList) {
-				String myName = (e.type.isConstructedType()) ? Util.capitalizeName(e.name) : CompilerChoice.toTypeString(context.program.self, e.type);
+			for(int i = 0; i < candidateList.size(); i++) {
+				var candidate = candidateList.get(i);
 
-				out.println("case %d:", e.number);
-				if (e.type.isRecord() && e.type.toTypeRecord().isEmpty()) {
+				var myName = candidate.name;
+				var myTypeName = typeNameList.get(i);
+
+				out.println("case %d:", candidate.number);
+				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println(String.format("return \"{%s  {}}\";", myName));
 					continue;
 				}
 
 				out.println("{");
-				out.println("auto value = std::get<%s>(variant);", myName);
-				out.println(String.format("return \"{%s  \" + value.toString() + \"}\";", myName));
+				out.println("auto value = std::get<%s>(variant);", myTypeName);
+				out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
 				out.println("}");
 			}
 			out.println("default: ERROR()");
