@@ -46,6 +46,7 @@ import yokwe.courier.program.Program.NumberName;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeChoice;
 import yokwe.courier.program.TypeEnum;
+import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 import yokwe.util.UnexpectedException;
@@ -217,43 +218,43 @@ public class CompilerChoice extends CompilerPair {
 			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
-		    out.println("//  CHOICE ANON  %s", name);
-		    outputMethod(context, out, name, candidateList);
+			var enumName = "Key";
+
+		    out.println("// CHOICE ANON  %s", name);
+		    outputMethod(context, out, name, enumName, candidateList);
 		}
 		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
 			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
-		    out.println("//  CHOICE NAME  %s", name);
-		    outputMethod(context, out, name, candidateList);
+			var enumName = type.designator.toQName(context.program.self);
+
+		    out.println("// CHOICE NAME  %s", name);
+		    outputMethod(context, out, name, enumName, candidateList);
 		}
 
-		void outputMethod(final Context context, final AutoIndentPrintWriter out, final String name, final List<NameNumberType> candidateList) {
+		void outputMethod(final Context context, final AutoIndentPrintWriter out, final String name, final String enumName, final List<NameNumberType> candidateList) {
 			// create typeNameList and output mapping of enum and type
 			var typeNameList = toTypeNameList(context, out, candidateList);
 
 		    // output read
 			out.println("void %s::read(const ByteBuffer& bb) {", name);
 			out.println("bb.read(key);");
-			out.println("auto number = std::to_underlying(key);");
-			out.println("switch(number) {");
+			out.println("switch(key) {");
 			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 
 				var myName = candidate.name;
 				var myTypeName = typeNameList.get(i);
 
-				out.println("case %d:", candidate.number);
+				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
 				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println("variant = std::monostate{}; // Empty record  %s", myName);
-					out.println("break;");
-					continue;
+				} else {
+					out.println("%s value;", myTypeName);
+					out.println("bb.read(value);");
+					out.println("variant = value;");
 				}
-
-				out.println("{");
-				out.println("%s value;", myTypeName);
-				out.println("bb.read(value);");
-				out.println("variant = value;");
 				out.println("}");
 				out.println("break;");
 			}
@@ -264,24 +265,20 @@ public class CompilerChoice extends CompilerPair {
 		    // output write
 			out.println("void %s::write(ByteBuffer& bb) const {", name);
 			out.println("bb.write(key);");
-			out.println("auto number = std::to_underlying(key);");
-			out.println("switch(number) {");
+			out.println("switch(key) {");
 			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 
 				var myName = candidate.name;
 				var myTypeName = typeNameList.get(i);
 
-				out.println("case %d:", candidate.number);
+				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
 				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println("// Empty record  %s", myName);
-					out.println("break;");
-					continue;
+				} else {
+					out.println("auto value = std::get<%s>(variant);", myTypeName);
+					out.println("bb.write(value);");
 				}
-
-				out.println("{");
-				out.println("auto value = std::get<%s>(variant);", myTypeName);
-				out.println("bb.write(value);");
 				out.println("}");
 				out.println("break;");
 			}
@@ -302,16 +299,15 @@ public class CompilerChoice extends CompilerPair {
 				var myName = candidate.name;
 				var myTypeName = typeNameList.get(i);
 
-				out.println("case %d:", candidate.number);
+				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
 				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 					out.println(String.format("return \"{%s  {}}\";", myName));
-					continue;
+				} else {
+					out.println("auto value = std::get<%s>(variant);", myTypeName);
+					out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
 				}
-
-				out.println("{");
-				out.println("auto value = std::get<%s>(variant);", myTypeName);
-				out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
 				out.println("}");
+				out.println("break;");
 			}
 			out.println("default: ERROR()");
 			out.println("}");
