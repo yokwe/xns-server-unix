@@ -47,7 +47,6 @@ public class CompilerEnum extends CompilerPair {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeEnum = type.toTypeEnum();
-		    out.println("//  %s", name);
 			out.println("enum class %s : uint16_t {", name);
 			out.prepareLayout();
 			for(var e: typeEnum.list) {
