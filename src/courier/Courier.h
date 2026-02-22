@@ -61,6 +61,23 @@ namespace courier {
 //
 // use std::vector for SEQUENCE
 
+
+//
+// BOOL for boolean
+//
+using BOOL = uint16_t;
+
+
+//
+// EMPTY_RECORD for empty record
+//
+struct EMPTY_RECORD {
+    void read(const ByteBuffer&) {}
+    void write(ByteBuffer&) const {}
+    std::string toString() const { return ""; }
+};
+
+
 //
 // Message
 //
