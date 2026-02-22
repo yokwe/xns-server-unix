@@ -30,9 +30,6 @@
 
 package yokwe.courier.program;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-
 public class Type {
 //	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
@@ -125,69 +122,5 @@ public class Type {
 	}
 	public boolean isCardinal() {
 		return kind == Kind.CARDINAL;
-	}
-
-
-	public boolean containsSelf(String name) {
-		var list = new ArrayDeque<String>();
-		list.add(name);
-		return containsSelf(list);
-	}
-	private boolean containsSelf(Deque<String> list) {
-		if (isReference()) {
-			var typeReference = toTypeReference();
-			var myName = typeReference.toReferenceType().name;
-
-			if (list.contains(myName)) {
-				return true;
-			}
-
-			list.addLast(myName);
-			var result = typeReference.toReferenceType().value.containsSelf(list);
-			list.removeLast();
-			if (result) {
-				return true;
-			}
-		}
-		if (isRecord()) {
-			var typeRecord = toTypeRecord();
-			for(var e: typeRecord.fieldList) {
-				if (e.type.containsSelf(list)) {
-					return true;
-				}
-			}
-		}
-		if (isChoice()) {
-			var typeChoice = toTypeChoice();
-			if (typeChoice.isAnon()) {
-				var typeChoiceAnon = typeChoice.toAnon();
-				for(var e: typeChoiceAnon.candidateList) {
-					if (e.type.containsSelf(list)) {
-						return true;
-					}
-				}
-			}
-			if (typeChoice.isName()) {
-				var typeChoiceName = typeChoice.toName();
-				for(var e: typeChoiceName.candidateNameList) {
-					if (e.type.containsSelf(list)) {
-						return true;
-					}
-				}
-			}
-		}
-		if (isSequence()) {
-			var typeSequence = toTypeSequence();
-			if (typeSequence.element.containsSelf(list)) {
-				return true;
-			}
-		}
-		if (isArray()) {
-			var typeArray = toTypeArray();
-			if (typeArray.element.containsSelf(list)) {
-				return true;
-			}
-		}
-		return false;
 	}
 }

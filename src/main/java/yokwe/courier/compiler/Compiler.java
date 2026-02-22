@@ -36,6 +36,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -138,6 +140,10 @@ public class Compiler {
 			context.decl = decl;
 			var compiler = compilerMap.get(decl.type.kind).header;
 			if (decl.isType()) {
+				if (containsSelf(context, decl.type, decl.name)) {
+					// FIXME
+					logger.warn("Contains self  {}", decl.name);
+				}
 				compiler.compileType(context, out, decl.name, decl.type);
 			}
 			if (decl.isCons()) {
@@ -278,4 +284,69 @@ public class Compiler {
 		Map.entry(Type.Kind.SEQUENCE,      new CompilerSequence()),
 		Map.entry(Type.Kind.REFERENCE,     new CompilerReference())
 	);
+
+	public static boolean containsSelf(Context context, Type type, String name) {
+		var list = new ArrayDeque<String>();
+		var qName = context.program.self.toQName(name);
+		list.add(qName);
+		return containsSelf(context, type, list);
+	}
+	private static boolean containsSelf(Context context, Type type, Deque<String> list) {
+		if (type.isReference()) {
+			var refType = type.toTypeReference().toReferenceType();
+			var qName = refType.toName();
+
+			if (list.contains(qName)) {
+				return true;
+			}
+
+			list.addLast(qName);
+			var result = containsSelf(context, refType.value, list);
+			list.removeLast();
+			if (result) {
+				return true;
+			}
+		}
+		if (type.isRecord()) {
+			var typeRecord = type.toTypeRecord();
+			for(var e: typeRecord.fieldList) {
+				if (containsSelf(context, e.type, list)) {
+					return true;
+				}
+			}
+		}
+		if (type.isChoice()) {
+			var typeChoice = type.toTypeChoice();
+			if (typeChoice.isAnon()) {
+				var typeChoiceAnon = typeChoice.toAnon();
+				for(var e: typeChoiceAnon.candidateList) {
+					if (containsSelf(context, e.type, list)) {
+						return true;
+					}
+				}
+			}
+			if (typeChoice.isName()) {
+				var typeChoiceName = typeChoice.toName();
+				for(var e: typeChoiceName.candidateNameList) {
+					if (containsSelf(context, e.type, list)) {
+						return true;
+					}
+				}
+			}
+		}
+		if (type.isSequence()) {
+			var typeSequence = type.toTypeSequence();
+			if (containsSelf(context, typeSequence.element, list)) {
+				return true;
+			}
+		}
+		if (type.isArray()) {
+			var typeArray = type.toTypeArray();
+			if (containsSelf(context, typeArray.element, list)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }
