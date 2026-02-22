@@ -42,22 +42,22 @@ public class CompilerLongInteger extends CompilerPair {
 
 	private static class CompileHeader implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 			out.println("using %s = %s;", name, TYPE_STRING);
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 //			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
 			out.println("static inline constexpr %s %s = %d;", TYPE_STRING, name, cons.toConsNumber().value);
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 		}
 	}
 

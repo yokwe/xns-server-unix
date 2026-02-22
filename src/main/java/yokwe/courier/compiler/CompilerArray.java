@@ -40,7 +40,7 @@ import yokwe.util.AutoIndentPrintWriter;
 public class CompilerArray extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
 			var typeArray     = type.toTypeArray();
@@ -60,17 +60,17 @@ public class CompilerArray extends CompilerPair {
 			out.println("using %s = std::array<%s, %d>;  // SIZE = %d", name, elementString, size, typeArray.size);
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 			// TODO Auto-generated method stub
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			// TODO Auto-generated method stub
 		}
 	}

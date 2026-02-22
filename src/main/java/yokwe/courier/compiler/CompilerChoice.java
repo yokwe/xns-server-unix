@@ -53,7 +53,7 @@ import yokwe.util.UnexpectedException;
 public class CompilerChoice extends CompilerPair {
 //	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
-	private static List<NameNumberType> toCandidateList(TypeChoice.Name typeChoiceName) {
+	private static List<NameNumberType> toCandidateList(final TypeChoice.Name typeChoiceName) {
 		Map<String, Integer> map = typeChoiceName.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
 
 		var ret = new ArrayList<NameNumberType>();
@@ -70,7 +70,7 @@ public class CompilerChoice extends CompilerPair {
 
 		return ret;
 	}
-	private static List<NameNumberType> toCandidateList(TypeChoice.Anon typeChoiceAnon) {
+	private static List<NameNumberType> toCandidateList(final TypeChoice.Anon typeChoiceAnon) {
 		var ret = new ArrayList<NameNumberType>();
 
 		for(var e: typeChoiceAnon.candidateList) {
@@ -86,9 +86,9 @@ public class CompilerChoice extends CompilerPair {
 		return ret;
 	}
 
-	private static List<String> toTypeNameList(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
+	private static List<String> toTypeNameList(final Context context, final AutoIndentPrintWriter out, final List<NameNumberType> candidateList) {
 		var typeNameList = new ArrayList<String>();
-		for(int i = 0; i < candidateList.size(); i++) {
+		for(var i = 0; i < candidateList.size(); i++) {
 			var candidate = candidateList.get(i);
 			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 				typeNameList.add("std::monostate");
@@ -107,7 +107,7 @@ public class CompilerChoice extends CompilerPair {
 		// output choice and type
 		out.prepareLayout();
 		out.println("// number name type");
-		for(int i = 0; i < candidateList.size(); i++) {
+		for(var i = 0; i < candidateList.size(); i++) {
 			var candidate = candidateList.get(i);
 			out.println("//  %d  %s  %s", i, candidate.name, typeNameList.get(i));
 		}
@@ -117,8 +117,8 @@ public class CompilerChoice extends CompilerPair {
 		return typeNameList;
 	}
 
-	private static void compileConsructedType(Context context, AutoIndentPrintWriter out, List<NameNumberType> candidateList) {
-		for(int i = 0; i < candidateList.size(); i++) {
+	private static void compileConsructedType(final Context context, final AutoIndentPrintWriter out, final List<NameNumberType> candidateList) {
+		for(var i = 0; i < candidateList.size(); i++) {
 			var candidate = candidateList.get(i);
 
 			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
@@ -135,7 +135,7 @@ public class CompilerChoice extends CompilerPair {
 
 	private static class CompileHeader implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 			var typeChoice = type.toTypeChoice();
 			switch(typeChoice) {
 			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
@@ -144,18 +144,18 @@ public class CompilerChoice extends CompilerPair {
 			}
 		}
 
-		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
+		void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
 			out.println("struct %s {  // CHOICE ANON", name);
 
 			// output enum type
-			String enumName = "Key";
+			var enumName = "Key";
 			{
 				var list = new ArrayList<NumberName>();
 				for(var e: type.candidateList) {
 					list.addAll(e.designatorList);
 				}
 
-				TypeEnum anonEnum = new TypeEnum(list);
+				var anonEnum = new TypeEnum(list);
 				var compiler = Compiler.getCompilerPair(anonEnum);
 				compiler.header.compileType(context, out, enumName, anonEnum);
 			}
@@ -166,7 +166,7 @@ public class CompilerChoice extends CompilerPair {
 
 			out.println("};");
 		}
-		void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
+		void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
 			out.println("struct %s {  // CHOICE NAME", name);
 
 			var enumName = type.designator.toName();
@@ -177,7 +177,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("};");
 		}
 
-		void outputBody(Context context, AutoIndentPrintWriter out, String enumName, List<NameNumberType> candidateList) {
+		void outputBody(final Context context, final AutoIndentPrintWriter out, final String enumName, final List<NameNumberType> candidateList) {
 			// create typeNameList and output mapping of enum and type
 			var typeNameList = toTypeNameList(context, out, candidateList);
 
@@ -188,7 +188,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("%s key;", enumName);
 
 			// output variables and methods
-			var typeNameSet  = new LinkedHashSet<String>(typeNameList);
+			var typeNameSet  = new LinkedHashSet<>(typeNameList);
 			typeNameSet.addFirst("std::monostate");
 
 			out.println("std::variant<%s> variant;", String.join(", ", typeNameSet));
@@ -199,13 +199,13 @@ public class CompilerChoice extends CompilerPair {
 		}
 
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 			var typeChoice = type.toTypeChoice();
 			switch(typeChoice) {
 			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
@@ -213,14 +213,14 @@ public class CompilerChoice extends CompilerPair {
 			default -> throw new UnexpectedException("Unexpected");
 			}
 		}
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Anon type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
 			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
 		    out.println("//  CHOICE ANON  %s", name);
 		    outputMethod(context, out, name, candidateList);
 		}
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, TypeChoice.Name type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
 			var candidateList = toCandidateList(type);
 			Collections.sort(candidateList);
 
@@ -228,7 +228,7 @@ public class CompilerChoice extends CompilerPair {
 		    outputMethod(context, out, name, candidateList);
 		}
 
-		void outputMethod(Context context, AutoIndentPrintWriter out, String name, List<NameNumberType> candidateList) {
+		void outputMethod(final Context context, final AutoIndentPrintWriter out, final String name, final List<NameNumberType> candidateList) {
 			// create typeNameList and output mapping of enum and type
 			var typeNameList = toTypeNameList(context, out, candidateList);
 
@@ -237,7 +237,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("bb.read(key);");
 			out.println("auto number = std::to_underlying(key);");
 			out.println("switch(number) {");
-			for(int i = 0; i < candidateList.size(); i++) {
+			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 
 				var myName = candidate.name;
@@ -266,7 +266,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("bb.write(key);");
 			out.println("auto number = std::to_underlying(key);");
 			out.println("switch(number) {");
-			for(int i = 0; i < candidateList.size(); i++) {
+			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 
 				var myName = candidate.name;
@@ -296,7 +296,7 @@ public class CompilerChoice extends CompilerPair {
 			out.println("auto number = std::to_underlying(key);");
 
 			out.println("switch(number) {");
-			for(int i = 0; i < candidateList.size(); i++) {
+			for(var i = 0; i < candidateList.size(); i++) {
 				var candidate = candidateList.get(i);
 
 				var myName = candidate.name;
@@ -320,7 +320,7 @@ public class CompilerChoice extends CompilerPair {
 
 
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			// TODO Auto-generated method stub
 		}
 	}

@@ -220,8 +220,8 @@ public class Compiler {
 		 """;
 
 	public interface CompilerDecl {
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons);
+		void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
+		void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons);
 	}
 
 	public static class CompilerPair {
@@ -234,7 +234,7 @@ public class Compiler {
 			Map.entry(Type.Kind.STRING,        CompilerString.TYPE_STRING),
 			Map.entry(Type.Kind.UNSPECIFIED,   CompilerUnspecified.TYPE_STRING)
 		);
-		public static String toTypeString(Program.Info that, Type type) {
+		public static String toTypeString(final Program.Info that, final Type type) {
 			if (typeStringMap.containsKey(type.kind)) {
 				return typeStringMap.get(type.kind);
 			}
@@ -251,13 +251,13 @@ public class Compiler {
 		public final CompilerDecl header;
 		public final CompilerDecl source;
 
-		public CompilerPair(CompilerDecl header_, CompilerDecl source_) {
+		public CompilerPair(final CompilerDecl header_, final CompilerDecl source_) {
 			header = header_;
 			source = source_;
 		}
 	}
 
-	public static CompilerPair getCompilerPair(Type type) {
+	public static CompilerPair getCompilerPair(final Type type) {
 		return compilerMap.get(type.kind);
 	}
 

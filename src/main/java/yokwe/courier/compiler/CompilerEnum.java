@@ -43,7 +43,7 @@ import yokwe.util.AutoIndentPrintWriter.Layout;
 public class CompilerEnum extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeEnum = type.toTypeEnum();
@@ -58,18 +58,18 @@ public class CompilerEnum extends CompilerPair {
 			out.println();
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 		    out.println("//  %s", name);
 			compileToString(out, name, type.toTypeEnum());
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			// TODO Auto-generated method stub
 		}
 	}
@@ -78,7 +78,7 @@ public class CompilerEnum extends CompilerPair {
 		super(new CompileHeader(), new CompileSource());
 	}
 
-	private static void compileToString(AutoIndentPrintWriter out, String name, TypeEnum typeEnum) {
+	private static void compileToString(final AutoIndentPrintWriter out, final String name, final TypeEnum typeEnum) {
 		out.println("std::string toString(%s value) {", name);
 		out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
 		out.prepareLayout();

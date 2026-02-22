@@ -42,7 +42,7 @@ import yokwe.util.AutoIndentPrintWriter.Layout;
 public class CompilerRecord extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 //			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
 			var typeRecord = type.toTypeRecord();
@@ -87,13 +87,13 @@ public class CompilerRecord extends CompilerPair {
 			out.println();
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
 		@Override
-		public void compileType(Context context, AutoIndentPrintWriter out, String name, Type type) {
+		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
 			var typeRecord = type.toTypeRecord();
 
 			// if record has no field
@@ -110,7 +110,7 @@ public class CompilerRecord extends CompilerPair {
 				}
 			}
 
-			String[] fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+			var fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
 		    var fieldNameListString = String.join(", ", fieldNameArray);
 
 		    out.println("//  %s", name);
@@ -128,7 +128,7 @@ public class CompilerRecord extends CompilerPair {
 			// output toString
 			out.println("std::string %s::toString() const {", name);
 			var buf = new StringBuilder();
-			for(int i = 0; i < fieldNameArray.length; i++) {
+			for(var i = 0; i < fieldNameArray.length; i++) {
 				if (i != 0) {
 					buf.append(" + \" \" + ");
 				}
@@ -139,7 +139,7 @@ public class CompilerRecord extends CompilerPair {
 			out.println();
 		}
 		@Override
-		public void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons) {
+		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
 			// TODO Auto-generated method stub
 		}
 	}
