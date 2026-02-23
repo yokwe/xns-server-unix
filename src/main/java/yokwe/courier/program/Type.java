@@ -66,23 +66,29 @@ public class Type {
 	}
 
 	// toXXX
-	public TypeReference toTypeReference() {
-		return (TypeReference)this;
+	public TypeArray toTypeArray() {
+		return (TypeArray)this;
+	}
+	public TypeChoice toTypeChoice() {
+		return (TypeChoice)this;
 	}
 	public TypeEnum toTypeEnum() {
 		return (TypeEnum)this;
 	}
+	public TypeError toTypeError() {
+		return (TypeError)this;
+	}
+	public TypeProcedure toTypeProcedure() {
+		return (TypeProcedure)this;
+	}
 	public TypeRecord toTypeRecord() {
 		return (TypeRecord)this;
-	}
-	public TypeArray toTypeArray() {
-		return (TypeArray)this;
 	}
 	public TypeSequence toTypeSequence() {
 		return (TypeSequence)this;
 	}
-	public TypeChoice toTypeChoice() {
-		return (TypeChoice)this;
+	public TypeReference toTypeReference() {
+		return (TypeReference)this;
 	}
 
 	public boolean isConstructedType() {
