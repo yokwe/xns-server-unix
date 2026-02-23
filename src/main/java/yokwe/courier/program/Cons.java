@@ -70,7 +70,7 @@ public class Cons {
 
 		@Override
 		public java.lang.String toString() {
-			return java.lang.String.format("%d", value);
+			return Util.toString(value);
 		}
 	}
 	public static class String extends Cons {
@@ -116,7 +116,7 @@ public class Cons {
 		throw new UnexpectedException("Unexpected");
 	}
 	public java.lang.String getValueSting() {
-		if (this instanceof Number) {
+		if (this instanceof String) {
 			return ((String)this).value;
 		}
 		throw new UnexpectedException("Unexpected");
