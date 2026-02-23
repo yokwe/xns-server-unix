@@ -36,6 +36,7 @@ import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.UnexpectedException;
 
 public class CompilerArray extends CompilerPair {
 	private static class CompileHeader implements CompilerDecl {
@@ -61,7 +62,8 @@ public class CompilerArray extends CompilerPair {
 		}
 		@Override
 		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+			throw new UnexpectedException("Unexpected");
+//			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 		}
 	}
 	private static class CompileSource implements CompilerDecl {
