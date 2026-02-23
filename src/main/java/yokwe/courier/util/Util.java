@@ -53,30 +53,12 @@ public class Util {
 	public static int parseInt(final String text) {
 		return (int)parseLong(text);
 	}
-	public static String toJavaConstName(final String name) {
-		var ret = new StringBuilder();
-		var lastCharIsUpper = false;
-		for(var i = 0; i < name.length(); i++) {
-			var c = name.charAt(i);
 
-			if (Character.isLowerCase(c)) {
-				ret.append(Character.toUpperCase(c));
-				lastCharIsUpper = false;
-			} else if (Character.isDigit(c)) {
-				ret.append(c);
-				lastCharIsUpper = false;
-			} else if (Character.isUpperCase(c)) {
-				if (lastCharIsUpper) {
-					ret.append(c);
-				} else {
-					ret.append('_').append(c);
-				}
-				lastCharIsUpper = true;
-			} else {
-				throw new UnexpectedException(String.format("Unknown character type = %c - %04X", c, c));
-			}
+	public static String toString(int value) {
+		if ((value & 0xFFFF) == 0xFFFF) {
+			return String.format("0x%X", value);
 		}
-		return ret.toString();
+		return Integer.toUnsignedString(value);
 	}
 
 	private static Map<String, String> sanitizeMap = new TreeMap<>();
