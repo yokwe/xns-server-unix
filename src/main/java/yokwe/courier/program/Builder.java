@@ -188,7 +188,7 @@ public class Builder {
 			var myName = myProgram.self.toQName(name);
 			Reference.TYPE.add(myName, type);
 
-			// special for enum element
+			// direct access to enum element
 			if (type.isEnum()) {
 				var typeEnum = type.toTypeEnum();
 				for(var e: typeEnum.list) {
