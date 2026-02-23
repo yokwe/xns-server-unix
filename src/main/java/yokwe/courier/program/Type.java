@@ -93,17 +93,32 @@ public class Type {
 	}
 
 	// isXXX
-	public boolean isReference() {
-		return kind == Kind.REFERENCE;
+	public boolean isBoolean() {
+		return kind == Kind.BOOLEAN;
 	}
-	public boolean isEnum() {
-		return kind == Kind.ENUM;
+	public boolean isCardinal() {
+		return kind == Kind.CARDINAL;
+	}
+	public boolean isLongCardinal() {
+		return kind == Kind.LONG_CARDINAL;
+	}
+	public boolean isString() {
+		return kind == Kind.STRING;
+	}
+	public boolean isArray() {
+		return kind == Kind.ARRAY;
 	}
 	public boolean isChoice() {
 		return kind == Kind.CHOICE;
 	}
-	public boolean isBoolean() {
-		return kind == Kind.BOOLEAN;
+	public boolean isEnum() {
+		return kind == Kind.ENUM;
+	}
+	public boolean isError() {
+		return kind == Kind.ERROR;
+	}
+	public boolean isProcedure() {
+		return kind == Kind.PROCEDURE;
 	}
 	public boolean isRecord() {
 		return kind == Kind.RECORD;
@@ -111,16 +126,7 @@ public class Type {
 	public boolean isSequence() {
 		return kind == Kind.SEQUENCE;
 	}
-	public boolean isArray() {
-		return kind == Kind.ARRAY;
-	}
-	public boolean isString() {
-		return kind == Kind.STRING;
-	}
-	public boolean isLongCardinal() {
-		return kind == Kind.LONG_CARDINAL;
-	}
-	public boolean isCardinal() {
-		return kind == Kind.CARDINAL;
+	public boolean isReference() {
+		return kind == Kind.REFERENCE;
 	}
 }
