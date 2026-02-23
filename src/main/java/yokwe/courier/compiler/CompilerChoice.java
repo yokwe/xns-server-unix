@@ -170,7 +170,7 @@ public class CompilerChoice extends CompilerPair {
 		void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
 			out.println("struct %s {  // CHOICE NAME", name);
 
-			var enumName = type.designator.toName();
+			var enumName = type.designator.toQName(context.program.self);
 			var candidateList = toCandidateList(type);
 
 			outputBody(context, out, enumName, candidateList);
