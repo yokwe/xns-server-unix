@@ -56,6 +56,13 @@ public class CompilerEnum extends CompilerPair {
 			out.println("};");
 			out.println("std::string toString(%s);", name);
 			out.println();
+			out.println("// direct access to enum element");
+			out.prepareLayout();
+			for(var e: typeEnum.list) {
+				out.println("%s %s = %s::%s;", name, Util.sanitizeSymbol(e.name), name, Util.sanitizeSymbol(e.name));
+			}
+			out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
+			out.println();
 		}
 		@Override
 		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
