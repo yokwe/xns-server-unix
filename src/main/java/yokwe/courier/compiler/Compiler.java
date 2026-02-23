@@ -264,7 +264,10 @@ public class Compiler {
 	}
 
 	public static CompilerPair getCompilerPair(final Type type) {
-		return compilerMap.get(type.kind);
+		return getCompilerPair(type.kind);
+	}
+	public static CompilerPair getCompilerPair(final Type.Kind kind) {
+		return compilerMap.get(kind);
 	}
 
 	private static final Map<Type.Kind, CompilerPair> compilerMap = Map.ofEntries(
