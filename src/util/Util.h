@@ -315,6 +315,11 @@ template<typename T>
 concept has_to_string_method = has_to_string_method_<std::remove_cvref_t<T>>;
 
 template<typename T>
+concept valid_for_to_string_ = std::is_unsigned_v<T> || std::is_signed_v<T> || has_to_string_method<T> || has_to_string_function<T>;
+template<typename T>
+concept valid_for_to_string = valid_for_to_string_<std::remove_cvref_t<T>>;
+
+template<typename T>
 std::string toString(const T& value) {
     if constexpr (std::is_unsigned_v<T>) {
         return std_sprintf("%u", value);
