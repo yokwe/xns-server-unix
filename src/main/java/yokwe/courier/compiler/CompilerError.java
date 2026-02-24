@@ -34,6 +34,7 @@ import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
+import yokwe.courier.program.TypeRecord;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerError extends CompilerPair {
@@ -44,6 +45,16 @@ public class CompilerError extends CompilerPair {
 
 	@Override
 	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+		var typeError    = type.toTypeError();
+		var argumentList = typeError.argumentList;
+		var consNumber   = cons.toConsNumber();
+
+		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
+
+		out.println("struct %s {", name);
+		compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
+		out.println("static const constexpr int ERROR_CODE = %d;", consNumber.value);
+		out.println("};");
 	}
 }
