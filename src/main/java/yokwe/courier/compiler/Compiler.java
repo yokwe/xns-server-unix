@@ -57,30 +57,23 @@ public class Compiler {
 	public static class Context implements AutoCloseable {
 		public final Program               program;
 		public final String                name;
-
-		public final Path                  pathHeader;
-		public final Path                  pathSouce;
-
-		public final AutoIndentPrintWriter outHeader;
-		public final AutoIndentPrintWriter outSource;
+		public final Path                  path;
+		public final AutoIndentPrintWriter out;
 
 		public Decl decl;
 
 		public Context(final Program program_) {
-			program    = program_;
-			name       = program.self.toName();
-			pathSouce  = Paths.get("src", "courier", name + ".cpp");
-			pathHeader = Paths.get("src", "courier", name + ".h");
-			outSource  = new AutoIndentPrintWriter(toOutputStream(pathSouce.toFile()));
-			outHeader  = new AutoIndentPrintWriter(toOutputStream(pathHeader.toFile()));
+			program = program_;
+			name    = program.self.toName();
+			path    = Paths.get("src", "courier", name + ".h");
+			out     = new AutoIndentPrintWriter(toOutputStream(path.toFile()));
 
 			decl = null;
 		}
 
 		@Override
 		public void close() {
-			outSource.close();
-			outHeader.close();
+			out.close();
 		}
 
 		private OutputStream toOutputStream(final File file) {
@@ -97,99 +90,57 @@ public class Compiler {
 
 	public void compile(final Program program) {
 		try (var context = new Context(program)) {
-			compileHeader(context);
-			compileSource(context);
-		}
-	}
+			var out     = context.out;
 
-	void compileHeader(final Context context) {
-		var program = context.program;
-		var out     = context.outHeader;
+			// preamble
+			out.printlnRaw(COPYRIGHT_COMMENT);
+			out.println(
+				"""
+				//
+				// %s.h
+				//
 
-		// preamble
-		out.printlnRaw(COPYRIGHT_COMMENT);
-		out.println(
-			"""
-			//
-			// %s.h
-			//
+				#pragma once
 
-			#pragma once
+				#include <string>
+				#include <vector>
+				#include <array>
 
-			#include <string>
-			#include <vector>
-			#include <array>
+				#include "../util/ByteBuffer.h"
 
-			#include "../util/ByteBuffer.h"
+				#include "Courier.h"
+				""".formatted(context.name));
 
-			#include "Courier.h"
-			""".formatted(context.name));
-
-		{
-			var list = program.dependList.stream().map(Info::toName).sorted().collect(Collectors.toList());
-			for(var e: list) {
-				out.println("#include \"%s.h\"", e);
-			}
-			out.println();
-		}
-
-		out.println("namespace courier::%s {", context.name);
-
-		// process declList
-		for(var decl: program.declList) {
-			context.decl = decl;
-			var compiler = compilerMap.get(decl.type.kind).header;
-			if (decl.isType()) {
-				if (containsSelf(context, decl.type, decl.name)) {
-					// FIXME
-					logger.warn("Contains self  {}", decl.name);
+			{
+				var list = program.dependList.stream().map(Info::toName).sorted().collect(Collectors.toList());
+				for(var e: list) {
+					out.println("#include \"%s.h\"", e);
 				}
-				compiler.compileType(context, out, decl.name, decl.type);
+				out.println();
 			}
-			if (decl.isCons()) {
-				compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
+
+			out.println("namespace courier::%s {", context.name);
+
+			// process declList
+			for(var decl: program.declList) {
+				context.decl = decl;
+				var compiler = compilerMap.get(decl.type.kind);
+				if (decl.isType()) {
+					if (containsSelf(context, decl.type, decl.name)) {
+						// FIXME
+						logger.warn("Contains self  {}", decl.name);
+					}
+					compiler.compileType(context, out, decl.name, decl.type);
+				}
+				if (decl.isCons()) {
+					compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
+				}
+				context.decl = null;
 			}
-			context.decl = null;
+
+			// postamble
+			out.println("}");
 		}
-
-		// postamble
-		out.println("}");
-	}
-
-	void compileSource(final Context context) {
-		var program = context.program;
-		var out     = context.outSource;
-
-		// preamble
-		out.printlnRaw(COPYRIGHT_COMMENT);
-		out.println(
-			"""
-			//
-			// %s.cpp
-			//
-
-			#include "../util/Util.h"
-			static const Logger logger(__FILE__);
-
-			#include "%s.h"
-			""".formatted(context.name, context.name));
-		out.println("namespace courier::%s {", context.name);
-
-		// process declList
-		for(var decl: program.declList) {
-			context.decl = decl;
-			var compiler = compilerMap.get(decl.type.kind).source;
-			if (decl.isType()) {
-				compiler.compileType(context, out, decl.name, decl.type);
-			}
-			if (decl.isCons()) {
-				compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
-			}
-			context.decl = null;
-		}
-
-		// postamble
-		out.println("}");
 	}
 
 	private static final String COPYRIGHT_COMMENT =
@@ -225,12 +176,7 @@ public class Compiler {
 		 *******************************************************************************/
 		 """;
 
-	public interface CompilerDecl {
-		void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
-		void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons);
-	}
-
-	public static class CompilerPair {
+	public static abstract class CompilerPair {
 		private static final Map<Type.Kind, String> typeStringMap = Map.ofEntries(
 			Map.entry(Type.Kind.BOOLEAN,       CompilerBoolean.TYPE_STRING),
 			Map.entry(Type.Kind.CARDINAL,      CompilerCardinal.TYPE_STRING),
@@ -254,13 +200,8 @@ public class Compiler {
 			throw new UnexpectedException("Unexpected type");
 		}
 
-		public final CompilerDecl header;
-		public final CompilerDecl source;
-
-		public CompilerPair(final CompilerDecl header_, final CompilerDecl source_) {
-			header = header_;
-			source = source_;
-		}
+		public abstract void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
+		public abstract void compileCons(Context context, AutoIndentPrintWriter out, String name, Type type, Cons cons);
 	}
 
 	public static CompilerPair getCompilerPair(final Type type) {

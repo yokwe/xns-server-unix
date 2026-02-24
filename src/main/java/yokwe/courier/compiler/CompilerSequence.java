@@ -30,7 +30,6 @@
 
 package yokwe.courier.compiler;
 
-import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
@@ -39,43 +38,28 @@ import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.UnexpectedException;
 
 public class CompilerSequence extends CompilerPair {
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
+	@Override
+	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
+//		out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name); // FIXME
 
-			var typeSequence = type.toTypeSequence();
-			var element = typeSequence.element;
+		var typeSequence = type.toTypeSequence();
+		var element = typeSequence.element;
 
-			String elementString;
+		String elementString;
 
-			if (element.isConstructedType()) {
-				elementString = name + "_ELEMENT";
-				var compiler = Compiler.getCompilerPair(element);
-				compiler.header.compileType(context, out, elementString, element);
-			} else {
-				elementString = toTypeString(context.program.self, element);
-			}
-			out.println("using %s = std::vector<%s>;  // MAX_SIZE = %d", name, elementString, typeSequence.size);
+		if (element.isConstructedType()) {
+			elementString = name + "_ELEMENT";
+			var compiler = Compiler.getCompilerPair(element);
+			compiler.compileType(context, out, elementString, element);
+		} else {
+			elementString = toTypeString(context.program.self, element);
 		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			throw new UnexpectedException("Unexpected");
-//			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-		}
-	}
-	private static class CompileSource implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-			// TODO Auto-generated method stub
-		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			// TODO Auto-generated method stub
-		}
+		out.println("using %s = std::vector<%s>;  // MAX_SIZE = %d", name, elementString, typeSequence.size);
 	}
 
-	public CompilerSequence() {
-		super(new CompileHeader(), new CompileSource());
+	@Override
+	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
+		throw new UnexpectedException("Unexpected");
+//		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 	}
 }

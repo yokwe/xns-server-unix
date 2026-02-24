@@ -31,13 +31,10 @@
 package yokwe.courier.compiler;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
@@ -53,6 +50,139 @@ import yokwe.util.UnexpectedException;
 
 public class CompilerChoice extends CompilerPair {
 //	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+
+	@Override
+	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
+		var typeChoice = type.toTypeChoice();
+		switch(typeChoice) {
+		case TypeChoice.Anon ut -> compileType(context, out, name, ut);
+		case TypeChoice.Name ut -> compileType(context, out, name, ut);
+		default -> throw new UnexpectedException("Unexpected");
+		}
+	}
+
+	void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
+		out.println("struct %s {  // CHOICE ANON", name);
+
+		// output enum type
+		var enumName = "Key";
+		{
+			var list = new ArrayList<NumberName>();
+			for(var e: type.candidateList) {
+				list.addAll(e.designatorList);
+			}
+
+			var anonEnum = new TypeEnum(list);
+			var compiler = Compiler.getCompilerPair(anonEnum);
+			compiler.compileType(context, out, enumName, anonEnum);
+		}
+
+		var candidateList = toCandidateList(type);
+
+		outputBody(context, out, enumName, candidateList);
+
+		out.println("};");
+	}
+
+	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
+		out.println("struct %s {  // CHOICE NAME", name);
+
+		var enumName = type.designator.toQName(context.program.self);
+		var candidateList = toCandidateList(type);
+
+		outputBody(context, out, enumName, candidateList);
+
+		out.println("};");
+	}
+
+	private void outputBody(final Context context, final AutoIndentPrintWriter out, final String enumName, final List<NameNumberType> candidateList) {
+		// create typeNameList and output mapping of enum and type
+		var typeNameList = toTypeNameList(context, out, candidateList);
+
+		// compile constructed type in candidateList
+		compileConsructedType(context, out, candidateList);
+
+		// output enum field
+		out.println("%s key;", enumName);
+
+		// output variables and methods
+		out.println("std::variant<%s> variant;", String.join(", ", typeNameList));
+		out.println();
+
+		// create typeNameList and output mapping of enum and type
+	    // output read
+		out.println("inline void read(const ByteBuffer& bb) {");
+		out.println("bb.read(key);");
+		out.println("switch(key) {");
+		for(var i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+
+			var myName = candidate.name;
+			var myTypeName = typeNameList.get(i);
+
+			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
+			if (myTypeName.equals("std::monostate")) {
+				out.println("variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
+			} else {
+				out.println("%s value;", myTypeName);
+				out.println("bb.read(value);");
+				out.println("variant.emplace<%d>(value);", i);
+			}
+			out.println("}");
+			out.println("break;");
+		}
+		out.println("default: ERROR()");
+		out.println("}");
+		out.println("}");
+
+	    // output write
+		out.println("inline void write(ByteBuffer& bb) const {");
+		out.println("bb.write(key);");
+		out.println("switch(key) {");
+		for(var i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName    = candidate.name;
+
+			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(myName));
+			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+				out.println("// Empty record  %s", myName);
+			} else {
+				out.println("auto value = std::get<%d>(variant);", i);
+				out.println("bb.write(value);");
+			}
+			out.println("}");
+			out.println("break;");
+		}
+		out.println("default: ERROR()");
+		out.println("}");
+		out.println("}");
+
+	    // output toString
+		out.println("inline std::string toString() const {");
+		out.println("switch(key) {");
+		for(var i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName   = candidate.name;
+
+			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(myName));
+			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+				out.println(String.format("return \"{%s  {}}\";", myName));
+			} else {
+				out.println("auto value = std::get<%d>(variant);", i);
+				out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
+			}
+			out.println("}");
+			out.println("break;");
+		}
+		out.println("default: ERROR()");
+		out.println("}");
+		out.println("}");
+	}
+
+	@Override
+	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
+		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
+	}
 
 	private static List<NameNumberType> toCandidateList(final TypeChoice.Name typeChoiceName) {
 		Map<String, Integer> map = typeChoiceName.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
@@ -128,196 +258,8 @@ public class CompilerChoice extends CompilerPair {
 				var typeName = String.format("Choice_%d", i);
 				var myType = candidate.type;
 				var compiler = Compiler.getCompilerPair(myType);
-				compiler.header.compileType(context, out, typeName, myType);
+				compiler.compileType(context, out, typeName, myType);
 			}
 		}
-	}
-
-
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-			var typeChoice = type.toTypeChoice();
-			switch(typeChoice) {
-			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
-			case TypeChoice.Name ut -> compileType(context, out, name, ut);
-			default -> throw new UnexpectedException("Unexpected");
-			}
-		}
-
-		void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
-			out.println("struct %s {  // CHOICE ANON", name);
-
-			// output enum type
-			var enumName = "Key";
-			{
-				var list = new ArrayList<NumberName>();
-				for(var e: type.candidateList) {
-					list.addAll(e.designatorList);
-				}
-
-				var anonEnum = new TypeEnum(list);
-				var compiler = Compiler.getCompilerPair(anonEnum);
-				compiler.header.compileType(context, out, enumName, anonEnum);
-			}
-
-			var candidateList = toCandidateList(type);
-
-			outputBody(context, out, enumName, candidateList);
-
-			out.println("};");
-		}
-		void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
-			out.println("struct %s {  // CHOICE NAME", name);
-
-			var enumName = type.designator.toQName(context.program.self);
-			var candidateList = toCandidateList(type);
-
-			outputBody(context, out, enumName, candidateList);
-
-			out.println("};");
-		}
-
-		void outputBody(final Context context, final AutoIndentPrintWriter out, final String enumName, final List<NameNumberType> candidateList) {
-			// create typeNameList and output mapping of enum and type
-			var typeNameList = toTypeNameList(context, out, candidateList);
-
-			// compile constructed type in candidateList
-			compileConsructedType(context, out, candidateList);
-
-			// output enum field
-			out.println("%s key;", enumName);
-
-			// output variables and methods
-			var typeNameSet  = new LinkedHashSet<>(typeNameList);
-			typeNameSet.addFirst("std::monostate");
-
-			out.println("std::variant<%s> variant;", String.join(", ", typeNameSet));
-			out.println();
-			out.println("void read(const ByteBuffer& bb);");
-			out.println("void write(ByteBuffer& bb) const;");
-			out.println("std::string toString() const;");
-		}
-
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-		}
-	}
-	private static class CompileSource implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-			var typeChoice = type.toTypeChoice();
-			switch(typeChoice) {
-			case TypeChoice.Anon ut -> compileType(context, out, name, ut);
-			case TypeChoice.Name ut -> compileType(context, out, name, ut);
-			default -> throw new UnexpectedException("Unexpected");
-			}
-		}
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
-			var candidateList = toCandidateList(type);
-			Collections.sort(candidateList);
-
-			var enumName = "Key";
-
-		    out.println("// CHOICE ANON  %s", name);
-		    outputMethod(context, out, name, enumName, candidateList);
-		}
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
-			var candidateList = toCandidateList(type);
-			Collections.sort(candidateList);
-
-			var enumName = type.designator.toQName(context.program.self);
-
-		    out.println("// CHOICE NAME  %s", name);
-		    outputMethod(context, out, name, enumName, candidateList);
-		}
-
-		void outputMethod(final Context context, final AutoIndentPrintWriter out, final String name, final String enumName, final List<NameNumberType> candidateList) {
-			// create typeNameList and output mapping of enum and type
-			var typeNameList = toTypeNameList(context, out, candidateList);
-
-		    // output read
-			out.println("void %s::read(const ByteBuffer& bb) {", name);
-			out.println("bb.read(key);");
-			out.println("switch(key) {");
-			for(var i = 0; i < candidateList.size(); i++) {
-				var candidate = candidateList.get(i);
-
-				var myName = candidate.name;
-				var myTypeName = typeNameList.get(i);
-
-				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
-				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
-					out.println("variant = std::monostate{}; // Empty record  %s", myName);
-				} else {
-					out.println("%s value;", myTypeName);
-					out.println("bb.read(value);");
-					out.println("variant = value;");
-				}
-				out.println("}");
-				out.println("break;");
-			}
-			out.println("default: ERROR()");
-			out.println("}");
-			out.println("}");
-
-		    // output write
-			out.println("void %s::write(ByteBuffer& bb) const {", name);
-			out.println("bb.write(key);");
-			out.println("switch(key) {");
-			for(var i = 0; i < candidateList.size(); i++) {
-				var candidate = candidateList.get(i);
-
-				var myName = candidate.name;
-				var myTypeName = typeNameList.get(i);
-
-				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
-				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
-					out.println("// Empty record  %s", myName);
-				} else {
-					out.println("auto value = std::get<%s>(variant);", myTypeName);
-					out.println("bb.write(value);");
-				}
-				out.println("}");
-				out.println("break;");
-			}
-			out.println("default: ERROR()");
-			out.println("}");
-			out.println("}");
-
-		    // output toString
-			out.println("std::string %s::toString() const {", name);
-			out.println("switch(key) {");
-			for(var i = 0; i < candidateList.size(); i++) {
-				var candidate = candidateList.get(i);
-
-				var myName = candidate.name;
-				var myTypeName = typeNameList.get(i);
-
-				out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
-				if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
-					out.println(String.format("return \"{%s  {}}\";", myName));
-				} else {
-					out.println("auto value = std::get<%s>(variant);", myTypeName);
-					out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
-				}
-				out.println("}");
-				out.println("break;");
-			}
-			out.println("default: ERROR()");
-			out.println("}");
-			out.println("}");
-		}
-
-
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			// TODO Auto-generated method stub
-		}
-	}
-
-	public CompilerChoice() {
-		super(new CompileHeader(), new CompileSource());
 	}
 }

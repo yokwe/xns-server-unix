@@ -30,7 +30,6 @@
 
 package yokwe.courier.compiler;
 
-import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
@@ -40,28 +39,15 @@ import yokwe.util.AutoIndentPrintWriter;
 public class CompilerUnspecified extends CompilerPair {
 	public static final String TYPE_STRING = "uint16_t";
 
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
-			out.println("using %s = %s;", name, TYPE_STRING);
-		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-//			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
-			out.println("static inline constexpr %s %s = %d;", TYPE_STRING, name, cons.toConsNumber().value);
-		}
-	}
-	private static class CompileSource implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-		}
+	@Override
+	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
+//		out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
+		out.println("using %s = %s;", name, TYPE_STRING);
 	}
 
-	public CompilerUnspecified() {
-		super(new CompileHeader(), new CompileSource());
+	@Override
+	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
+//		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
+		out.println("static inline constexpr %s %s = %d;", TYPE_STRING, name, cons.toConsNumber().value);
 	}
 }

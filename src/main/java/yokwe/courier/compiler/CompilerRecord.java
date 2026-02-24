@@ -30,7 +30,6 @@
 
 package yokwe.courier.compiler;
 
-import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
@@ -40,111 +39,76 @@ import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerRecord extends CompilerPair {
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
+	@Override
+	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
+//		out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
-			var typeRecord = type.toTypeRecord();
+		var typeRecord = type.toTypeRecord();
 
-			// if record has no field
-			if (typeRecord.isEmpty()) {
-				out.println("using %s = EMPTY_RECORD;", name);
-				return;
-			}
-
-			// output record
-			out.println("struct %s {", name);
-
-			// output constructed type
-			for(var field: typeRecord.fieldList) {
-				if (field.type.isConstructedType()) {
-					var newName = Util.capitalizeName(field.name);
-					var compiler = Compiler.getCompilerPair(field.type);
-					compiler.header.compileType(context, out, newName, field.type);
-				}
-			}
-
-			// output field
-			out.prepareLayout();
-			for(var field: typeRecord.fieldList) {
-				String fieldTypeString;
-				if (field.type.isConstructedType()) {
-					fieldTypeString = Util.capitalizeName(field.name);
-				} else {
-					fieldTypeString = toTypeString(context.program.self, field.type);
-				}
-				out.println("%s  %s;", fieldTypeString, field.name);
-			}
-			out.layout(Layout.LEFT, Layout.LEFT);
-			out.println();
-
-			// output methods
-			out.println("void read(const ByteBuffer& bb);");
-			out.println("void write(ByteBuffer& bb) const;");
-			out.println("std::string toString() const;");
-			out.println("};");
-			out.println();
+		// if record has no field
+		if (typeRecord.isEmpty()) {
+			out.println("using %s = EMPTY_RECORD;", name);
+			return;
 		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-		}
-	}
-	private static class CompileSource implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-			var typeRecord = type.toTypeRecord();
 
-			// if record has no field
-			if (typeRecord.isEmpty()) {
-				return;
+		// output record
+		out.println("struct %s {", name);
+
+		// output constructed type
+		for(var field: typeRecord.fieldList) {
+			if (field.type.isConstructedType()) {
+				var newName = Util.capitalizeName(field.name);
+				var compiler = Compiler.getCompilerPair(field.type);
+				compiler.compileType(context, out, newName, field.type);
 			}
-
-			// output constructed type
-			for(var field: typeRecord.fieldList) {
-				if (field.type.isConstructedType()) {
-					var newName = name + "::" + Util.capitalizeName(field.name);
-					var compiler = Compiler.getCompilerPair(field.type);
-					compiler.source.compileType(context, out, newName, field.type);
-				}
-			}
-
-			var fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
-		    var fieldNameListString = String.join(", ", fieldNameArray);
-
-		    out.println("//  %s", name);
-
-		    // output read
-			out.println("void %s::read(const ByteBuffer& bb) {", name);
-			out.println("bb.read(%s);", fieldNameListString);
-			out.println("}");
-
-			// output write
-			out.println("void %s::write(ByteBuffer& bb) const {", name);
-			out.println("bb.write(%s);", fieldNameListString);
-			out.println("}");
-
-			// output toString
-			out.println("std::string %s::toString() const {", name);
-			var buf = new StringBuilder();
-			for(var i = 0; i < fieldNameArray.length; i++) {
-				if (i != 0) {
-					buf.append(" + \" \" + ");
-				}
-				buf.append(String.format("::toString(%s)", fieldNameArray[i]));
-			}
-			out.println("return \"{\" + %s + \"}\";", buf.toString());
-			out.println("}");
-			out.println();
 		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			// TODO Auto-generated method stub
+
+		// output field
+		out.prepareLayout();
+		for(var field: typeRecord.fieldList) {
+			String fieldTypeString;
+			if (field.type.isConstructedType()) {
+				fieldTypeString = Util.capitalizeName(field.name);
+			} else {
+				fieldTypeString = toTypeString(context.program.self, field.type);
+			}
+			out.println("%s  %s;", fieldTypeString, field.name);
 		}
+		out.layout(Layout.LEFT, Layout.LEFT);
+		out.println();
+
+		// output methods
+		var fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+	    var fieldNameListString = String.join(", ", fieldNameArray);
+
+	    // output read
+		out.println("inline void read(const ByteBuffer& bb) {");
+		out.println("bb.read(%s);", fieldNameListString);
+		out.println("}");
+
+		// output write
+		out.println("inline void write(ByteBuffer& bb) const {");
+		out.println("bb.write(%s);", fieldNameListString);
+		out.println("}");
+
+		// output toString
+		out.println("inline std::string toString() const {");
+		var buf = new StringBuilder();
+		for(var i = 0; i < fieldNameArray.length; i++) {
+			if (i != 0) {
+				buf.append(" + \" \" + ");
+			}
+			buf.append(String.format("::toString(%s)", fieldNameArray[i]));
+		}
+		out.println("return \"{\" + %s + \"}\";", buf.toString());
+		out.println("}");
+
+		out.println("};");
+		out.println();
 	}
 
-	public CompilerRecord() {
-		super(new CompileHeader(), new CompileSource());
+	@Override
+	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
+		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
 	}
 }

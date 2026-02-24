@@ -30,63 +30,29 @@
 
 package yokwe.courier.compiler;
 
-import yokwe.courier.compiler.Compiler.CompilerDecl;
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
-import yokwe.courier.program.TypeEnum;
 import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerEnum extends CompilerPair {
-	private static class CompileHeader implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-//			out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
+	@Override
+	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
+//		out.println("// %4d  TYPE  %s  %s", context.decl.line, type.toString(), name);
 
-			var typeEnum = type.toTypeEnum();
-			out.println("enum class %s : uint16_t {", name);
-			out.prepareLayout();
-			for(var e: typeEnum.list) {
-				out.println("%s = %d,", Util.sanitizeSymbol(e.name), e.number);
-			}
-			out.layout(Layout.LEFT, Layout.LEFT, Layout.RIGHT);
-			out.println("};");
-			out.println("std::string toString(%s);", name);
-			out.println();
-			out.println("// direct access to enum element");
-			out.prepareLayout();
-			for(var e: typeEnum.list) {
-				out.println("inline const constexpr %s %s = %s::%s;", name, Util.sanitizeSymbol(e.name), name, Util.sanitizeSymbol(e.name));
-			}
-			out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
-			out.println();
+		var typeEnum = type.toTypeEnum();
+		out.println("enum class %s : uint16_t {", name);
+		out.prepareLayout();
+		for(var e: typeEnum.list) {
+			out.println("%s = %d,", Util.sanitizeSymbol(e.name), e.number);
 		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
-		}
-	}
-	private static class CompileSource implements CompilerDecl {
-		@Override
-		public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
-		    out.println("//  %s", name);
-			compileToString(out, name, type.toTypeEnum());
-		}
-		@Override
-		public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-			// TODO Auto-generated method stub
-		}
-	}
+		out.layout(Layout.LEFT, Layout.LEFT, Layout.RIGHT);
+		out.println("};");
 
-	public CompilerEnum() {
-		super(new CompileHeader(), new CompileSource());
-	}
-
-	private static void compileToString(final AutoIndentPrintWriter out, final String name, final TypeEnum typeEnum) {
-		out.println("std::string toString(%s value) {", name);
+		out.println("inline std::string toString(%s value) {", name);
 		out.println("static std::unordered_map<%s, std::string, ScopedEnumHash> map = {", name);
 		out.prepareLayout();
 		for(var e: typeEnum.list) {
@@ -97,5 +63,18 @@ public class CompilerEnum extends CompilerPair {
 		out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
 		out.println("};");
 		out.println();
+
+		out.println("// direct access to enum element");
+		out.prepareLayout();
+		for(var e: typeEnum.list) {
+			out.println("static inline const constexpr %s %s = %s::%s;", name, Util.sanitizeSymbol(e.name), name, Util.sanitizeSymbol(e.name));
+		}
+		out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
+		out.println();
+	}
+
+	@Override
+	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
+		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
 	}
 }
