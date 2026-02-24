@@ -120,15 +120,12 @@ public class CompilerChoice extends CompilerPair {
 			var myName = candidate.name;
 			var myTypeName = typeNameList.get(i);
 
-			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(candidate.name));
+			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(candidate.name));
 			if (myTypeName.equals("std::monostate")) {
 				out.println("variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
-				out.println("%s value;", myTypeName);
-				out.println("bb.read(value);");
-				out.println("variant.emplace<%d>(value);", i);
+				out.println("variant.emplace<%d>(bb.get<%s>());", i, myTypeName);
 			}
-			out.println("}");
 			out.println("break;");
 		}
 		out.println("default: ERROR()");
@@ -143,14 +140,12 @@ public class CompilerChoice extends CompilerPair {
 			var candidate = candidateList.get(i);
 			var myName    = candidate.name;
 
-			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(myName));
+			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
 			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 				out.println("// Empty record  %s", myName);
 			} else {
-				out.println("auto value = std::get<%d>(variant);", i);
-				out.println("bb.write(value);");
+				out.println("bb.write(std::get<%d>(variant));", i);
 			}
-			out.println("}");
 			out.println("break;");
 		}
 		out.println("default: ERROR()");
@@ -164,14 +159,12 @@ public class CompilerChoice extends CompilerPair {
 			var candidate = candidateList.get(i);
 			var myName   = candidate.name;
 
-			out.println("case %s::%s: {", enumName, Util.sanitizeSymbol(myName));
+			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
 			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
 				out.println(String.format("return \"{%s  {}}\";", myName));
 			} else {
-				out.println("auto value = std::get<%d>(variant);", i);
-				out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
+				out.println(String.format("return \"{%s  \" + ::toString(std::get<%d>(variant)) + \"}\";", myName, i));
 			}
-			out.println("}");
 		}
 		out.println("default: ERROR()");
 		out.println("}");
