@@ -54,7 +54,7 @@ public class CompilerError extends CompilerPair {
 
 		out.println("struct %s {", name);
 		compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
-		out.println("static const constexpr int ERROR_CODE = %d;", consNumber.value);
+		out.println("static const constexpr int ERROR_VALUE = %d;", consNumber.value);
 		out.println("};");
 	}
 }

@@ -67,7 +67,7 @@ public class CompilerProcedure extends CompilerPair {
 			out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
 		}
 
-		out.println("static const constexpr int PROCEDURE_CODE = %d;", consNumber.value);
+		out.println("static const constexpr int PROCEDURE_VALUE = %d;", consNumber.value);
 
 		out.println("using function = std::function<%s(%s)>;", (resultList.isEmpty() ? "void " : "Result"), (argumentList.isEmpty() ? "" : "Argument"));
 
