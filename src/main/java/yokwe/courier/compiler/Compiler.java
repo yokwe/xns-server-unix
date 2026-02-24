@@ -105,6 +105,7 @@ public class Compiler {
 				#include <string>
 				#include <vector>
 				#include <array>
+				#include <functional>
 
 				#include "../util/ByteBuffer.h"
 
