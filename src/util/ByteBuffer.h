@@ -376,6 +376,14 @@ public:
         read(std::forward<Tail>(tail)...);
     }
 
+    // declare get<T>() for compact representation
+    template<typename T>
+    T get() const {
+        T value;
+        read(value);
+        return value;
+    }
+
     //
     // write()
     //
