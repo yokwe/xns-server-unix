@@ -70,7 +70,7 @@ public abstract class Reference<V> {
 				var ref = refMap.get(newName);
 				var temp = ref.toName();
 				if (temp.equals(newName)) {
-					logger.error("getType  Unexpected name  {}  {}", name, newName);
+					logger.error("getValue  Unexpected name  {}  {}", name, newName);
 					throw new UnexpectedException("Unexpected");
 				}
 				newName = temp;
@@ -79,9 +79,9 @@ public abstract class Reference<V> {
 			if (valueMap.containsKey(newName)) {
 				return valueMap.get(newName);
 			}
-			logger.warn("getType  Unexpected name  {}  {}", name, newName);
-			return null;
-//			throw new UnexpectedException("Unexpected");
+			logger.warn("getValue  Unexpected name  {}  {}", name, newName);
+//			return null;
+			throw new UnexpectedException("Unexpected");
 		}
 
 		public void fix() {
@@ -92,9 +92,6 @@ public abstract class Reference<V> {
 
 					if (value != null) {
 						e.value = value;
-					} else {
-						logger.error("fix failed  {}", name);
-						throw new UnexpectedException("Unexpected");
 					}
 				}
 			}
