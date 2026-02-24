@@ -121,42 +121,59 @@ typeDecl
     ;
 
 consDecl
-    :    name=ID ':' type '=' cons ';'
+    :    name=ID ':' booleanType        '=' booleanConstant ';' # ConsDeclBoolean
+    |    name=ID ':' stringType         '=' stringConstant  ';' # ConsDeclString
+    |    name=ID ':' positiveNumberType '=' positiveNumber  ';' # ConsDeclPositiveNumber
+    |    name=ID ':' signedNumberType   '=' signedNumber    ';' # ConsDeclSignedNumber
+    |    name=ID ':' errorType          '=' positiveNumber  ';' # ConsDeclError
+    |    name=ID ':' procedureType      '=' positiveNumber  ';' # ConsDeclProcedure
+    |    name=ID ':' reference          '=' cons            ';' # ConsDeclReference
     ;
 
 type
     :    booleanType      # TypeBoolean
+    |    stringType       # TypeString
+    /* positive number type */
     |    cardinalType     # TypeCardinal
     |    longCardinalType # TypeLongCardinal
+    |    unspecifiedType  # TypeUnspecified
+    /* signed number type */
     |    integerType      # TypeInteger
     |    longIntegerType  # TypeLongInteger
-    |    stringType       # TypeString
-    |    unspecifiedType  # TypeUnspecified
-    /**/
     |    enumerationType  # TypeEnumeration
+    /* complex type */
     |    arrayType        # TypeArray
     |    sequenceType     # TypeSequence
     |    recordType       # TypeRecord
     |    choiceType       # TypeChoice
     |    procedureType    # TypeProcedure
     |    errorType        # TypeError
-    /**/
+    /* reference type */
     |    reference        # TypeReference
     ;
 
 cons
     :    booleanConstant  # ConsBoolean
+    |    stringConstant   # ConsString
     |    positiveNumber   # ConsPositive
     |    negativeNumber   # ConsNegative
-    |    stringConstant   # ConsString
-    /**/
     |    arrayConstant    # ConsArray
     |    recordConstant   # ConsRecord
     |    choiceConstant   # ConsChoice
-    /**/
     |    reference        # ConsReference
     ;
-    
+
+positiveNumberType
+    :    cardinalType      # PositiveNumberTypeCardinal
+    |    longCardinalType  # PositiveNumberTypeLongCardinal
+    |    unspecifiedType   # PositiveNumberTypeUnspecified
+    ;
+
+signedNumberType
+    :    integerType       # SignedNumberTypeInteger
+    |    longIntegerType   # SignedNumberTypeLongInteger
+    ;
+
 reference
     :    name=ID                 # ReferenceLocal
     |    program=ID '.'  name=ID # ReferenceRemote
@@ -170,6 +187,11 @@ positiveNumber
 
 negativeNumber
     :    '-' NUMBER
+    ;
+
+signedNumber
+    :    positiveNumber # SignedNumberPositive
+    |    negativeNumber # SignedNumberNegative
     ;
 
 /* 3.4.1 Boolean */

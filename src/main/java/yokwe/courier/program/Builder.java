@@ -204,9 +204,63 @@ public class Builder {
 	}
 	// ConsDecl
 	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclContext context) {
+		return switch(context) {
+		case CourierParser.ConsDeclBooleanContext        ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclStringContext         ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclPositiveNumberContext ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclSignedNumberContext   ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclErrorContext          ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclProcedureContext      ut -> toDecl(myProgram, ut);
+		case CourierParser.ConsDeclReferenceContext      ut -> toDecl(myProgram, ut);
+		default -> throw new UnexpectedException("Unexpected");
+		};
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclBooleanContext context) {
 		var line = context.name.getLine();
 		var name = context.name.getText();
-		var type = toType(myProgram, context.type());
+		var type = Type.BOOLEAN;
+		var cons = toCons(myProgram, context.booleanConstant());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclStringContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = Type.STRING;
+		var cons = toCons(myProgram, context.stringConstant());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclPositiveNumberContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = toType(myProgram, context.positiveNumberType());
+		var cons = toCons(myProgram, context.positiveNumber());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclSignedNumberContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = toType(myProgram, context.signedNumberType());
+		var cons = toCons(myProgram, context.signedNumber());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclErrorContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = toType(myProgram, context.errorType());
+		var cons = toCons(myProgram, context.positiveNumber());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclProcedureContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = toType(myProgram, context.procedureType());
+		var cons = toCons(myProgram, context.positiveNumber());
+		return new Decl(line, name, type, cons);
+	}
+	Decl toDecl(final Program myProgram, final CourierParser.ConsDeclReferenceContext context) {
+		var line = context.name.getLine();
+		var name = context.name.getText();
+		var type = toType(myProgram, context.reference());
 		var cons = toCons(myProgram, context.cons());
 
 		/**/
@@ -240,14 +294,33 @@ public class Builder {
 			case CourierParser.TypeArrayContext        ut -> toType(myProgram, ut);
 			case CourierParser.TypeSequenceContext     ut -> toType(myProgram, ut);
 			case CourierParser.TypeRecordContext       ut -> toType(myProgram, ut);
-			case CourierParser.TypeChoiceContext       ut -> toType(myProgram, ut);
-			case CourierParser.TypeProcedureContext    ut -> toType(myProgram, ut);
-			case CourierParser.TypeErrorContext        ut -> toType(myProgram, ut);
+			case CourierParser.TypeChoiceContext       ut -> toType(myProgram, ut.choiceType());
+			case CourierParser.TypeProcedureContext    ut -> toType(myProgram, ut.procedureType());
+			case CourierParser.TypeErrorContext        ut -> toType(myProgram, ut.errorType());
 			/**/
-			case CourierParser.TypeReferenceContext    ut -> toType(myProgram, ut);
+			case CourierParser.TypeReferenceContext    ut -> toType(myProgram, ut.reference());
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
+
+	Type toType(final Program myProgram, final CourierParser.PositiveNumberTypeContext context) {
+		return switch(context) {
+		case CourierParser.PositiveNumberTypeCardinalContext     ut -> Type.CARDINAL;
+		case CourierParser.PositiveNumberTypeLongCardinalContext ut -> Type.LONG_CARDINAL;
+		case CourierParser.PositiveNumberTypeUnspecifiedContext  ut -> Type.UNSPECIFIED;
+		default -> throw new UnexpectedException("Unexpected");
+		};
+	}
+
+	Type toType(final Program myProgram, final CourierParser.SignedNumberTypeContext context) {
+		return switch(context) {
+		case CourierParser.SignedNumberTypeIntegerContext     ut -> Type.INTEGER;
+		case CourierParser.SignedNumberTypeLongIntegerContext ut -> Type.LONG_INTEGER;
+		default -> throw new UnexpectedException("Unexpected");
+		};
+	}
+
+
 	Type toType(final Program myProgram, final CourierParser.TypeEnumerationContext context) {
 		var list = new ArrayList<NumberName>();
 
@@ -313,8 +386,8 @@ public class Builder {
 		return ret;
 	}
 
-	Type toType(final Program myProgram, final CourierParser.TypeChoiceContext context) {
-		return switch(context.choiceType()) {
+	Type toType(final Program myProgram, final CourierParser.ChoiceTypeContext context) {
+		return switch(context) {
 		case CourierParser.ChoiceTypeAnonContext ut -> toType(myProgram, ut);
 		case CourierParser.ChoiceTypeNameContext ut -> toType(myProgram, ut);
 		default -> throw new UnexpectedException("Unexpected");
@@ -348,19 +421,18 @@ public class Builder {
 		}
 		return new TypeChoice.Name(designator, candidateNameList);
 	}
-	Type toType(final Program myProgram, final CourierParser.TypeProcedureContext context) {
-		var procedureType = context.procedureType();
-		var argumentList  = toNameTypeList(myProgram, procedureType.argumentList().fieldList());
-		var resultList    = toNameTypeList(myProgram, procedureType.resultList().fieldList());
-		var errorList     = procedureType.errorList().nameList().elements.stream().map(Token::getText).toList();
+	Type toType(final Program myProgram, final CourierParser.ProcedureTypeContext context) {
+		var argumentList  = toNameTypeList(myProgram, context.argumentList().fieldList());
+		var resultList    = toNameTypeList(myProgram, context.resultList().fieldList());
+		var errorList     = context.errorList().nameList().elements.stream().map(Token::getText).toList();
 		return new TypeProcedure(argumentList, resultList, errorList);
 	}
-	Type toType(final Program myProgram, final CourierParser.TypeErrorContext context) {
-		var argumentList = toNameTypeList(myProgram, context.errorType().argumentList().fieldList());
+	Type toType(final Program myProgram, final CourierParser.ErrorTypeContext context) {
+		var argumentList = toNameTypeList(myProgram, context.argumentList().fieldList());
 		return new TypeError(argumentList);
 	}
-	Type toType(final Program myProgram, final CourierParser.TypeReferenceContext context) {
-		var ref = toReferenceType(myProgram, context.reference());
+	Type toType(final Program myProgram, final CourierParser.ReferenceContext context) {
+		var ref = toReferenceType(myProgram, context);
 		return new TypeReference(ref);
 	}
 
@@ -370,37 +442,44 @@ public class Builder {
 	//
 	Cons toCons(final Program myProgram, final CourierParser.ConsContext context) {
 		return switch(context) {
-			case CourierParser.ConsBooleanContext   ut -> toCons(myProgram, ut);
-			case CourierParser.ConsPositiveContext  ut -> toCons(myProgram, ut);
-			case CourierParser.ConsNegativeContext  ut -> toCons(myProgram, ut);
-			case CourierParser.ConsStringContext    ut -> toCons(myProgram, ut);
+			case CourierParser.ConsBooleanContext   ut -> toCons(myProgram, ut.booleanConstant());
+			case CourierParser.ConsPositiveContext  ut -> toCons(myProgram, ut.positiveNumber());
+			case CourierParser.ConsNegativeContext  ut -> toCons(myProgram, ut.negativeNumber());
+			case CourierParser.ConsStringContext    ut -> toCons(myProgram, ut.stringConstant());
 			/**/
-			case CourierParser.ConsArrayContext     ut -> toCons(myProgram, ut);
-			case CourierParser.ConsRecordContext    ut -> toCons(myProgram, ut);
-			case CourierParser.ConsChoiceContext    ut -> toCons(myProgram, ut);
+			case CourierParser.ConsArrayContext     ut -> toCons(myProgram, ut.arrayConstant());
+			case CourierParser.ConsRecordContext    ut -> toCons(myProgram, ut.recordConstant());
+			case CourierParser.ConsChoiceContext    ut -> toCons(myProgram, ut.choiceConstant());
 			/**/
 			case CourierParser.ConsReferenceContext ut -> toCons(myProgram, ut);
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsBooleanContext context) {
-		return switch(context.booleanConstant()) {
+	Cons toCons(final Program myProgram, final CourierParser.BooleanConstantContext context) {
+		return switch(context) {
 			case CourierParser.BooleanConstantTrueContext  ut -> Cons.Boolean.TRUE;
 			case CourierParser.BooleanConstantFalseContext ut -> Cons.Boolean.FALSE;
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsPositiveContext context) {
-		return new Cons.Number(Util.parseInt(context.positiveNumber().getText()));
+	Cons toCons(final Program myProgram, final CourierParser.PositiveNumberContext context) {
+		return new Cons.Number(Util.parseInt(context.NUMBER().getText()));
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsNegativeContext context) {
-		return new Cons.Number(-1 * Util.parseInt(context.negativeNumber().getText()));
+	Cons toCons(final Program myProgram, final CourierParser.NegativeNumberContext context) {
+		return new Cons.Number(-1 * Util.parseInt(context.NUMBER().getText()));
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsStringContext context) {
-		return new Cons.String(context.stringConstant().getText());
+	Cons toCons(final Program myProgram, final CourierParser.SignedNumberContext context) {
+		return switch(context) {
+		case CourierParser.SignedNumberPositiveContext ut -> toCons(myProgram, ut);
+		case CourierParser.SignedNumberNegativeContext ut -> toCons(myProgram, ut);
+		default -> throw new UnexpectedException("Unexpected");
+		};
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsArrayContext context) {
-		return switch(context.arrayConstant()) {
+	Cons toCons(final Program myProgram, final CourierParser.StringConstantContext context) {
+		return new Cons.String(context.STR().getText());
+	}
+	Cons toCons(final Program myProgram, final CourierParser.ArrayConstantContext context) {
+		return switch(context) {
 			case CourierParser.ArrayConstantListContext  ut -> {
 				var valueList = ut.elementList().elements.stream().map(o -> toCons(myProgram, o)).toList();
 				yield new ConsArray(valueList);
@@ -409,8 +488,8 @@ public class Builder {
 			default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsRecordContext context) {
-		return switch(context.recordConstant()) {
+	Cons toCons(final Program myProgram, final CourierParser.RecordConstantContext context) {
+		return switch(context) {
 		case CourierParser.RecordConstantListContext ut -> {
 			var list = new ArrayList<NameCons>();
 
@@ -429,10 +508,9 @@ public class Builder {
 		default -> throw new UnexpectedException("Unexpected");
 		};
 	}
-	Cons toCons(final Program myProgram, final CourierParser.ConsChoiceContext context) {
-		var choiceConstant = context.choiceConstant();
-		var name           = choiceConstant.ID().getText();
-		var cons           = toCons(myProgram, choiceConstant.cons());
+	Cons toCons(final Program myProgram, final CourierParser.ChoiceConstantContext context) {
+		var name = context.ID().getText();
+		var cons = toCons(myProgram, context.cons());
 		return new ConsChoice(name, cons);
 	}
 	Cons toCons(final Program myProgram, final CourierParser.ConsReferenceContext context) {

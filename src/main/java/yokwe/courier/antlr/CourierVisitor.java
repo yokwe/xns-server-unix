@@ -61,11 +61,54 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeDecl(CourierParser.TypeDeclContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CourierParser#consDecl}.
+	 * Visit a parse tree produced by the {@code ConsDeclBoolean}
+	 * labeled alternative in {@link CourierParser#consDecl}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitConsDecl(CourierParser.ConsDeclContext ctx);
+	T visitConsDeclBoolean(CourierParser.ConsDeclBooleanContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclString}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclString(CourierParser.ConsDeclStringContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclPositiveNumber}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclPositiveNumber(CourierParser.ConsDeclPositiveNumberContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclSignedNumber}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclSignedNumber(CourierParser.ConsDeclSignedNumberContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclError}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclError(CourierParser.ConsDeclErrorContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclProcedure}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclProcedure(CourierParser.ConsDeclProcedureContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ConsDeclReference}
+	 * labeled alternative in {@link CourierParser#consDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsDeclReference(CourierParser.ConsDeclReferenceContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code TypeBoolean}
 	 * labeled alternative in {@link CourierParser#type}.
@@ -73,6 +116,13 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTypeBoolean(CourierParser.TypeBooleanContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code TypeString}
+	 * labeled alternative in {@link CourierParser#type}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeString(CourierParser.TypeStringContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code TypeCardinal}
 	 * labeled alternative in {@link CourierParser#type}.
@@ -88,6 +138,13 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeLongCardinal(CourierParser.TypeLongCardinalContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code TypeUnspecified}
+	 * labeled alternative in {@link CourierParser#type}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeUnspecified(CourierParser.TypeUnspecifiedContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code TypeInteger}
 	 * labeled alternative in {@link CourierParser#type}.
 	 * @param ctx the parse tree
@@ -101,20 +158,6 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTypeLongInteger(CourierParser.TypeLongIntegerContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code TypeString}
-	 * labeled alternative in {@link CourierParser#type}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTypeString(CourierParser.TypeStringContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code TypeUnspecified}
-	 * labeled alternative in {@link CourierParser#type}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTypeUnspecified(CourierParser.TypeUnspecifiedContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code TypeEnumeration}
 	 * labeled alternative in {@link CourierParser#type}.
@@ -179,6 +222,13 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConsBoolean(CourierParser.ConsBooleanContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code ConsString}
+	 * labeled alternative in {@link CourierParser#cons}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConsString(CourierParser.ConsStringContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code ConsPositive}
 	 * labeled alternative in {@link CourierParser#cons}.
 	 * @param ctx the parse tree
@@ -192,13 +242,6 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitConsNegative(CourierParser.ConsNegativeContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ConsString}
-	 * labeled alternative in {@link CourierParser#cons}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitConsString(CourierParser.ConsStringContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ConsArray}
 	 * labeled alternative in {@link CourierParser#cons}.
@@ -227,6 +270,41 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitConsReference(CourierParser.ConsReferenceContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code PositiveNumberTypeCardinal}
+	 * labeled alternative in {@link CourierParser#positiveNumberType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPositiveNumberTypeCardinal(CourierParser.PositiveNumberTypeCardinalContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code PositiveNumberTypeLongCardinal}
+	 * labeled alternative in {@link CourierParser#positiveNumberType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPositiveNumberTypeLongCardinal(CourierParser.PositiveNumberTypeLongCardinalContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code PositiveNumberTypeUnspecified}
+	 * labeled alternative in {@link CourierParser#positiveNumberType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPositiveNumberTypeUnspecified(CourierParser.PositiveNumberTypeUnspecifiedContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SignedNumberTypeInteger}
+	 * labeled alternative in {@link CourierParser#signedNumberType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSignedNumberTypeInteger(CourierParser.SignedNumberTypeIntegerContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SignedNumberTypeLongInteger}
+	 * labeled alternative in {@link CourierParser#signedNumberType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSignedNumberTypeLongInteger(CourierParser.SignedNumberTypeLongIntegerContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ReferenceLocal}
 	 * labeled alternative in {@link CourierParser#reference}.
@@ -260,6 +338,20 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitNegativeNumber(CourierParser.NegativeNumberContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SignedNumberPositive}
+	 * labeled alternative in {@link CourierParser#signedNumber}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSignedNumberPositive(CourierParser.SignedNumberPositiveContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SignedNumberNegative}
+	 * labeled alternative in {@link CourierParser#signedNumber}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSignedNumberNegative(CourierParser.SignedNumberNegativeContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CourierParser#booleanType}.
 	 * @param ctx the parse tree
