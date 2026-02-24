@@ -61,7 +61,7 @@ public class CompilerChoice extends CompilerPair {
 		}
 	}
 
-	void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
+	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
 		out.println("struct %s {  // CHOICE ANON", name);
 
 		// output enum type
@@ -172,7 +172,6 @@ public class CompilerChoice extends CompilerPair {
 				out.println(String.format("return \"{%s  \" + ::toString(value) + \"}\";", myName));
 			}
 			out.println("}");
-			out.println("break;");
 		}
 		out.println("default: ERROR()");
 		out.println("}");
