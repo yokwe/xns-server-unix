@@ -75,7 +75,7 @@ public class CompilerReference extends CompilerPair {
 		out.println("static inline constexpr %s %s = %d;", typeString, name, cons.value);
 	}
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final Cons.String cons) {
-		out.println("static inline constexpr %s %s = %d;", typeString, name, cons.value);
+		out.println("static inline constexpr %s %s = %s;", typeString, name, cons.value);
 	}
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsArray cons) {
 //		out.println("// %4d  CONS  ARRAY  %s  %s", context.decl.line, typeString, name, cons.kind);
@@ -91,10 +91,10 @@ public class CompilerReference extends CompilerPair {
 		out.println("};");
 	}
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsChoice cons) {
-		out.println("// %4d  CONS  CHOICE %s  %s", context.decl.line, typeString, name, cons.kind); // FIXME
+		out.println("// %4d  CONS  CHOICE %s  %s  %s", context.decl.line, typeString, name, cons.kind); // FIXME
 	}
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsRecord cons) {
-		out.println("// %4d  CONS  RECORD %s  %s", context.decl.line, typeString, name, cons.kind); // FIXME
+		out.println("// %4d  CONS  RECORD %s  %s  %s", context.decl.line, typeString, name, cons.kind); // FIXME
 	}
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsReference cons, Type type) {
 //		out.println("// %4d  CONS  REF    %s  %s", context.decl.line, typeString, name, cons.kind);
