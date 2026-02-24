@@ -34,6 +34,7 @@ import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
+import yokwe.courier.program.TypeRecord;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerProcedure extends CompilerPair {
@@ -44,6 +45,32 @@ public class CompilerProcedure extends CompilerPair {
 
 	@Override
 	public void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final Type type, final Cons cons) {
-		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+//		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name); // FIXME
+		var typeProcedure = type.toTypeProcedure();
+		var argumentList  = typeProcedure.argumentList;
+		var resultList    = typeProcedure.resultList;
+		var errorList     = typeProcedure.errorList;
+
+		var consNumber = cons.toConsNumber();
+
+		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
+
+		out.println("struct %s {", name);
+
+		if (0 < argumentList.size()) {
+			compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
+		}
+		if (0 < resultList.size()) {
+			compiler.compileType(context, out, "Result",   new TypeRecord(resultList));
+		}
+		if (0 < errorList.size()) {
+			out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
+		}
+
+		out.println("static const constexpr int PROCEDURE_CODE = %d;", consNumber.value);
+
+		out.println("using function = std::function<%s(%s)>;", (resultList.isEmpty() ? "void " : "Result"), (argumentList.isEmpty() ? "" : "Argument"));
+
+		out.println("};");
 	}
 }
