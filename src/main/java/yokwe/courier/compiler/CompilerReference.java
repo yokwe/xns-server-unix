@@ -62,7 +62,7 @@ public class CompilerReference extends CompilerPair {
 		case ConsChoice     ut -> compileCons(context, out, name, typeString, ut);
 		case ConsRecord     ut -> compileCons(context, out, name, typeString, ut);
 
-		case ConsReference  ut -> compileCons(context, out, name, typeString, ut);
+		case ConsReference  ut -> compileCons(context, out, name, typeString, ut, type);
 
 		default -> throw new UnexpectedException("Unexpected type");
 		}
@@ -96,8 +96,13 @@ public class CompilerReference extends CompilerPair {
 	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsRecord cons) {
 		out.println("// %4d  CONS  RECORD %s  %s", context.decl.line, typeString, name, cons.kind); // FIXME
 	}
-	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsReference cons) {
+	private void compileCons(final Context context, final AutoIndentPrintWriter out, final String name, final String typeString, final ConsReference cons, Type type) {
 //		out.println("// %4d  CONS  REF    %s  %s", context.decl.line, typeString, name, cons.kind);
-		out.println("static inline const %s %s = %s;", typeString, name, cons.ref.toQName(context.program.self));
+		if (type.isReference() && type.toTypeReference().toReferenceType().value.isEnum()) {
+			// special for enum constant
+			out.println("static inline const %s %s = %s::%s;", typeString, name, typeString, cons.ref.toQName(context.program.self));
+		} else {
+			out.println("static inline const %s %s = %s;", typeString, name, cons.ref.toQName(context.program.self));
+		}
 	}
 }
