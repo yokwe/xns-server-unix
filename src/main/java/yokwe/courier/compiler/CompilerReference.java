@@ -100,7 +100,7 @@ public class CompilerReference extends CompilerPair {
 //		out.println("// %4d  CONS  REF    %s  %s", context.decl.line, typeString, name, cons.kind);
 		if (type.isReference() && type.toTypeReference().toReferenceType().value.isEnum()) {
 			// special for enum constant
-			out.println("static inline const %s %s = %s::%s;", typeString, name, typeString, cons.ref.toQName(context.program.self));
+			out.println("static inline const %s %s = %s::%s;", typeString, name, typeString, cons.ref.name);
 		} else {
 			out.println("static inline const %s %s = %s;", typeString, name, cons.ref.toQName(context.program.self));
 		}
