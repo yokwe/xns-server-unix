@@ -89,8 +89,12 @@ public abstract class Reference<V> {
 				if (e.needsFix()) {
 					var name = e.toName();
 					var value = getValue(name);
+
 					if (value != null) {
 						e.value = value;
+					} else {
+						logger.error("fix failed  {}", name);
+						throw new UnexpectedException("Unexpected");
 					}
 				}
 			}
