@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import yokwe.courier.program.Program.Info;
 import yokwe.util.UnexpectedException;
 
 public abstract class Reference<V> {
@@ -192,7 +191,7 @@ public abstract class Reference<V> {
 	public enum Kind {TYPE, CONS}
 
 	public final Kind   kind;
-	public final Info   program;
+	public final Module module;
 	public final String namespace;
 	public final String name;
 	public final String nameString;
@@ -201,21 +200,21 @@ public abstract class Reference<V> {
 
 	protected Reference(final Kind kind_, final Program myProgram, final String name_) {
 		kind       = kind_;
-		program    = myProgram.self;
+		module     = myProgram.self;
 		namespace  = null;
 		name       = name_;
-		nameString = program.toQName(name);
+		nameString = module.toQName(name);
 	}
 	protected Reference(final Kind kind_, final Program myProgram, final String program_, final String name_) {
 		kind       = kind_;
-		program    = myProgram.findDependProgram(program_);
+		module     = myProgram.findDependModule(program_);
 		namespace  = null;
 		name       = name_;
-		nameString = program.toQName(name);
+		nameString = module.toQName(name);
 	}
 	protected Reference(final Kind kind_, final String namespace_, final String name_) {
 		kind       = kind_;
-		program    = null;
+		module     = null;
 		namespace  = namespace_;
 		name       = name_;
 		nameString = namespace + "::" + name;
@@ -236,8 +235,8 @@ public abstract class Reference<V> {
 	public String toName() {
 		return nameString;
 	}
-	public String toQName(Program.Info that) {
-		return (program == null) ? nameString : program.toQName(that, name);
+	public String toQName(Module that) {
+		return (module == null) ? nameString : module.toQName(that, name);
 	}
 
 	// isXXX

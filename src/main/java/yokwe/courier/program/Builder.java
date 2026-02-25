@@ -48,7 +48,6 @@ import org.antlr.v4.runtime.Token;
 import yokwe.courier.antlr.CourierLexer;
 import yokwe.courier.antlr.CourierParser;
 import yokwe.courier.program.Program.Decl;
-import yokwe.courier.program.Program.Info;
 import yokwe.courier.program.Program.NameCons;
 import yokwe.courier.program.Program.NameType;
 import yokwe.courier.program.Program.NumberName;
@@ -61,7 +60,7 @@ public class Builder {
 
 	public static String COURIER_FILE_SUFFIX = ".cr";
 
-	public Map<Info, Program> programMap = new TreeMap<>(); // all program
+	public Map<Module, Program> programMap = new TreeMap<>(); // all program
 
 	public Builder() {
 		//
@@ -134,7 +133,7 @@ public class Builder {
 	}
 
 	public Program getProgram(final CourierParser.CourierProgramContext context) {
-		var self           = new Info(context.name.getText(), context.program.getText(), context.version.getText());
+		var self           = new Module(context.name.getText(), context.program.getText(), context.version.getText());
 		var dependencyList = toInfoList(context.dependencyList());
 
 		var program = new Program(self, dependencyList);
@@ -145,8 +144,8 @@ public class Builder {
 	//
 	// Convert CourierParse to Program
 	//
-	List<Info> toInfoList(final CourierParser.DependencyListContext context) {
-		var ret = new ArrayList<Info>();
+	List<Module> toInfoList(final CourierParser.DependencyListContext context) {
+		var ret = new ArrayList<Module>();
 
 		var list = context.referencedProgramList();
 		if (list == null) {
@@ -154,7 +153,7 @@ public class Builder {
 		}
 
 		for(var e: list.elements) {
-			ret.add(new Info(e.name.getText(), e.program.getText(), e.version.getText()));
+			ret.add(new Module(e.name.getText(), e.program.getText(), e.version.getText()));
 		}
 
 		return ret;
