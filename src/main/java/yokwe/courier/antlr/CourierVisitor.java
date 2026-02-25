@@ -612,7 +612,7 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitResultList(CourierParser.ResultListContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CourierParser#errorNameList}.
+	 * Visit a parse tree produced by {@link CourierParser#errorList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
