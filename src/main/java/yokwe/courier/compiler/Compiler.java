@@ -30,10 +30,6 @@
 
 package yokwe.courier.compiler;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -71,7 +67,7 @@ public class Compiler {
 			program = program_;
 			name    = program.self.toName();
 			path    = Paths.get("src", "courier", name + ".h");
-			out     = new AutoIndentPrintWriter(toOutputStream(path.toFile()));
+			out     = new AutoIndentPrintWriter(path);
 
 			decl          = null;
 			errorList     = new ArrayList<>();
@@ -81,16 +77,6 @@ public class Compiler {
 		@Override
 		public void close() {
 			out.close();
-		}
-
-		private OutputStream toOutputStream(final File file) {
-			 try {
-				return new FileOutputStream(file);
-			 } catch (FileNotFoundException e) {
-				var exceptionName = e.getClass().getSimpleName();
-				logger.error("{} {}", exceptionName, e);
-				throw new UnexpectedException(exceptionName, e);
-			 }
 		}
 	}
 
@@ -286,7 +272,7 @@ public class Compiler {
 		return false;
 	}
 
-	private static final String COPYRIGHT_COMMENT =
+	public static final String COPYRIGHT_COMMENT =
 		"""
 		/*******************************************************************************
 		 * Copyright (c) 2026, Yasuhiro Hasegawa

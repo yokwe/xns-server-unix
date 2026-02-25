@@ -59,19 +59,21 @@ public class CompilerProcedure extends CompilerPair {
 
 		out.println("struct %s {", name);
 
-		if (0 < argumentList.size()) {
+		if (argumentList.isEmpty()) {
+			out.println("using Argument = EMPTY_RECORD;");
+		} else {
 			compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
 		}
-		if (0 < resultList.size()) {
-			compiler.compileType(context, out, "Result",   new TypeRecord(resultList));
+		if (resultList.isEmpty()) {
+			out.println("using Result = EMPTY_RECORD;");
+		} else {
+			compiler.compileType(context, out, "Result", new TypeRecord(resultList));
 		}
-		if (0 < errorList.size()) {
-			out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
-		}
+		out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
+		out.println();
 
-		out.println("static const constexpr int PROCEDURE_VALUE = %d;", consNumber.value);
-
-		out.println("using function = std::function<%s(%s)>;", (resultList.isEmpty() ? "void " : "Result"), (argumentList.isEmpty() ? "" : "Argument"));
+		out.println("static const constexpr uint16_t VALUE = %d;", consNumber.value);
+		out.println("static const constexpr char*    NAME  = \"%s\";", name);
 
 		out.println("};");
 	}
