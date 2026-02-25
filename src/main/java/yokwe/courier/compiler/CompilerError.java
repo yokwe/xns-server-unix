@@ -50,6 +50,8 @@ public class CompilerError extends CompilerPair {
 		var argumentList = typeError.argumentList;
 		var consNumber   = cons.toConsNumber();
 
+		context.errorList.add(new Service.ErrorInfo(consNumber.value, name));
+
 		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
 
 		out.println("struct %s {", name);

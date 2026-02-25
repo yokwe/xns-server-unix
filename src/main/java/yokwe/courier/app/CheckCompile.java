@@ -30,7 +30,10 @@
 
 package yokwe.courier.app;
 
+import java.util.ArrayList;
+
 import yokwe.courier.compiler.Compiler;
+import yokwe.courier.compiler.Service;
 import yokwe.courier.program.Builder;
 
 public class CheckCompile {
@@ -38,6 +41,8 @@ public class CheckCompile {
 
 	public static void main(final String[] args) throws Exception {
 		logger.debug("START");
+
+		var serviceList = new ArrayList<Service>();
 
 		String[] pathList = {
 			"data/courier/custom",
@@ -53,7 +58,16 @@ public class CheckCompile {
 		for(var program: builder.programMap.values()) {
 			logger.info("{}", String.format("program   %-16s  %3d  %3d", program.self.toName(), program.dependList.size(), program.declList.size()));
 
-			compiler.compile(program);
+			var service = compiler.compile(program);
+			serviceList.add(service);
+		}
+		
+		logger.info("List of Service");
+		for(var service: serviceList) {
+			logger.info("Servce  {}   {}  {}", service.module.nameString, service.module.programNo, service.module.versionNo);
+			for(var e: service.procedureList) {
+				logger.info("  {}  {}  --  ∂{}", e.value, e.name, String.join(", ", e.errorNameList));
+			}
 		}
 
 		logger.debug("STOP");

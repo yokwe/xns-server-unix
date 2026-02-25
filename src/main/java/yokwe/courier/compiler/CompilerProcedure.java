@@ -53,6 +53,8 @@ public class CompilerProcedure extends CompilerPair {
 
 		var consNumber = cons.toConsNumber();
 
+		context.procedureList.add(new Service.ProcedureInfo(consNumber.value, name, errorList));
+
 		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
 
 		out.println("struct %s {", name);

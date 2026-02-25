@@ -37,14 +37,17 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import yokwe.courier.program.Cons;
+import yokwe.courier.program.Module;
 import yokwe.courier.program.Program;
 import yokwe.courier.program.Program.Decl;
-import yokwe.courier.program.Program.Info;
 import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.UnexpectedException;
@@ -60,7 +63,9 @@ public class Compiler {
 		public final Path                  path;
 		public final AutoIndentPrintWriter out;
 
-		public Decl decl;
+		public Decl                decl;
+		public List<Service.ErrorInfo>     errorList;
+		public List<Service.ProcedureInfo> procedureList;
 
 		public Context(final Program program_) {
 			program = program_;
@@ -68,7 +73,9 @@ public class Compiler {
 			path    = Paths.get("src", "courier", name + ".h");
 			out     = new AutoIndentPrintWriter(toOutputStream(path.toFile()));
 
-			decl = null;
+			decl          = null;
+			errorList     = new ArrayList<>();
+			procedureList = new ArrayList<>();
 		}
 
 		@Override
@@ -87,10 +94,9 @@ public class Compiler {
 		}
 	}
 
-
-	public void compile(final Program program) {
+	public Service compile(final Program program) {
 		try (var context = new Context(program)) {
-			var out     = context.out;
+			var out = context.out;
 
 			// preamble
 			out.printlnRaw(COPYRIGHT_COMMENT);
@@ -113,7 +119,7 @@ public class Compiler {
 				""".formatted(context.name));
 
 			{
-				var list = program.dependList.stream().map(Info::toName).sorted().collect(Collectors.toList());
+				var list = program.dependList.stream().map(Module::toName).sorted().collect(Collectors.toList());
 				for(var e: list) {
 					out.println("#include \"%s.h\"", e);
 				}
@@ -141,41 +147,27 @@ public class Compiler {
 
 			// postamble
 			out.println("}");
+
+			if (!context.errorList.isEmpty()) {
+				Collections.sort(context.errorList);
+				out.println();
+				out.println("// Error List");
+				for(var e: context.errorList) {
+					out.println("// %3d  %s", e.value ,e.name);
+				}
+			}
+			if (!context.procedureList.isEmpty()) {
+				Collections.sort(context.procedureList);
+				out.println();
+				out.println("// Procedure List");
+				for(var e: context.procedureList) {
+					out.println("// %3d  %-24s  throws {%s}", e.value, e.name, String.join("  ", e.errorNameList));
+				}
+			}
+
+			return new Service(program.self, context.errorList, context.procedureList);
 		}
 	}
-
-	private static final String COPYRIGHT_COMMENT =
-		"""
-		/*******************************************************************************
-		 * Copyright (c) 2026, Yasuhiro Hasegawa
-		 * All rights reserved.
-		 *
-		 * Redistribution and use in source and binary forms, with or without
-		 * modification, are permitted provided that the following conditions are met:
-		 *
-		 * 1. Redistributions of source code must retain the above copyright notice, this
-		 *    list of conditions and the following disclaimer.
-		 *
-		 * 2. Redistributions in binary form must reproduce the above copyright notice,
-		 *    this list of conditions and the following disclaimer in the documentation
-		 *    and/or other materials provided with the distribution.
-		 *
-		 * 3. Neither the name of the copyright holder nor the names of its
-		 *    contributors may be used to endorse or promote products derived from
-		 *    this software without specific prior written permission.
-		 *
-		 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-		 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-		 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-		 * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-		 * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-		 * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-		 * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-		 * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-		 * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-		 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-		 *******************************************************************************/
-		 """;
 
 	public static abstract class CompilerPair {
 		private static final Map<Type.Kind, String> typeStringMap = Map.ofEntries(
@@ -187,7 +179,7 @@ public class Compiler {
 			Map.entry(Type.Kind.STRING,        CompilerString.TYPE_STRING),
 			Map.entry(Type.Kind.UNSPECIFIED,   CompilerUnspecified.TYPE_STRING)
 		);
-		public static String toTypeString(final Program.Info that, final Type type) {
+		public static String toTypeString(final Module that, final Type type) {
 			if (typeStringMap.containsKey(type.kind)) {
 				return typeStringMap.get(type.kind);
 			}
@@ -293,5 +285,38 @@ public class Compiler {
 		}
 		return false;
 	}
+
+	private static final String COPYRIGHT_COMMENT =
+		"""
+		/*******************************************************************************
+		 * Copyright (c) 2026, Yasuhiro Hasegawa
+		 * All rights reserved.
+		 *
+		 * Redistribution and use in source and binary forms, with or without
+		 * modification, are permitted provided that the following conditions are met:
+		 *
+		 * 1. Redistributions of source code must retain the above copyright notice, this
+		 *    list of conditions and the following disclaimer.
+		 *
+		 * 2. Redistributions in binary form must reproduce the above copyright notice,
+		 *    this list of conditions and the following disclaimer in the documentation
+		 *    and/or other materials provided with the distribution.
+		 *
+		 * 3. Neither the name of the copyright holder nor the names of its
+		 *    contributors may be used to endorse or promote products derived from
+		 *    this software without specific prior written permission.
+		 *
+		 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+		 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+		 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+		 * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+		 * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+		 * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+		 * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+		 * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+		 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+		 *******************************************************************************/
+		 """;
 
 }
