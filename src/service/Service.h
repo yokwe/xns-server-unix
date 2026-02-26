@@ -113,7 +113,7 @@ struct ErrorBase {
     ErrorBase(uint16_t value_, const std::string name_) : value(value_), name(name_) {}
 };
 
-struct Program {
+struct Service {
     uint32_t getNumber() const {
         return number;
     }
@@ -124,9 +124,9 @@ struct Program {
         return name;
     }
 
-    Program (uint32_t number_, uint16_t version_, const std::string& name_) : number(number_), version(version_), name(name_) {}
+    Service (uint32_t number_, uint16_t version_, const std::string& name_) : number(number_), version(version_), name(name_) {}
 
-    ProcedureBase* getProgram(uint16_t value) {
+    ProcedureBase* getProcedure(uint16_t value) {
         for(auto e: procedureList) {
             if (e->getValue() == value) return e;
         }
@@ -141,25 +141,23 @@ protected:
     std::vector<ProcedureBase*> procedureList;
 };
 
-struct Service {
-    Service() {}
-
-    std::vector<Program*> getProgram(uint32_t number) {
-        std::vector<Program*> ret;
-        for(auto e: programList) {
+struct ServicesBase {
+    std::vector<Service*> getService(uint32_t number) {
+        std::vector<Service*> ret;
+        for(auto e: serviceList) {
             if (e->getNumber() == number) ret.push_back(e);
         }
         return ret;
     }
-    Program* getProgram(uint32_t number, uint16_t version) {
-        for(auto e: programList) {
+    Service* getService(uint32_t number, uint16_t version) {
+        for(auto e: serviceList) {
             if (e->getNumber() == number && e->getVersion() == version) return e;
         }
         return 0;
     }
 
 protected:
-    std::vector<Program*> programList;
+    std::vector<Service*> serviceList;
 };
 
 void call(const ByteBuffer& in, ByteBuffer& out);
