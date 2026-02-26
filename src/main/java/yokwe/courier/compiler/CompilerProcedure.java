@@ -60,15 +60,23 @@ public class CompilerProcedure extends CompilerPair {
 		out.println("struct %s {", name);
 
 		if (argumentList.isEmpty()) {
-			out.println("using Argument = EMPTY_RECORD;");
+			out.println("using Argument = void;");
 		} else {
 			compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
 		}
 		if (resultList.isEmpty()) {
-			out.println("using Result = EMPTY_RECORD;");
+			out.println("using Result = void;");
 		} else {
 			compiler.compileType(context, out, "Result", new TypeRecord(resultList));
 		}
+
+		// special handling when arugmentList is empty
+		{
+			var argumentType = argumentList.isEmpty() ? ""     : "Argument";
+			var resultType   = resultList.isEmpty()   ? "void" : "Result";
+			out.println("using Function = std::function<%s(%s)>;", resultType, argumentType);
+		}
+
 		out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
 		out.println();
 
