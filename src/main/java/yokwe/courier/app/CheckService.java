@@ -3,11 +3,13 @@ package yokwe.courier.app;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import yokwe.courier.compiler.Compiler;
 import yokwe.courier.compiler.Service;
 import yokwe.courier.program.Builder;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CheckService {
 	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
@@ -40,91 +42,140 @@ public class CheckService {
 	}
 
 	static private void generateService(List<Service> serviceList) {
-		for(var service: serviceList) {
-			if (service.procedureList.isEmpty()) {
-				continue;
-			}
+		var list = serviceList.stream().filter(o -> !o.procedureList.isEmpty()).toList();
 
-			var programName   = service.module.toName();
-			var programNumber = service.module.programNo;
-			var versionNumber = service.module.versionNo;
+		for(var service: list) {
+			generateService(service);
+		}
 
-			var path = Paths.get("src", "service", programName + ".h");
+		// output services.h
+		{
+			var path = Paths.get("src", "service", "Services.h");
 			logger.info("path  {}", path.toString());
-
-			try (var out  = new AutoIndentPrintWriter(path)) {
-				// preamble
+			try (var out = new AutoIndentPrintWriter(path)) {
 				out.printlnRaw(Compiler.COPYRIGHT_COMMENT);
 				out.println(
 					"""
 					//
-					// %s.h
+					// Services.h
 					//
-					""", programName);
-				out.println(
-					"""
-					#pragma once
 
-					#include "../util/ByteBuffer.h"
+					#pragma once
+					""");
+				for(var e: list) {
+					out.println("#include \"%s.h\"", e.module.toName());
+				}
+				out.println(
+				    """
 
 					#include "Service.h"
+
+					namespace service {
 					""");
-				out.println("#include \"../courier/%s.h\"", programName);
-				out.println();
 
-				out.println("namespace service {");
-
-				out.println("// Service  name  %-24s   programNumber  %4d  versionNumber  %2d", programName, programNumber, versionNumber);
-				out.println("struct %s : public Program {", programName);
-				out.println("private:");
-
-				// output class for procedure
-				out.println("// List of Procedure  %d", service.procedureList.size());
-				for(var e: service.procedureList) {
-					var procName  = e.name;
-					var procValue = e.value;
-
-					out.println("struct Proc%d : public Procedure<courier::%s::%s> {", procValue, programName, procName);
-					out.println("using Procedure::Procedure;");
-					out.println("} proc%d {%d, \"%s\"};", procValue, procValue, procName);
+				out.println("inline struct Services : public ServicesBase {");
+				out.prepareLayout();
+				for(int i = 0; i < list.size(); i++) {
+					var service     = list.get(i);
+					var programName = service.module.toName();
+					var name = "module" + i;
+					out.println("%s %s;", programName, name);
 				}
+				out.layout(Layout.LEFT, Layout.LEFT);
 				out.println();
 
-				out.println("public:");
+				out.println("Services() {");
 
-				// output class for error
-				if (service.errorList.isEmpty()) {
-					out.println("// No Error");
-				} else {
-					out.println("// List of Error  %d", service.errorList.size());
-					for(var e: service.errorList) {
-						out.println("struct %s : public ErrorBase {", e.name);
-						out.println("%s() : ErrorBase(%d, \"%s\") {}", e.name, e.value, e.name);
-						out.println("};");
-					}
-				}
-				out.println();
-
-				// output set function
-				out.println("// List of setXXX  %d", service.procedureList.size());
-				for(var e: service.procedureList) {
-					var procName  = e.name;
-					var procValue = e.value;
-					out.println("void set%s(Proc%d::Function newValue) {", procName, procValue);
-					out.println("proc%d.set(newValue);", procValue);
-					out.println("}");
-				}
-				out.println();
-
-				// output constructor
-				out.println("%s() : Program(%d, %d, \"%s\") {", programName, programNumber, versionNumber, programName);
-				var list = service.procedureList.stream().map(o -> String.format("&proc%d", o.value)).toList();
-				out.println("procedureList = {%s};", String.join(", ", list));
+				var nameList = IntStream.range(0, list.size()).mapToObj(o -> ("&module" + o)).toList();
+				out.println("programList = {%s};", String.join(", ", nameList));
 				out.println("}");
 
-				out.println("};");
+				out.println("} services;");
+				out.println();
+
 				out.println("}");
 			}
+		}
+	}
+
+	static private void generateService(Service service) {
+		var programName   = service.module.toName();
+		var programNumber = service.module.programNo;
+		var versionNumber = service.module.versionNo;
+
+		var path = Paths.get("src", "service", programName + ".h");
+		logger.info("path  {}", path.toString());
+
+		try (var out = new AutoIndentPrintWriter(path)) {
+			// preamble
+			out.printlnRaw(Compiler.COPYRIGHT_COMMENT);
+			out.println(
+				"""
+				//
+				// %s.h
+				//
+				""", programName);
+			out.println(
+				"""
+				#pragma once
+
+				#include "Service.h"
+				""");
+			out.println("#include \"../courier/%s.h\"", programName);
+			out.println();
+
+			out.println("namespace service {");
+
+			out.println("// Service  name  %-24s   programNumber  %4d  versionNumber  %2d", programName, programNumber, versionNumber);
+			out.println("struct %s : public Program {", programName);
+			out.println("private:");
+
+			// output class for procedure
+			out.println("// List of Procedure  %d", service.procedureList.size());
+			for(var e: service.procedureList) {
+				var procName  = e.name;
+				var procValue = e.value;
+
+				out.println("struct Proc%d : public Procedure<courier::%s::%s> {", procValue, programName, procName);
+				out.println("using Procedure::Procedure;");
+				out.println("} proc%d {%d, \"%s\"};", procValue, procValue, procName);
+			}
+			out.println();
+
+			out.println("public:");
+
+			// output class for error
+			if (service.errorList.isEmpty()) {
+				out.println("// No Error");
+			} else {
+				out.println("// List of Error  %d", service.errorList.size());
+				for(var e: service.errorList) {
+					out.println("struct %s : public ErrorBase {", e.name);
+					out.println("%s() : ErrorBase(%d, \"%s\") {}", e.name, e.value, e.name);
+					out.println("};");
+				}
+			}
+			out.println();
+
+			// output set function
+			out.println("// List of setXXX  %d", service.procedureList.size());
+			for(var e: service.procedureList) {
+				var procName  = e.name;
+				var procValue = e.value;
+				out.println("void set%s(Proc%d::Function newValue) {", procName, procValue);
+				out.println("proc%d.set(newValue);", procValue);
+				out.println("}");
+			}
+			out.println();
+
+			// output constructor
+			out.println("%s() : Program(%d, %d, \"%s\") {", programName, programNumber, versionNumber, programName);
+			var list = service.procedureList.stream().map(o -> String.format("&proc%d", o.value)).toList();
+			out.println("procedureList = {%s};", String.join(", ", list));
+			out.println("}");
+
+			out.println("};");
+			out.println("}");
 		}
 	}
 }
