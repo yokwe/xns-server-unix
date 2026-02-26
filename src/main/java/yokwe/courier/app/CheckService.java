@@ -87,7 +87,7 @@ public class CheckService {
 				out.println("Services() {");
 
 				var nameList = IntStream.range(0, list.size()).mapToObj(o -> ("&module" + o)).toList();
-				out.println("programList = {%s};", String.join(", ", nameList));
+				out.println("serviceList = {%s};", String.join(", ", nameList));
 				out.println("}");
 
 				out.println("} services;");
@@ -126,54 +126,45 @@ public class CheckService {
 
 			out.println("namespace service {");
 
-			out.println("// Service  name  %-24s   programNumber  %4d  versionNumber  %2d", programName, programNumber, versionNumber);
-			out.println("struct %s : public Program {", programName);
-			out.println("private:");
+			out.println("struct %s : public Service {", programName);
+			out.println("inline static const constexpr uint32_t PROGRAM = %d;", programNumber);
+			out.println("inline static const constexpr uint16_t VERSION = %d;", versionNumber);
+			out.println("inline static const constexpr char*    NAME    = \"%s\";", programName);
+			out.println();
 
-			// output class for procedure
+			// output constructor
+			out.println("%s() : Service(PROGRAM, VERSION, NAME) {", programName);
+			out.println("procedureList = {%s};",
+				String.join(", ", service.procedureList.stream().map(o -> String.format("&%s", o.name)).toList()));
+			out.println("}");
+			out.println();
+
+			// procedure
 			out.println("// List of Procedure  %d", service.procedureList.size());
 			for(var e: service.procedureList) {
 				var procName  = e.name;
 				var procValue = e.value;
 
-				out.println("struct Proc%d : public Procedure<courier::%s::%s> {", procValue, programName, procName);
+				// See https://stackoverflow.com/questions/63545816/how-to-call-a-non-default-parent-constructor-from-an-unnamed-derived-class-in-c
+				out.println("struct : public Procedure<courier::%s::%s> {", programName, procName);
 				out.println("using Procedure::Procedure;");
-				out.println("} proc%d {%d, \"%s\"};", procValue, procValue, procName);
+				out.println("} %s {%d, \"%s\"};", procName, procValue, procName);
 			}
 			out.println();
-
-			out.println("public:");
 
 			// output class for error
 			if (service.errorList.isEmpty()) {
 				out.println("// No Error");
 			} else {
 				out.println("// List of Error  %d", service.errorList.size());
+				out.prepareLayout();
 				for(var e: service.errorList) {
-					out.println("struct %s : public ErrorBase {", e.name);
-					out.println("%s() : ErrorBase(%d, \"%s\") {}", e.name, e.value, e.name);
-					out.println("};");
+					out.println("using %s = courier::%s::%s;", e.name, programName, e.name);
 				}
+				out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
 			}
 			out.println();
-
-			// output set function
-			out.println("// List of setXXX  %d", service.procedureList.size());
-			for(var e: service.procedureList) {
-				var procName  = e.name;
-				var procValue = e.value;
-				out.println("void set%s(Proc%d::Function newValue) {", procName, procValue);
-				out.println("proc%d.set(newValue);", procValue);
-				out.println("}");
-			}
-			out.println();
-
-			// output constructor
-			out.println("%s() : Program(%d, %d, \"%s\") {", programName, programNumber, versionNumber, programName);
-			var list = service.procedureList.stream().map(o -> String.format("&proc%d", o.value)).toList();
-			out.println("procedureList = {%s};", String.join(", ", list));
-			out.println("}");
-
+			// output class for procedure
 			out.println("};");
 			out.println("}");
 		}
