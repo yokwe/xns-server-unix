@@ -116,40 +116,41 @@ public class CheckCompile {
 				var programNumber = service.module.programNo;
 				var versionNumber = service.module.versionNo;
 
-				out.println("namespace %s {", programName);
 				out.println("// Service  name  %-24s   programNumber  %4d  versionNumber  %2d", programName, programNumber, versionNumber);
-				out.println("using namespace courier::%s;", programName);
+				out.println("struct %s : public Program {", programName);
+				out.println("private:");
 				// output class for procedure
 				for(var e: service.procedureList) {
 					var procName  = e.name;
 					var procValue = e.value;
 
-					out.println("inline struct : public Procedure<%s> {", procName);
+					out.println("struct Proc%d : public Procedure<courier::%s::%s> {", procValue, programName, procName);
 					out.println("using Procedure::Procedure;");
 					out.println("} proc%d {%d, \"%s\"};", procValue, procValue, procName);
 				}
 				out.println();
 
-				out.println("inline std::array<ProcedureBase*, %d> table = {", service.procedureList.size());
-				for(var e: service.procedureList) {
-					var procName  = e.name;
-					var procValue = e.value;
-					out.println("&proc%d,  // %s", procValue, procName);
-				}
-				out.println("};");
+				out.println("public:");
 
 				for(var e: service.procedureList) {
 					var procName  = e.name;
 					var procValue = e.value;
-					out.println("void set%s(decltype(proc%d)::Function newValue) {", procName, procValue);
+					out.println("void set%s(Proc%d::Function newValue) {", procName, procValue);
 					out.println("proc%d.set(newValue);", procValue);
 					out.println("}");
 				}
+				out.println();
 
-				out.println("ByteBuffer call(const ByteBuffer& input);  // intput is CallMessage  output can be ReturnMessage or AbortMessage");
-
+				out.println("%s() : Program(%d, %d, \"%s\") {", programName, programNumber, versionNumber, programName);
+				var list = service.procedureList.stream().map(o -> String.format("&proc%d", o.value)).toList();
+				out.println("procedureList = {%s};", String.join(", ", list));
 				out.println("}");
+
+//				out.println("ByteBuffer call(const ByteBuffer& input);  // intput is CallMessage  output can be ReturnMessage or AbortMessage");
+
+				out.println("};");
 			}
 		}
 	}
 }
+
