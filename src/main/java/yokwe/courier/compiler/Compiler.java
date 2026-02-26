@@ -120,10 +120,13 @@ public class Compiler {
 				var compiler = compilerMap.get(decl.type.kind);
 				if (decl.isType()) {
 					if (containsSelf(context, decl.type, decl.name)) {
-						// FIXME
 						logger.warn("Contains self  {}", decl.name);
+						out.println("//");
+						out.println("// FIXME  Skip for contains self  %s", decl.name);
+						out.println("//");
+					} else {
+						compiler.compileType(context, out, decl.name, decl.type);
 					}
-					compiler.compileType(context, out, decl.name, decl.type);
 				}
 				if (decl.isCons()) {
 					compiler.compileCons(context, out, decl.name, decl.type, decl.cons);
