@@ -116,21 +116,20 @@ public class CompilerChoice extends CompilerPair {
 		out.println();
 
 		// output constructor for each candidate
+		out.println("// getXXX()");
 		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-
-			var myName = candidate.name;
+			var myName     = candidateList.get(i).name;
 			var myTypeName = typeNameList.get(i);
 
 			if (myTypeName.equals("std::monostate")) {
-				out.println("static %s get%s() {", choiceName, Util.capitalizeName(candidate.name));
+				out.println("static %s get%s() {", choiceName, Util.capitalizeName(myName));
 				out.println("%s ret;", choiceName);
-				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(candidate.name));
+				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
-				out.println("static %s get%s(%s value) {", choiceName, Util.capitalizeName(candidate.name), myTypeName);
+				out.println("static %s get%s(%s value) {", choiceName, Util.capitalizeName(myName), myTypeName);
 				out.println("%s ret;", choiceName);
-				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(candidate.name));
+				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(value);", i, myTypeName);
 			}
 			out.println("return ret;");
@@ -138,18 +137,33 @@ public class CompilerChoice extends CompilerPair {
 		}
 		out.println();
 
+		// output toXXX method for each candidate
+		out.println("// toXXX");
+		for(var i = 0; i < candidateList.size(); i++) {
+			var myName     = candidateList.get(i).name;
+			var myTypeName = typeNameList.get(i);
+
+			if (myTypeName.equals("std::monostate")) {
+				//
+			} else {
+				out.println("%s to%s() {", myTypeName, Util.capitalizeName(myName));
+				out.println("return std::get<%d>(variant);", i);
+				out.println("}");
+			}
+		}
+		out.println();
+
+
 		// create typeNameList and output mapping of enum and type
 	    // output read
 		out.println("inline void read(const ByteBuffer& bb) {");
 		out.println("bb.read(key);");
 		out.println("switch(key) {");
 		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-
-			var myName = candidate.name;
+			var myName     = candidateList.get(i).name;
 			var myTypeName = typeNameList.get(i);
 
-			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(candidate.name));
+			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
 			if (myTypeName.equals("std::monostate")) {
 				out.println("variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
@@ -166,11 +180,11 @@ public class CompilerChoice extends CompilerPair {
 		out.println("bb.write(key);");
 		out.println("switch(key) {");
 		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-			var myName    = candidate.name;
+			var myName = candidateList.get(i).name;
+			var myType = candidateList.get(i).type;
 
 			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
-			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+			if (myType.isRecord() && myType.toTypeRecord().isEmpty()) {
 				out.println("// Empty record  %s", myName);
 			} else {
 				out.println("bb.write(std::get<%d>(variant));", i);
@@ -185,11 +199,11 @@ public class CompilerChoice extends CompilerPair {
 		out.println("inline std::string toString() const {");
 		out.println("switch(key) {");
 		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-			var myName   = candidate.name;
+			var myName = candidateList.get(i).name;
+			var myType = candidateList.get(i).type;
 
 			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
-			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
+			if (myType.isRecord() && myType.toTypeRecord().isEmpty()) {
 				out.println(String.format("return \"{%s  {}}\";", myName));
 			} else {
 				out.println(String.format("return \"{%s  \" + ::toString(std::get<%d>(variant)) + \"}\";", myName, i));
@@ -213,7 +227,7 @@ public class CompilerChoice extends CompilerPair {
 		for(var e: typeChoiceName.candidateNameList) {
 			var type = e.type;
 			for(var ee: e.nameList) {
-				var name = ee;
+				var name   = ee;
 				var number = map.get(name);
 
 				ret.add(new NameNumberType(name, number, type));
