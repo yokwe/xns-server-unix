@@ -151,9 +151,7 @@ public class CheckService {
 			} else {
 				out.println("// List of Error  %d", service.errorList.size());
 				for(var e: service.errorList) {
-					out.println("struct %s : public ErrorBase<courier::%s::%s> {", e.name, programName, e.name);
-					out.println("%s() : ErrorBase(%d, \"%s\") {}", e.name, e.value, e.name);
-					out.println("};");
+					out.println("using %s = courier::%s::%s;", e.name, programName, e.name);
 				}
 			}
 			out.println();
