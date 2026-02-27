@@ -63,8 +63,6 @@ public class CompilerEnum extends CompilerPair {
 		out.println("return map.contains(value) ? map[value] : std_sprintf(\"%d\", std::to_underlying(value));");
 		out.println("};");
 		out.println();
-
-		out.println();
 	}
 
 	@Override
