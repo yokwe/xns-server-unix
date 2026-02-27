@@ -9,12 +9,12 @@ BEGIN
     
   -- 4.3.2 Reject
   VersionRange: TYPE = RECORD [
-    lowest, heighest: CARDINAL];
+    lowest, highest: CARDINAL];
 
   RejectMessage: TYPE = RECORD [
     transactionID: UNSPECIFIED,
     rejectDetails: CHOICE OF {
-      noSuchProgramNuber(0)  => RECORD [],
+      noSuchProgramNumber(0) => RECORD [],
       noSuchVersionNumber(1) => VersionRange, -- returns supprted version
       noSuchProcedureValue(2),
       invalidArgument(3),
@@ -41,9 +41,8 @@ BEGIN
   -- Expedited Message
   -- NOTE  Expedited Message support only version 3 of Courier
   ProtocolRange: TYPE = RECORD [
-    lowest, heighest: CARDINAL];
-  HighestProtocol: CARDINAL = 3;
-  LowestProtocol:  CARDINAL = 3;
+    lowest, highest: CARDINAL];
+  SupportingProtol: CARDINAL = 3;
 
   ExpeditedMessate: TYPE = RECORD [
     protocolRange: ProtocolRange,
