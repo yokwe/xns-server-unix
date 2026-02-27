@@ -57,8 +57,11 @@ public class CompilerProcedure extends CompilerPair {
 
 		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
 
-		out.println("// Procedure  %3d  %s  Throws  %s", consNumber.value, name, String.join("  ", errorList));
+		out.println("// Procedure  Throws  %s", String.join("  ", errorList));
 		out.println("struct %s {", name);
+		out.println("inline static const constexpr uint16_t VALUE = %d;", consNumber.value);
+		out.println("inline static const constexpr char*    NAME  = \"%s\";", name);
+		out.println();
 
 		if (argumentList.isEmpty()) {
 			out.println("using Argument = void;");
