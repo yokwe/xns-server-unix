@@ -39,17 +39,29 @@
 #include <vector>
 
 #include "../util/ByteBuffer.h"
+#include "../util/net.h"
+
+#include "../courier/Courier3.h"
 
 namespace service {
 //
+const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
+inline ByteBuffer getByteBuffer() {
+    return ByteBuffer(MAX_PACKET_SIZE);
+}
+
+//
+// Procedure
+//
 struct ProcedureBase {
-    virtual uint16_t           getValue() = 0;
-    virtual const std::string& getName()  = 0;
+    const uint16_t    value;
+    const std::string name;
 
     virtual bool hasFunction() const = 0;
-    virtual void call(const ByteBuffer& in, ByteBuffer& out) const = 0; // called from network input
+    virtual ByteBuffer call(const ByteBuffer& bb) const = 0; // called from network input
 
-    ProcedureBase() {}
+    ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
+
     virtual ~ProcedureBase() {}
 };
 
@@ -59,14 +71,7 @@ struct Procedure : public ProcedureBase {
     using R        = T::Result;
     using Function = T::Function;
 
-    uint16_t getValue() override {
-        return value;
-    }
-    const std::string& getName() override {
-        return name;
-    }
-
-    Procedure(uint16_t value_, const char* name_) : ProcedureBase(), value(value_), name(name_), function(0) {}
+    Procedure(uint16_t value_, const char* name_) : ProcedureBase(value_, name_), function(0) {}
 
     void set(Function newValue) {
         function = newValue;
@@ -75,91 +80,203 @@ struct Procedure : public ProcedureBase {
         return function != 0;
     }
 
-    void call(const ByteBuffer& in, ByteBuffer& out) const override {
+    ByteBuffer call(const ByteBuffer& rx) const override {
+        ByteBuffer tx = getByteBuffer();
         if constexpr (std::is_void_v<A>) {
             if constexpr (std::is_void_v<R>) {
                 function();
             } else {
                 R result = function();
-                out.write(result);
+                tx.write(result);
             }
         } else {
-            A argument = in.get<A>();
+            A argument = rx.get<A>();
             if constexpr (std::is_void_v<R>) {
                 function(argument);
             } else {
                 R result = function(argument);
-                out.write(result);
+                tx.write(result);
             }
         }
-        if (in.byteRemains() != 0) {
+        if (rx.byteRemains() != 0) {
             // input data is still remaining
             // something goes wrong
             // FIXME
         }
+        return tx;
     }
 
 private:
-    const uint16_t    value;
-    const std::string name;
-
     Function          function;
 };
 
-struct ErrorBase {
+//
+// Reject
+//
+struct RejectBase {
     const uint16_t       value;
     const std::string    name;
 
-    ErrorBase(uint16_t value_, const std::string name_) : value(value_), name(name_) {}
+    RejectBase(uint16_t value_, const std::string name_) : value(value_), name(name_) {}
+    virtual ~RejectBase() {}
+
+    virtual void read(const ByteBuffer& bb) = 0;
+    virtual void write(ByteBuffer& bb) const = 0;
+    virtual std::string toString() const = 0;
+
+    using RejectDetails = courier::Courier3::RejectMessage::RejectDetails;
+    virtual RejectDetails toRejectDetail() const = 0;
+};
+struct NoSuchProgramNumberReject : public RejectBase {
+    inline static const constexpr uint16_t VALUE = 0;
+    inline static const constexpr char*    NAME  = "NoSuchProgramNumberReject";
+    
+    NoSuchProgramNumberReject() : RejectBase(VALUE, NAME) {}
+
+    inline void read(const ByteBuffer& bb) override {
+        bb.read(value);
+    }
+    inline void write(ByteBuffer& bb) const override {
+        bb.write(value);
+    }
+    inline std::string toString() const override {
+        return "{" + ::toString(value) + "}";
+    }
+
+    RejectDetails toRejectDetail() const override {
+        return RejectDetails::getNoSuchProgramNumber();
+    }
+};
+struct NoSuchVersionNumberReject : public RejectBase {
+    inline static const constexpr uint16_t VALUE = 1;
+    inline static const constexpr char*    NAME  = "NoSuchVersionNumberReject";
+    
+    NoSuchVersionNumberReject() : RejectBase(VALUE, NAME) {}
+    NoSuchVersionNumberReject(courier::Courier3::VersionRange versionRange_) : RejectBase(VALUE, NAME), versionRange(versionRange_) {}
+    
+    courier::Courier3::VersionRange versionRange;
+
+    inline void read(const ByteBuffer& bb) override {
+        bb.read(value, versionRange);
+    }
+    inline void write(ByteBuffer& bb) const override{
+        bb.write(value, versionRange);
+    }
+    inline std::string toString() const override {
+        return "{" + ::toString(value) + ::toString(versionRange) + "}";
+    }
+
+    RejectDetails toRejectDetail() const override {
+        return RejectDetails::getNoSuchVersionNumber(versionRange);
+    }
+};
+struct NoSuchProcedureValueReject : public RejectBase {
+    inline static const constexpr uint16_t VALUE = 2;
+    inline static const constexpr char*    NAME  = "NoSuchProcedureValueReject";
+
+    NoSuchProcedureValueReject() : RejectBase(VALUE, NAME) {}
+
+    inline void read(const ByteBuffer& bb) override {
+        bb.read(value);
+    }
+    inline void write(ByteBuffer& bb) const override{
+        bb.write(value);
+    }
+    inline std::string toString() const override {
+        return "{" + ::toString(value) +  "}";
+    }
+
+    RejectDetails toRejectDetail() const override {
+        return RejectDetails::getNoSuchProcedureValue();
+    }
+};
+struct InvalidArgumentReject : public RejectBase {
+    inline static const constexpr uint16_t VALUE = 3;
+    inline static const constexpr char*    NAME  = "InvalidArgumentReject";
+
+    InvalidArgumentReject() : RejectBase(VALUE, NAME) {}
+
+    inline void read(const ByteBuffer& bb) override {
+        bb.read(value);
+    }
+    inline void write(ByteBuffer& bb) const override{
+        bb.write(value);
+    }
+    inline std::string toString() const override {
+        return "{" + ::toString(value) +  "}";
+    }
+
+    RejectDetails toRejectDetail() const override {
+        return RejectDetails::getInvalidArgument();
+    }
+};
+struct UnspecifiedReject : public RejectBase {
+    inline static const constexpr uint16_t VALUE = 4;
+    inline static const constexpr char*    NAME  = "UnspecifiedReject";
+
+    UnspecifiedReject() : RejectBase(VALUE, NAME) {}
+
+    inline void read(const ByteBuffer& bb) override {
+        bb.read(value);
+    }
+    inline void write(ByteBuffer& bb) const override{
+        bb.write(value);
+    }
+    inline std::string toString() const override {
+        return "{" + ::toString(value) +  "}";
+    }
+
+    RejectDetails toRejectDetail() const override {
+        return RejectDetails::getUnspecified();
+    }
 };
 
-struct Service {
-    uint32_t getNumber() const {
-        return number;
-    }
-    uint16_t getVersion() const {
-        return version;
-    }
-    const std::string& getName() const {
-        return name;
-    }
-
-    Service (uint32_t number_, uint16_t version_, const std::string& name_) : number(number_), version(version_), name(name_) {}
-
-    ProcedureBase* getProcedure(uint16_t value) {
-        for(auto e: procedureList) {
-            if (e->getValue() == value) return e;
-        }
-        return 0;
-    }
-
-protected:
+//
+// ServiceBase
+//
+struct ServiceBase {
     const uint32_t    number;
     const uint16_t    version;
     const std::string name;
 
-    std::vector<ProcedureBase*> procedureList;
-};
+    ServiceBase(uint32_t number_, uint16_t version_, const std::string& name_) : number(number_), version(version_), name(name_) {}
 
-struct ServicesBase {
-    std::vector<Service*> getService(uint32_t number) {
-        std::vector<Service*> ret;
-        for(auto e: serviceList) {
-            if (e->getNumber() == number) ret.push_back(e);
-        }
-        return ret;
-    }
-    Service* getService(uint32_t number, uint16_t version) {
-        for(auto e: serviceList) {
-            if (e->getNumber() == number && e->getVersion() == version) return e;
+    ProcedureBase* getProcedure(uint16_t value) {
+        for(auto e: procedureList) {
+            if (e->value == value) return e;
         }
         return 0;
     }
 
 protected:
-    std::vector<Service*> serviceList;
+    std::vector<ProcedureBase*> procedureList;
 };
 
-void call(const ByteBuffer& in, ByteBuffer& out);
+//
+// ServicesBase
+//
+struct ServicesBase {
+    ServicesBase(const std::vector<ServiceBase*>& serviceList_) : serviceList(serviceList_) {}
+
+    std::vector<ServiceBase*> getService(uint32_t number) {
+        std::vector<ServiceBase*> ret;
+        for(auto e: serviceList) {
+            if (e->number == number) ret.push_back(e);
+        }
+        return ret;
+    }
+    ServiceBase* getService(uint32_t number, uint16_t version) {
+        for(auto e: serviceList) {
+            if (e->number == number && e->version == version) return e;
+        }
+        return 0;
+    }
+
+    ByteBuffer call(const ByteBuffer& rx);
+    ByteBuffer callExpedited(const ByteBuffer& rx);
+
+protected:
+    std::vector<ServiceBase*> serviceList;
+};
 
 }
