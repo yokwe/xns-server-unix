@@ -84,16 +84,9 @@ public class CheckService {
 				out.layout(Layout.LEFT, Layout.LEFT);
 				out.println();
 
-				out.println("Services() {");
-
 				var nameList = IntStream.range(0, list.size()).mapToObj(o -> ("&module" + o)).toList();
-				out.println("serviceList = {%s};", String.join(", ", nameList));
-				out.println("}");
-
+				out.println("Services() : ServicesBase({%s}) {}", String.join(", ", nameList));
 				out.println("} services;");
-				out.println();
-
-				out.println("}");
 			}
 		}
 	}
@@ -126,14 +119,14 @@ public class CheckService {
 
 			out.println("namespace service {");
 
-			out.println("struct %s : public Service {", programName);
+			out.println("struct %s : public ServiceBase {", programName);
 			out.println("inline static const constexpr uint32_t PROGRAM = %d;", programNumber);
 			out.println("inline static const constexpr uint16_t VERSION = %d;", versionNumber);
 			out.println("inline static const constexpr char*    NAME    = \"%s\";", programName);
 			out.println();
 
 			// output constructor
-			out.println("%s() : Service(PROGRAM, VERSION, NAME) {", programName);
+			out.println("%s() : ServiceBase(PROGRAM, VERSION, NAME) {", programName);
 			out.println("procedureList = {%s};",
 				String.join(", ", service.procedureList.stream().map(o -> String.format("&%s", o.name)).toList()));
 			out.println("}");
@@ -157,11 +150,11 @@ public class CheckService {
 				out.println("// No Error");
 			} else {
 				out.println("// List of Error  %d", service.errorList.size());
-				out.prepareLayout();
 				for(var e: service.errorList) {
-					out.println("using %s = courier::%s::%s;", e.name, programName, e.name);
+					out.println("struct %s : public ErrorBase<courier::%s::%s> {", e.name, programName, e.name);
+					out.println("%s() : ErrorBase(%d, \"%s\") {}", e.name, e.value, e.name);
+					out.println("};");
 				}
-				out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
 			}
 			out.println();
 			// output class for procedure
