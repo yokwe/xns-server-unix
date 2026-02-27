@@ -57,6 +57,7 @@ public class CompilerProcedure extends CompilerPair {
 
 		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
 
+		out.println("// Procedure  %3d  %s  Throws  %s", consNumber.value, name, String.join("  ", errorList));
 		out.println("struct %s {", name);
 
 		if (argumentList.isEmpty()) {
@@ -76,12 +77,6 @@ public class CompilerProcedure extends CompilerPair {
 			var resultType   = resultList.isEmpty()   ? "void" : "Result";
 			out.println("using Function = std::function<%s(%s)>;", resultType, argumentType);
 		}
-
-		out.println("// Throws  (%d)  %s", errorList.size(), String.join("  ", errorList));
-		out.println();
-
-		out.println("static const constexpr uint16_t VALUE = %d;", consNumber.value);
-		out.println("static const constexpr char*    NAME  = \"%s\";", name);
 
 		out.println("};");
 	}
