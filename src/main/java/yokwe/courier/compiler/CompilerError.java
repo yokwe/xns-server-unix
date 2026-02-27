@@ -30,12 +30,16 @@
 
 package yokwe.courier.compiler;
 
+import java.util.ArrayList;
+
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeRecord;
+import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
+import yokwe.util.AutoIndentPrintWriter.Layout;
 
 public class CompilerError extends CompilerPair {
 	@Override
@@ -53,7 +57,81 @@ public class CompilerError extends CompilerPair {
 		context.errorList.add(new Service.ErrorInfo(consNumber.value, name));
 
 		out.println("// Error  %3d  %s", consNumber.value, name);
-		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
-		compiler.compileType(context, out, name, new TypeRecord(argumentList));
+		var typeRecord = new TypeRecord(argumentList);
+
+		// output record
+		out.println("struct %s : public ErrorBase {", name);
+		out.println("inline static const constexpr uint16_t VALUE = %d;", consNumber.value);
+		out.println("inline static const constexpr char*    NAME  = \"%s\";", name);
+		out.println();
+
+		// output constructed type
+		for(var field: typeRecord.fieldList) {
+			if (field.type.isConstructedType()) {
+				var newName = Util.capitalizeName(field.name);
+				var compiler = Compiler.getCompilerPair(field.type);
+				compiler.compileType(context, out, newName, field.type);
+			}
+		}
+
+		// output field
+		out.prepareLayout();
+		for(var field: typeRecord.fieldList) {
+			String fieldTypeString;
+			if (field.type.isConstructedType()) {
+				fieldTypeString = Util.capitalizeName(field.name);
+			} else {
+				fieldTypeString = toTypeString(context.program.self, field.type);
+			}
+			out.println("%s  %s;", fieldTypeString, field.name);
+		}
+		out.layout(Layout.LEFT, Layout.LEFT);
+		out.println();
+
+		// output constructor
+		{
+			var superString = "ErrorBase(VALUE, NAME)";
+			var argList = new ArrayList<String>();
+			for(var field: typeRecord.fieldList) {
+				var fieldTypeString = toTypeString(context.program.self, field.type, field.name);
+				argList.add(String.format("%s %s_", fieldTypeString, field.name));
+			}
+			var initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
+
+			out.println("%s() : %s {}", name, superString);
+			out.println("%s(%s) : %s, %s {}", name, String.join(", ", argList), superString, String.join(", ", initList));
+			out.println();
+		}
+
+		// output methods
+		var fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
+	    var fieldNameListString = String.join(", ", fieldNameArray);
+
+	    // output read
+		out.println("inline void read(const ByteBuffer& bb) override {");
+		out.println("bb.read(%s);", fieldNameListString);
+		out.println("}");
+
+		// output write
+		out.println("inline void write(ByteBuffer& bb) const override {");
+		out.println("bb.write(%s);", fieldNameListString);
+		out.println("}");
+
+		// output toString
+		{
+			out.println("inline std::string toString() const override {");
+			var buf = new StringBuilder();
+			for(var i = 0; i < fieldNameArray.length; i++) {
+				if (i != 0) {
+					buf.append(" + \" \" + ");
+				}
+				buf.append(String.format("::toString(%s)", fieldNameArray[i]));
+			}
+			out.println("return \"{\" + %s + \"}\";", buf.toString());
+			out.println("}");
+		}
+
+		out.println("};");
+		out.println();
 	}
 }
