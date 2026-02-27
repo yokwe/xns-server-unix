@@ -44,6 +44,7 @@ import yokwe.courier.program.Cons;
 import yokwe.courier.program.Module;
 import yokwe.courier.program.Program;
 import yokwe.courier.program.Program.Decl;
+import yokwe.courier.util.Util;
 import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.UnexpectedException;
@@ -180,6 +181,9 @@ public class Compiler {
 			logger.error("Unexpected type");
 			logger.error("  type  {}", type.toString());
 			throw new UnexpectedException("Unexpected type");
+		}
+		public static String toTypeString(final Module that, final Type fieldType, final String fieldName) {
+			return fieldType.isConstructedType() ? Util.capitalizeName(fieldName) : toTypeString(that, fieldType);
 		}
 
 		public abstract void compileType(Context context, AutoIndentPrintWriter out, String name, Type type);
