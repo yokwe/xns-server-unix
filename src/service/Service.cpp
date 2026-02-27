@@ -46,8 +46,6 @@ namespace service {
 using namespace courier::Courier3;
 
 ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
-
-    // FIXME
     ProtocolRange protocolRange;
     rx.read(protocolRange);
 
@@ -63,83 +61,80 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
     Message message;
     rx.read(message);
 
-    if (message.key != Message::Key::call) {
-        logger.warn("Unpexpected message key  %d  %d", message.toString());
-        return getByteBuffer();
-    }
+    const auto callMessage    = message.toCall();
+    const auto transasionID   = callMessage.transactionID;
+    const auto programNumber  = callMessage.programNumber;
+    const auto versionNumber  = callMessage.versionNumber;
+    const auto procedureValue = callMessage.procedureValue;
 
-    auto callMessage = message.toCall();
-    auto program = callMessage.programNumber;
-    auto version = callMessage.versionNumber;
-    auto procedure = callMessage.procedureValue;
-
-    auto service = services.getService(program, version);
-    if (service == 0) {
-        auto serviceList = services.getService(program);
-        if (serviceList.empty()) {
-            RejectMessage rejectMessage;
-            rejectMessage.transactionID = callMessage.transactionID;
-            rejectMessage.rejectDetails = RejectMessage::RejectDetails::getNoSuchProgramNumber();
-
-            auto replyMessage = Message::getReject(rejectMessage);
-
-            auto tx = getByteBuffer();
-            tx.write(replyMessage);
-            return tx;
-        } else {
-            uint16_t high = 0;
-            uint16_t low = 0;
-            for(auto& e: serviceList) {
-                auto version = e->version;
-                if (high == 0) high = version;
-                if (low == 0) low   = version;
-                if (high < version) high = version;
-                if (version < low) low = version;
+    try {
+        logger.info("COURIER %04X  %d  %d  %d", transactionID, programNumber, versionNumber, procedureValue);
+    
+        if (message.key != Message::Key::call) {
+            logger.warn("Unpexpected message key  %d  %d", message.toString());
+            throw UnspecifiedReject{};
+        }
+    
+        // sanity check
+        auto service = services.getService(program, version);
+        if (service == 0) {
+            auto serviceList = services.getService(program);
+            if (serviceList.empty()) {
+                throw NoSuchProgramNumberReject{};
+            } else {
+                VersionRange versionRange{serviceList[0]->version, serviceList[0]->version};
+                auto& high = versionRange.highest;
+                auto& low  = versionRange.lowest;
+                for(auto& e: serviceList) {
+                    auto version = e->version;
+                    if (high < version) high = version;
+                    if (version < low)  low  = version;
+                }
+                throw NoSuchVersionNumber{versionRange};
             }
-
-            VersionRange versionRange{low, high};
-            
-            RejectMessage rejectMessage;
-            rejectMessage.transactionID = callMessage.transactionID;
-            rejectMessage.rejectDetails = RejectMessage::RejectDetails::getNoSuchVersionNumber(versionRange);
-
-            auto replyMessage = Message::getReject(rejectMessage);
-
+        }
+        auto proc = service->getProcedure(procedure);
+        if (proc == 0) {
+            throw NoSuchProcedureValue{};
+        }
+    
+        logger.info("CALL    %04X  %s  %s", transactionID, service->name, proc->name);
+        if (proc->hasFunction()) {
+            logger.info("no fuunction installed  %s  %s", service->name, proc->name);
             auto tx = getByteBuffer();
-            tx.write(replyMessage);
+            // DO NOTHING
             return tx;
         }
-    }
-    auto proc = service->getProcedure(procedure);
-    if (proc == 0) {
-        RejectMessage rejectMessage{callMessage.transactionID, RejectMessage::RejectDetails::getNoSuchProcedureValue()};
+        
+        // Return
+        ReturnMessage returnMessage{transacionID};
+        auto replyMessage = Message::fromReturn(returnMessage);
+        auto result = proc->call(rx);
 
-        auto replyMessage = Message::getReject(rejectMessage);
+        logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
+
+        auto tx = getByteBuffer();
+        tx.write(returnMessage)
+        tx.write(result);
+        return tx;
+    } catch (const ErrorBase& errorBase) {
+        // Abort
+        logger.info("ABORT   %04X  %d  %s", transactionID, errorBase.value, errorBase.name);
+        AbortMessage abortMssage{transactionID, errorBase.number};
+        auto replyMessage = Message::fromAbort(abortMessage)
 
         auto tx = getByteBuffer();
         tx.write(replyMessage);
-        return tx;
-    }
-
-    logger.info("call  %s  %s", service->name, proc->name);
-    if (proc->hasFunction()) {
-        logger.info("no fuunction installed  %s  %s", service->name, proc->name);
-        auto tx = getByteBuffer();
-        return tx;
-    }
-
-    try {
-        auto tx = proc->call(rx);
-        return tx;
-    } catch (const ErrorBase& errorBase) {
-        // return Error
-        auto tx = getByteBuffer();
-        // FIXME
+        tx.write(errorBase);
         return tx;
     } catch (const RejectBase& rejectBase) {
-        // return reject
+        // Reject
+        logger.info("REJECT  %04X  %d  %s", transactionID, rejectBase.value, rejectBase.name);
+        RejectMessage rejectMessage{transactionID, rejectBase.toRejectDetail()};
+        auto replyMessage = Message::fromReject(rejectMessage);
+
         auto tx = getByteBuffer();
-        // FIXME
+        tx.write(replyMessage);
         return tx;
     }
 }

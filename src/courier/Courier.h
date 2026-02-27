@@ -79,6 +79,21 @@ struct EMPTY_RECORD {
 
 
 //
+// Error
+//
+struct ErrorBase {
+    const uint16_t    number;
+    const std::string name;
+
+    ErrorBase(uint16_t number_, const std::string& name_) : number(number_), name(name_) {}
+
+    virtual void read(const ByteBuffer& bb)  = 0;
+    virtual void write(ByteBuffer& bb) const = 0;
+    virtual std::string toString() const = 0;
+};
+
+
+//
 // Message
 //
 enum class Type : uint16_t {

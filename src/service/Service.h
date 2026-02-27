@@ -114,8 +114,8 @@ private:
 // Reject
 //
 struct RejectBase {
-    const uint16_t       value;
-    const std::string    name;
+    const uint16_t    value;
+    const std::string name;
 
     RejectBase(uint16_t value_, const std::string name_) : value(value_), name(name_) {}
     virtual ~RejectBase() {}
@@ -144,7 +144,7 @@ struct NoSuchProgramNumberReject : public RejectBase {
     }
 
     RejectDetails toRejectDetail() const override {
-        return RejectDetails::getNoSuchProgramNumber();
+        return RejectDetails::fromNoSuchProgramNumber();
     }
 };
 struct NoSuchVersionNumberReject : public RejectBase {
@@ -167,7 +167,7 @@ struct NoSuchVersionNumberReject : public RejectBase {
     }
 
     RejectDetails toRejectDetail() const override {
-        return RejectDetails::getNoSuchVersionNumber(versionRange);
+        return RejectDetails::fromNoSuchVersionNumber(versionRange);
     }
 };
 struct NoSuchProcedureValueReject : public RejectBase {
@@ -187,7 +187,7 @@ struct NoSuchProcedureValueReject : public RejectBase {
     }
 
     RejectDetails toRejectDetail() const override {
-        return RejectDetails::getNoSuchProcedureValue();
+        return RejectDetails::fromNoSuchProcedureValue();
     }
 };
 struct InvalidArgumentReject : public RejectBase {
@@ -207,7 +207,7 @@ struct InvalidArgumentReject : public RejectBase {
     }
 
     RejectDetails toRejectDetail() const override {
-        return RejectDetails::getInvalidArgument();
+        return RejectDetails::fromInvalidArgument();
     }
 };
 struct UnspecifiedReject : public RejectBase {
@@ -227,7 +227,7 @@ struct UnspecifiedReject : public RejectBase {
     }
 
     RejectDetails toRejectDetail() const override {
-        return RejectDetails::getUnspecified();
+        return RejectDetails::fromUnspecified();
     }
 };
 
