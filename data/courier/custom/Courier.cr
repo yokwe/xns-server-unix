@@ -16,7 +16,7 @@ BEGIN
     rejectDetails: CHOICE OF {
       noSuchProgramNuber(0)  => RECORD [],
       noSuchVersionNumber(1) => VersionRange, -- returns supprted version
-      noSUchProcedureValue(2),
+      noSuchProcedureValue(2),
       invalidArgument(3),
       unspecified(FFFFH)     => RECORD []}];
   
