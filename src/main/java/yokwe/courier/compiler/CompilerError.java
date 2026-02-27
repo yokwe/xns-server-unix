@@ -52,11 +52,8 @@ public class CompilerError extends CompilerPair {
 
 		context.errorList.add(new Service.ErrorInfo(consNumber.value, name));
 
+		out.println("// Error  %3d  %s", consNumber.value, name);
 		var compiler = Compiler.getCompilerPair(Type.Kind.RECORD);
-
-		out.println("struct %s {", name);
-		compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
-		out.println("static const constexpr int ERROR_VALUE = %d;", consNumber.value);
-		out.println("};");
+		compiler.compileType(context, out, name, new TypeRecord(argumentList));
 	}
 }
