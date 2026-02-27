@@ -62,7 +62,9 @@ public class CompilerChoice extends CompilerPair {
 	}
 
 	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
-		out.println("struct %s {  // CHOICE ANON", name);
+		out.println("struct %s {  // CHOICE ANON  %s", name, context.decl.name);
+
+		var choiceName = name;
 
 		// output enum type
 		var enumName = "Key";
@@ -79,23 +81,27 @@ public class CompilerChoice extends CompilerPair {
 
 		var candidateList = toCandidateList(type);
 
-		outputBody(context, out, enumName, candidateList);
+		outputBody(context, out, choiceName, enumName, candidateList);
 
 		out.println("};");
+		out.println();
 	}
 
 	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
-		out.println("struct %s {  // CHOICE NAME", name);
+		out.println("struct %s {  // CHOICE NAME  %s", name, context.decl.name);
+
+		var choiceName = name;
 
 		var enumName = type.designator.toQName(context.program.self);
 		var candidateList = toCandidateList(type);
 
-		outputBody(context, out, enumName, candidateList);
+		outputBody(context, out, choiceName, enumName, candidateList);
 
 		out.println("};");
+		out.println();
 	}
 
-	private void outputBody(final Context context, final AutoIndentPrintWriter out, final String enumName, final List<NameNumberType> candidateList) {
+	private void outputBody(final Context context, final AutoIndentPrintWriter out, final String choiceName, final String enumName, final List<NameNumberType> candidateList) {
 		// create typeNameList and output mapping of enum and type
 		var typeNameList = toTypeNameList(context, out, candidateList);
 
@@ -107,6 +113,29 @@ public class CompilerChoice extends CompilerPair {
 
 		// output variables and methods
 		out.println("std::variant<%s> variant;", String.join(", ", typeNameList));
+		out.println();
+
+		// output constructor for each candidate
+		for(var i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+
+			var myName = candidate.name;
+			var myTypeName = typeNameList.get(i);
+
+			if (myTypeName.equals("std::monostate")) {
+				out.println("static %s get%s() {", choiceName, Util.capitalizeName(candidate.name));
+				out.println("%s ret;", choiceName);
+				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(candidate.name));
+				out.println("ret.variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
+			} else {
+				out.println("static %s get%s(%s value) {", choiceName, Util.capitalizeName(candidate.name), myTypeName);
+				out.println("%s ret;", choiceName);
+				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(candidate.name));
+				out.println("ret.variant.emplace<%d>(value);", i, myTypeName);
+			}
+			out.println("return ret;");
+			out.println("}");
+		}
 		out.println();
 
 		// create typeNameList and output mapping of enum and type
