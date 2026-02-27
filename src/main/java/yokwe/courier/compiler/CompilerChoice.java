@@ -116,18 +116,18 @@ public class CompilerChoice extends CompilerPair {
 		out.println();
 
 		// output constructor for each candidate
-		out.println("// getXXX()");
+		out.println("// fromXXX()");
 		for(var i = 0; i < candidateList.size(); i++) {
 			var myName     = candidateList.get(i).name;
 			var myTypeName = typeNameList.get(i);
 
 			if (myTypeName.equals("std::monostate")) {
-				out.println("static %s get%s() {", choiceName, Util.capitalizeName(myName));
+				out.println("static %s from%s() {", choiceName, Util.capitalizeName(myName));
 				out.println("%s ret;", choiceName);
 				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
-				out.println("static %s get%s(%s value) {", choiceName, Util.capitalizeName(myName), myTypeName);
+				out.println("static %s from%s(%s value) {", choiceName, Util.capitalizeName(myName), myTypeName);
 				out.println("%s ret;", choiceName);
 				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(value);", i, myTypeName);

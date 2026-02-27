@@ -70,8 +70,7 @@ public class CheckService {
 
 					#include "Service.h"
 
-					namespace service {
-					""");
+					namespace service {""");
 
 				out.println("inline struct Services : public ServicesBase {");
 				out.prepareLayout();
@@ -87,6 +86,8 @@ public class CheckService {
 				var nameList = IntStream.range(0, list.size()).mapToObj(o -> ("&module" + o)).toList();
 				out.println("Services() : ServicesBase({%s}) {}", String.join(", ", nameList));
 				out.println("} services;");
+
+				out.println("}");
 			}
 		}
 	}
