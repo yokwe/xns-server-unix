@@ -30,6 +30,8 @@
 
 package yokwe.courier.compiler;
 
+import java.util.ArrayList;
+
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
@@ -76,6 +78,20 @@ public class CompilerRecord extends CompilerPair {
 		}
 		out.layout(Layout.LEFT, Layout.LEFT);
 		out.println();
+
+		// output constructor
+		{
+			var argList = new ArrayList<String>();
+			for(var field: typeRecord.fieldList) {
+				var fieldTypeString = toTypeString(context.program.self, field.type, field.name);
+				argList.add(String.format("%s %s_", fieldTypeString, field.name));
+			}
+			var initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
+
+			out.println("%s() {}", name);
+			out.println("%s(%s) : %s {}", name, String.join(", ", argList), String.join(", ", initList));
+			out.println();
+		}
 
 		// output methods
 		var fieldNameArray = typeRecord.fieldList.stream().map(o -> o.name).toArray(String[]::new);
