@@ -63,7 +63,6 @@ public:
     static_assert(N <= 65535UL, "Over size");
 
     ARRAY() {}
-//    ARRAY(const ARRAY& that) = default;
     ARRAY(std::initializer_list<T> list) {
         auto size = list.size();
         if (size != SIZE) ERROR();
@@ -125,7 +124,6 @@ public:
     static_assert(N <= 65535UL, "Over limit");
 
     SEQUENCE() {}
-//    SEQUENCE(const SEQUENCE& that) = default;
     SEQUENCE(std::initializer_list<T> list) {
         data.resize(list.size());
 
