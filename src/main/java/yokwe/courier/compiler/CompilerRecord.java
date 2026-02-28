@@ -31,6 +31,7 @@
 package yokwe.courier.compiler;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
@@ -86,10 +87,13 @@ public class CompilerRecord extends CompilerPair {
 				var fieldTypeString = toTypeString(context.program.self, field.type, field.name);
 				argList.add(String.format("%s %s_", fieldTypeString, field.name));
 			}
-			var initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
+			List<String> initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
 
 			out.println("%s() {}", name);
+			out.println("%s(const %s& that) = default;", name, name);
 			out.println("%s(%s) : %s {}", name, String.join(", ", argList), String.join(", ", initList));
+			out.println();
+			out.println("%s& operator=(const %s&) = default;", name, name);
 			out.println();
 		}
 
