@@ -66,27 +66,31 @@ public class CompilerError extends CompilerPair {
 		out.println();
 
 		// output constructed type
-		for(var field: typeRecord.fieldList) {
-			if (field.type.isConstructedType()) {
-				var newName = Util.capitalizeName(field.name);
-				var compiler = Compiler.getCompilerPair(field.type);
-				compiler.compileType(context, out, newName, field.type);
+		if (!typeRecord.fieldList.isEmpty()) {
+			for(var field: typeRecord.fieldList) {
+				if (field.type.isConstructedType()) {
+					var newName = Util.capitalizeName(field.name);
+					var compiler = Compiler.getCompilerPair(field.type);
+					compiler.compileType(context, out, newName, field.type);
+				}
 			}
 		}
 
 		// output field
-		out.prepareLayout();
-		for(var field: typeRecord.fieldList) {
-			String fieldTypeString;
-			if (field.type.isConstructedType()) {
-				fieldTypeString = Util.capitalizeName(field.name);
-			} else {
-				fieldTypeString = toTypeString(context.program.self, field.type);
+		if (!typeRecord.fieldList.isEmpty()) {
+			out.prepareLayout();
+			for(var field: typeRecord.fieldList) {
+				String fieldTypeString;
+				if (field.type.isConstructedType()) {
+					fieldTypeString = Util.capitalizeName(field.name);
+				} else {
+					fieldTypeString = toTypeString(context.program.self, field.type);
+				}
+				out.println("%s  %s;", fieldTypeString, field.name);
 			}
-			out.println("%s  %s;", fieldTypeString, field.name);
+			out.layout(Layout.LEFT, Layout.LEFT);
+			out.println();
 		}
-		out.layout(Layout.LEFT, Layout.LEFT);
-		out.println();
 
 		// output constructor
 		{
@@ -99,7 +103,9 @@ public class CompilerError extends CompilerPair {
 			var initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
 
 			out.println("%s() : %s {}", name, superString);
-			out.println("%s(%s) : %s, %s {}", name, String.join(", ", argList), superString, String.join(", ", initList));
+			if (!typeRecord.fieldList.isEmpty()) {
+				out.println("%s(%s) : %s, %s {}", name, String.join(", ", argList), superString, String.join(", ", initList));
+			}
 			out.println();
 		}
 
@@ -120,14 +126,18 @@ public class CompilerError extends CompilerPair {
 		// output toString
 		{
 			out.println("inline std::string toString() const override {");
-			var buf = new StringBuilder();
-			for(var i = 0; i < fieldNameArray.length; i++) {
-				if (i != 0) {
-					buf.append(" + \" \" + ");
+			if (!typeRecord.fieldList.isEmpty()) {
+				var buf = new StringBuilder();
+				for(var i = 0; i < fieldNameArray.length; i++) {
+					if (i != 0) {
+						buf.append(" + \" \" + ");
+					}
+					buf.append(String.format("::toString(%s)", fieldNameArray[i]));
 				}
-				buf.append(String.format("::toString(%s)", fieldNameArray[i]));
+				out.println("return \"{\" + %s + \"}\";", buf.toString());
+			} else {
+				out.println("return \"{}\";");
 			}
-			out.println("return \"{\" + %s + \"}\";", buf.toString());
 			out.println("}");
 		}
 
