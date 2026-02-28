@@ -319,46 +319,71 @@ concept valid_for_to_string_ = std::is_unsigned_v<T> || std::is_signed_v<T> || h
 template<typename T>
 concept valid_for_to_string = valid_for_to_string_<std::remove_cvref_t<T>>;
 
-template<typename T>
-std::string toString(const T& value) {
+
+inline std::string toString(const uint16_t value) {
+	return std_sprintf("%u", value);
+}
+inline std::string toString(const uint32_t value) {
+	return std_sprintf("%u", value);
+}
+inline std::string toString(const int16_t value) {
+	return std_sprintf("%d", value);
+}
+inline std::string toString(const int32_t value) {
+	return std_sprintf("%d", value);
+}
+inline std::string toString(const std::string& value) {
+	return value;
+}
+
+template<typename TT>
+std::string toString(const std::vector<TT>&& vector)  {
+	using T = std::remove_cvref_t<TT>;
+    std::string ret;
+    ret += "[";
+    for(size_t i = 0; i < vector.size(); i++) {
+        if (i) ret += " ";
+		T value = vector[i];
+        ret += ::toString(value);
+    }
+    ret += "]";
+
+    return ret;
+}
+template<typename TT, std::size_t N>
+std::string toString(const std::array<TT, N>& vector) {
+	using T = std::remove_cvref_t<TT>;
+    std::string ret;
+    ret += "[";
+    for(size_t i = 0; i < vector.size(); i++) {
+        if (i) ret += " ";
+		T value = vector[i];
+        ret += ::toString(value);
+    }
+    ret += "]";
+
+    return ret;
+}
+
+template<typename TT>
+std::string toString(TT&& value) {
+	using T = std::remove_cvref_t<TT>;
     if constexpr (std::is_unsigned_v<T>) {
         return std_sprintf("%u", value);
     } else if constexpr (std::is_signed_v<T>) {
         return std_sprintf("%d", value);
     } else if constexpr (std::is_same_v<std::string, std::remove_cvref_t<T>>) {
         return value;
+    } else if constexpr (has_to_string_method<T>) {
+        return value.toString();
     } else if constexpr (has_to_string_function<T>) {
         return toString(value);
-    } else if constexpr (has_to_string_method<T>) {
-        return toString(value.toString());
+	} else if constexpr (std::is_enum_v<T>) {
+		return toString(value);
     } else {
         static_assert(false, "Unexptected");
         getLogger().info("##  %s  %d  %s", __func__, __LINE__, demangle(typeid(T).name()));
     }
-}
-template<typename T>
-std::string toString(const std::vector<T>& vector) {
-    std::string ret;
-    ret += "[";
-    for(size_t i = 0; i < vector.size(); i++) {
-        if (i) ret += " ";
-        ret += toString(vector[i]);
-    }
-    ret += "]";
-
-    return ret;
-}
-template<typename T, std::size_t N>
-std::string toString(const std::array<T, N>& vector) {
-    std::string ret;
-    ret += "[";
-    for(size_t i = 0; i < vector.size(); i++) {
-        if (i) ret += " ";
-        ret += toString(vector[i]);
-    }
-    ret += "]";
-
-    return ret;
 }
 
 
