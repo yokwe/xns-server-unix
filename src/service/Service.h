@@ -134,13 +134,13 @@ struct NoSuchProgramNumberReject : public RejectBase {
     NoSuchProgramNumberReject() : RejectBase(VALUE, NAME) {}
 
     inline void read(const ByteBuffer& bb) override {
-        bb.read(value);
+        bb.read();
     }
     inline void write(ByteBuffer& bb) const override {
-        bb.write(value);
+        bb.write();
     }
     inline std::string toString() const override {
-        return "{" + ::toString(value) + "}";
+        return "{" + ::toString(RejectBase::value) + "}";
     }
 
     RejectDetails toRejectDetail() const override {
@@ -157,13 +157,13 @@ struct NoSuchVersionNumberReject : public RejectBase {
     courier::Courier3::VersionRange versionRange;
 
     inline void read(const ByteBuffer& bb) override {
-        bb.read(value, versionRange);
+        bb.read(versionRange);
     }
     inline void write(ByteBuffer& bb) const override{
-        bb.write(value, versionRange);
+        bb.write(versionRange);
     }
     inline std::string toString() const override {
-        return "{" + ::toString(value) + ::toString(versionRange) + "}";
+        return "{" + ::toString(RejectBase::value) + ::toString(versionRange) + "}";
     }
 
     RejectDetails toRejectDetail() const override {
@@ -177,13 +177,13 @@ struct NoSuchProcedureValueReject : public RejectBase {
     NoSuchProcedureValueReject() : RejectBase(VALUE, NAME) {}
 
     inline void read(const ByteBuffer& bb) override {
-        bb.read(value);
+        bb.read();
     }
     inline void write(ByteBuffer& bb) const override{
-        bb.write(value);
+        bb.write();
     }
     inline std::string toString() const override {
-        return "{" + ::toString(value) +  "}";
+        return "{" + ::toString(RejectBase::value) +  "}";
     }
 
     RejectDetails toRejectDetail() const override {
@@ -197,13 +197,13 @@ struct InvalidArgumentReject : public RejectBase {
     InvalidArgumentReject() : RejectBase(VALUE, NAME) {}
 
     inline void read(const ByteBuffer& bb) override {
-        bb.read(value);
+        bb.read();
     }
     inline void write(ByteBuffer& bb) const override{
-        bb.write(value);
+        bb.write();
     }
     inline std::string toString() const override {
-        return "{" + ::toString(value) +  "}";
+        return "{" + ::toString(RejectBase::value) +  "}";
     }
 
     RejectDetails toRejectDetail() const override {
@@ -217,13 +217,13 @@ struct UnspecifiedReject : public RejectBase {
     UnspecifiedReject() : RejectBase(VALUE, NAME) {}
 
     inline void read(const ByteBuffer& bb) override {
-        bb.read(value);
+        bb.read();
     }
     inline void write(ByteBuffer& bb) const override{
-        bb.write(value);
+        bb.write();
     }
     inline std::string toString() const override {
-        return "{" + ::toString(value) +  "}";
+        return "{" + ::toString(RejectBase::value) +  "}";
     }
 
     RejectDetails toRejectDetail() const override {
