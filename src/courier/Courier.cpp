@@ -33,34 +33,13 @@
  // Courier.cpp
  //
 
- #include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "Courier.h"
 
-#undef  ENUM_NAME_VALUE
-#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
-
 namespace courier {
 //
-std::string toString(Type value) {
-    static std::unordered_map<Type, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Type, CALL,    0)
-        ENUM_NAME_VALUE(Type, REJECT,  1)
-        ENUM_NAME_VALUE(Type, RETURN,  2)
-        ENUM_NAME_VALUE(Type, ABORT,   3)
-            };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
-
-std::string toString(Protocol value) {
-    static std::unordered_map<Protocol, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Protocol, PROTOCOL_2,    2)
-        ENUM_NAME_VALUE(Protocol, PROTOCOL_3,    3)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
 
 }
