@@ -52,67 +52,6 @@ inline ByteBuffer getByteBuffer() {
 }
 
 //
-// Procedure
-//
-struct ProcedureBase {
-    const uint16_t    value;
-    const std::string name;
-
-    virtual bool empty() const = 0;
-    virtual ByteBuffer call(const ByteBuffer& bb) const = 0; // called from network input
-
-    ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
-
-    virtual ~ProcedureBase() {}
-};
-
-template<typename T>
-struct Procedure : public ProcedureBase {
-private:
-    using A        = T::Argument;
-    using R        = T::Result;
-    using Function = T::Function;
-
-    Function          function;
-
-public:
-    Procedure(uint16_t value_, const char* name_) : ProcedureBase(value_, name_), function(nullptr) {}
-
-    void set(Function newValue) {
-        function = newValue;
-    }
-    bool empty() const override {
-        return !function;
-    }
-
-    ByteBuffer call(const ByteBuffer& rx) const override {
-        ByteBuffer tx = getByteBuffer();
-        if constexpr (std::is_void_v<A>) {
-            if constexpr (std::is_void_v<R>) {
-                function();
-            } else {
-                R result = function();
-                tx.write(result);
-            }
-        } else {
-            A argument = rx.get<A>();
-            if constexpr (std::is_void_v<R>) {
-                function(argument);
-            } else {
-                R result = function(argument);
-                tx.write(result);
-            }
-        }
-        if (rx.byteRemains() != 0) {
-            // input data is still remaining
-            // something goes wrong
-            // FIXME
-        }
-        return tx;
-    }
-};
-
-//
 // Reject
 //
 struct RejectBase {
@@ -233,6 +172,70 @@ struct UnspecifiedReject : public RejectBase {
     }
 };
 
+
+//
+// Procedure
+//
+struct ProcedureBase {
+    const uint16_t    value;
+    const std::string name;
+
+    virtual bool empty() const = 0;
+    virtual ByteBuffer call(const ByteBuffer& bb) const = 0; // called from network input
+
+    ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
+
+    virtual ~ProcedureBase() {}
+};
+
+template<typename T>
+struct Procedure : public ProcedureBase {
+private:
+    using A        = T::Argument;
+    using R        = T::Result;
+    using Function = T::Function;
+
+    Function          function;
+
+public:
+    Procedure(uint16_t value_, const char* name_) : ProcedureBase(value_, name_), function(nullptr) {}
+
+    void set(Function newValue) {
+        function = newValue;
+    }
+    bool empty() const override {
+        return !function;
+    }
+
+    ByteBuffer call(const ByteBuffer& rx) const override {
+        ByteBuffer tx = getByteBuffer();
+        if constexpr (std::is_void_v<A>) {
+            if (rx.remains() != 0) {
+                throw InvalidArgumentReject{};
+            }
+            if constexpr (std::is_void_v<R>) {
+                function();
+            } else {
+                R result = function();
+                tx.write(result);
+            }
+        } else {
+            A argument = rx.get<A>();
+            if (rx.remains() != 0) {
+                throw InvalidArgumentReject{};
+            }
+            if constexpr (std::is_void_v<R>) {
+                function(argument);
+            } else {
+                R result = function(argument);
+                tx.write(result);
+            }
+        }
+        return tx;
+    }
+};
+
+
 //
 // ServiceBase
 //
@@ -253,6 +256,7 @@ struct ServiceBase {
 protected:
     std::vector<ProcedureBase*> procedureList;
 };
+
 
 //
 // ServicesBase
