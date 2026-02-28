@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -57,7 +58,7 @@ struct ProcedureBase {
     const uint16_t    value;
     const std::string name;
 
-    virtual bool hasFunction() const = 0;
+    virtual bool empty() const = 0;
     virtual ByteBuffer call(const ByteBuffer& bb) const = 0; // called from network input
 
     ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
@@ -67,17 +68,21 @@ struct ProcedureBase {
 
 template<typename T>
 struct Procedure : public ProcedureBase {
+private:
     using A        = T::Argument;
     using R        = T::Result;
     using Function = T::Function;
 
-    Procedure(uint16_t value_, const char* name_) : ProcedureBase(value_, name_), function(0) {}
+    Function          function;
+
+public:
+    Procedure(uint16_t value_, const char* name_) : ProcedureBase(value_, name_), function(nullptr) {}
 
     void set(Function newValue) {
         function = newValue;
     }
-    bool hasFunction() const override {
-        return function != 0;
+    bool empty() const override {
+        return !function;
     }
 
     ByteBuffer call(const ByteBuffer& rx) const override {
@@ -105,9 +110,6 @@ struct Procedure : public ProcedureBase {
         }
         return tx;
     }
-
-private:
-    Function          function;
 };
 
 //

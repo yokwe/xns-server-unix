@@ -45,15 +45,25 @@ namespace service {
 //
 
 ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
-    courier::Courier3::ProtocolRange protocolRange;
-    rx.read(protocolRange);
-
-    if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
-        logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
-        return getByteBuffer();
+    {
+        courier::Courier3::ProtocolRange protocolRange;
+        rx.read(protocolRange);
+    
+        if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
+            logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
+            return getByteBuffer();
+        }
     }
 
-    return call(rx);
+    {
+        courier::Courier3::ProtocolRange protocolRange = {courier::Courier3::SupportingProtol, courier::Courier3::SupportingProtol};
+        auto response = call(rx);
+        auto tx = getByteBuffer();
+        tx.write(protocolRange);
+        tx.write(response);
+    
+        return tx;    
+    }
 }
 
 ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
@@ -92,17 +102,16 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
                 throw NoSuchVersionNumberReject{versionRange};
             }
         }
-        auto proc = service->getProcedure(programNumber);
+        auto proc = service->getProcedure(procedureValue);
         if (proc == 0) {
+            logger.info("proc == 0");
             throw NoSuchProcedureValueReject{};
         }
     
         logger.info("CALL    %04X  %s  %s", transactionID, service->name, proc->name);
-        if (proc->hasFunction()) {
-            logger.info("no fuunction installed  %s  %s", service->name, proc->name);
-            auto tx = getByteBuffer();
-            // DO NOTHING
-            return tx;
+        if (proc->empty()) {
+            logger.info("function is empty  %s  %s", service->name, proc->name);
+            throw UnspecifiedReject{};
         }
         
         // Return
@@ -130,6 +139,8 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
         logger.info("REJECT  %04X  %d  %s", transactionID, rejectBase.value, rejectBase.name);
         courier::Courier3::RejectMessage rejectMessage{transactionID, rejectBase.toRejectDetail()};
         auto replyMessage = courier::Courier3::Message::fromReject(rejectMessage);
+
+        logger.info("rejectMessage  %s", rejectMessage.toString());
 
         auto tx = getByteBuffer();
         tx.write(replyMessage);
