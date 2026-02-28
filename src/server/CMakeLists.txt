@@ -26,6 +26,6 @@ target_sources(
     Time.cpp
 )
 
-add_dependencies(server xns courier util)
+add_dependencies(server service courier xns util)
 
-target_link_libraries (server xns courier util)
+target_link_libraries (server service courier xns courier util)

@@ -59,5 +59,6 @@ endif()
 # add subdirectory
 add_subdirectory (util    ../build/util)
 add_subdirectory (xns     ../build/xns)
-add_subdirectory (server  ../build/server)
 add_subdirectory (courier ../build/courier)
+add_subdirectory (service ../build/service)
+add_subdirectory (server  ../build/server)
