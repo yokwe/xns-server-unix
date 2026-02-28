@@ -43,13 +43,12 @@ static const Logger logger(__FILE__);
 
 namespace service {
 //
-using namespace courier::Courier3;
 
 ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
-    ProtocolRange protocolRange;
+    courier::Courier3::ProtocolRange protocolRange;
     rx.read(protocolRange);
 
-    if (SupportingProtol < protocolRange.lowest || protocolRange.highest < SupportingProtol) {
+    if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
         logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
         return getByteBuffer();
     }
@@ -58,11 +57,11 @@ ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
 }
 
 ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
-    Message message;
+    courier::Courier3::Message message;
     rx.read(message);
 
     const auto callMessage    = message.toCall();
-    const auto transasionID   = callMessage.transactionID;
+    const auto transactionID   = callMessage.transactionID;
     const auto programNumber  = callMessage.programNumber;
     const auto versionNumber  = callMessage.versionNumber;
     const auto procedureValue = callMessage.procedureValue;
@@ -70,19 +69,19 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
     try {
         logger.info("COURIER %04X  %d  %d  %d", transactionID, programNumber, versionNumber, procedureValue);
     
-        if (message.key != Message::Key::call) {
+        if (message.key != courier::Courier3::Message::Key::call) {
             logger.warn("Unpexpected message key  %d  %d", message.toString());
             throw UnspecifiedReject{};
         }
     
         // sanity check
-        auto service = services.getService(program, version);
+        auto service = services.getService(programNumber, versionNumber);
         if (service == 0) {
-            auto serviceList = services.getService(program);
+            auto serviceList = services.getService(programNumber);
             if (serviceList.empty()) {
                 throw NoSuchProgramNumberReject{};
             } else {
-                VersionRange versionRange{serviceList[0]->version, serviceList[0]->version};
+                courier::Courier3::VersionRange versionRange{serviceList[0]->version, serviceList[0]->version};
                 auto& high = versionRange.highest;
                 auto& low  = versionRange.lowest;
                 for(auto& e: serviceList) {
@@ -90,12 +89,12 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
                     if (high < version) high = version;
                     if (version < low)  low  = version;
                 }
-                throw NoSuchVersionNumber{versionRange};
+                throw NoSuchVersionNumberReject{versionRange};
             }
         }
-        auto proc = service->getProcedure(procedure);
+        auto proc = service->getProcedure(programNumber);
         if (proc == 0) {
-            throw NoSuchProcedureValue{};
+            throw NoSuchProcedureValueReject{};
         }
     
         logger.info("CALL    %04X  %s  %s", transactionID, service->name, proc->name);
@@ -107,21 +106,20 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
         }
         
         // Return
-        ReturnMessage returnMessage{transacionID};
-        auto replyMessage = Message::fromReturn(returnMessage);
+        courier::Courier3::ReturnMessage returnMessage{transactionID};
         auto result = proc->call(rx);
 
         logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
 
         auto tx = getByteBuffer();
-        tx.write(returnMessage)
+        tx.write(returnMessage);
         tx.write(result);
         return tx;
-    } catch (const ErrorBase& errorBase) {
+    } catch (const courier::ErrorBase& errorBase) {
         // Abort
-        logger.info("ABORT   %04X  %d  %s", transactionID, errorBase.value, errorBase.name);
-        AbortMessage abortMssage{transactionID, errorBase.number};
-        auto replyMessage = Message::fromAbort(abortMessage)
+        logger.info("ABORT   %04X  %d  %s", transactionID, errorBase.number, errorBase.name);
+        courier::Courier3::AbortMessage abortMessage{transactionID, errorBase.number};
+        auto replyMessage = courier::Courier3::Message::fromAbort(abortMessage);
 
         auto tx = getByteBuffer();
         tx.write(replyMessage);
@@ -130,22 +128,13 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
     } catch (const RejectBase& rejectBase) {
         // Reject
         logger.info("REJECT  %04X  %d  %s", transactionID, rejectBase.value, rejectBase.name);
-        RejectMessage rejectMessage{transactionID, rejectBase.toRejectDetail()};
-        auto replyMessage = Message::fromReject(rejectMessage);
+        courier::Courier3::RejectMessage rejectMessage{transactionID, rejectBase.toRejectDetail()};
+        auto replyMessage = courier::Courier3::Message::fromReject(rejectMessage);
 
         auto tx = getByteBuffer();
         tx.write(replyMessage);
         return tx;
     }
-}
-
-ByteBuffer returnReject(const RejectBase reject) {
-    var a = reject.toRejectDetail();
-
-    auto rejectMessage = RejectMessage::RejectDetails::getNoSuchProgramNumber();
-
-    auto message = Message::getReject(rejectMessage);
-
 }
 
 }
