@@ -56,7 +56,7 @@ public class CompilerArray extends CompilerPair {
 			elementString = toTypeString(context.program.self, element);
 		}
 
-		out.println("using %s = std::array<%s, %d>;  // SIZE = %d", name, elementString, size, typeArray.size);
+		out.println("using %s = ARRAY<%s, %d>;", name, elementString, size);
 	}
 
 	@Override
