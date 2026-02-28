@@ -100,6 +100,7 @@ public class Compiler {
 				#include <array>
 				#include <functional>
 
+				#include "../util/Util.h"
 				#include "../util/ByteBuffer.h"
 
 				#include "Courier.h"
