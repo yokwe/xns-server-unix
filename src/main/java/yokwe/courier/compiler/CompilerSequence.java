@@ -54,7 +54,7 @@ public class CompilerSequence extends CompilerPair {
 		} else {
 			elementString = toTypeString(context.program.self, element);
 		}
-		out.println("using %s = std::vector<%s>;  // MAX_SIZE = %d", name, elementString, typeSequence.size);
+		out.println("using %s = SEQUENCE<%s, %d>;", name, elementString, typeSequence.size);
 	}
 
 	@Override
