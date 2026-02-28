@@ -200,13 +200,13 @@ public class CompilerChoice extends CompilerPair {
 		out.println("switch(key) {");
 		for(var i = 0; i < candidateList.size(); i++) {
 			var myName = candidateList.get(i).name;
-			var myType = candidateList.get(i).type;
+			var myTypeName = typeNameList.get(i);
 
 			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
-			if (myType.isRecord() && myType.toTypeRecord().isEmpty()) {
-				out.println(String.format("return \"{%s  {}}\";", myName));
+			if (myTypeName.equals("std::monostate")) {
+				out.println("return \"{%s  {}}\";", myName);
 			} else {
-				out.println(String.format("return \"{%s  \" + ::toString(std::get<%d>(variant)) + \"}\";", myName, i));
+				out.println("return \"{\" + ::toString(key) + \"  \" + ::toString((%s)std::get<%d>(variant)) + \"}\"; ", myTypeName, i);
 			}
 		}
 		out.println("default: ERROR()");
