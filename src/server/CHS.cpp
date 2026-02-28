@@ -33,53 +33,23 @@
  // CHS.cpp
  //
 
-#include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../courier/Courier.h"
+#include "../service/Services.h"
 
 #include "Server.h"
 
 namespace server::CHS {
 //
 
-// RetrieveAddresses: PROCEDURE
-// RETURNS [address: NetworkAddressList]
-// REPORTS [CallError] = 0;
-
-// NetworkAddress: TYPE = RECORD [
-// 	network: ARRAY 2 OF UNSPECIFIED,
-// 	host: ARRAY 3 OF UNSPECIFIED,
-// 	socket: UNSPECIFIED ];
-// NetworkAddressList: TYPE = SEQUENCE 40 OF NetworkAddress;
-
-using namespace courier::expedited;
-
 ByteBuffer process(ByteBuffer& rx, Context& context) {
     (void)context;
-    CallMessage rxHeader;
 
-    rx.read(rxHeader);
-    if constexpr (SHOW_PACKET_TIME) logger.info("CHS  >>  %s", rxHeader.toString());
-    if (rx.remains()) ERROR()
+    auto tx = service::services.callExpedited(rx);
 
-    auto program = rxHeader.message.programNumber;
-    auto version = rxHeader.message.versionNumber;
-    auto procedure = rxHeader.message.procedureValue;
-
-    courier::Config::Key key{program, version};
-    auto prog = context.courier.programMap.at(key);
-    auto proc = prog.procedureMap.at(procedure);
-    logger.info("%s  %s", prog.name, proc.name);
-
-    // auto txHeader = call(rxHeader, context);
-    // if constexpr (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
-
-    auto tx = getByteBuffer();
-    // tx.write(txHeader);
     return tx;
 }
 
