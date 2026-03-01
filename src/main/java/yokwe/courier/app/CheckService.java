@@ -8,6 +8,7 @@ import java.util.stream.IntStream;
 import yokwe.courier.compiler.Compiler;
 import yokwe.courier.compiler.Service;
 import yokwe.courier.program.Builder;
+import yokwe.courier.util.Util;
 import yokwe.util.AutoIndentPrintWriter;
 import yokwe.util.AutoIndentPrintWriter.Layout;
 
@@ -129,11 +130,45 @@ public class CheckService {
 			// output constructor
 			out.println("%s() : ServiceBase(PROGRAM, VERSION, NAME) {", programName);
 			out.println("procedureList = {%s};",
-				String.join(", ", service.procedureList.stream().map(o -> String.format("&%s", o.name)).toList()));
+				String.join(", ", service.procedureList.stream().map(o -> String.format("&proc%d", o.value)).toList()));
 			out.println("}");
 			out.println();
 
-			// procedure
+			// function table
+			out.println("// Function Table");
+			out.println("struct FunctionTable {");
+			out.prepareLayout();
+			for(var e: service.procedureList) {
+				var procName  = e.name;
+				out.println("courier::%s::%s::Function %s;", programName, procName, Util.sanitizeSymbol(Util.uncapitalizeName(procName)));
+			}
+			out.layout(Layout.LEFT, Layout.LEFT);
+			out.println("};");
+			out.println("void set(const FunctionTable& functionTable) {");
+			for(var e: service.procedureList) {
+				var procName  = e.name;
+				var procValue = e.value;
+
+				// GetStrongCredentials.set(functionTable.getStrongCredential);
+				out.println("proc%d.set(functionTable.%s);", procValue, Util.sanitizeSymbol(Util.uncapitalizeName(procName)));
+			}
+			out.println("};");
+			out.println();
+
+			// output class for error
+			if (service.errorList.isEmpty()) {
+				out.println("// No Error");
+			} else {
+				out.println("// List of Error  %d", service.errorList.size());
+				out.prepareLayout();
+				for(var e: service.errorList) {
+					out.println("using %s = courier::%s::%s;", e.name, programName, e.name);
+				}
+				out.layout(Layout.LEFT, Layout.LEFT, Layout.LEFT, Layout.LEFT);
+			}
+			out.println();
+			// output class for procedure
+			out.println("private:");
 			out.println("// List of Procedure  %d", service.procedureList.size());
 			for(var e: service.procedureList) {
 				var procName  = e.name;
@@ -142,21 +177,10 @@ public class CheckService {
 				// See https://stackoverflow.com/questions/63545816/how-to-call-a-non-default-parent-constructor-from-an-unnamed-derived-class-in-c
 				out.println("struct : public Procedure<courier::%s::%s> {", programName, procName);
 				out.println("using Procedure::Procedure;");
-				out.println("} %s {%d, \"%s\"};", procName, procValue, procName);
+				out.println("} proc%s {%d, \"%s\"};", procValue, procValue, procName);
 			}
 			out.println();
 
-			// output class for error
-			if (service.errorList.isEmpty()) {
-				out.println("// No Error");
-			} else {
-				out.println("// List of Error  %d", service.errorList.size());
-				for(var e: service.errorList) {
-					out.println("using %s = courier::%s::%s;", e.name, programName, e.name);
-				}
-			}
-			out.println();
-			// output class for procedure
 			out.println("};");
 			out.println("}");
 		}
