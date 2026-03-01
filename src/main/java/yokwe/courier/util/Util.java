@@ -30,8 +30,7 @@
 
 package yokwe.courier.util;
 
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.Set;
 
 import yokwe.util.UnexpectedException;
 
@@ -61,22 +60,24 @@ public class Util {
 		return Integer.toUnsignedString(value);
 	}
 
-	private static Map<String, String> sanitizeMap = new TreeMap<>();
-	static {
-		sanitizeMap.put("abort",  "abort_");
-		sanitizeMap.put("and",    "and_");
-		sanitizeMap.put("not",    "not_");
-		sanitizeMap.put("or",     "or_");
-		sanitizeMap.put("return", "return_");
-	}
+	private static Set<String> sanitizeSet = Set.of("abort", "and", "not", "or", "return", "delete", "continue");
 
 	public static String sanitizeSymbol(final String symbol) {
-		return sanitizeMap.containsKey(symbol) ? sanitizeMap.get(symbol) : symbol;
+		return sanitizeSet.contains(symbol) ? (symbol + "_") : symbol;
 	}
 
 	public static String capitalizeName(String name) {
 		var firstLetter = name.substring(0, 1);
 		var firstLetterNew = firstLetter.toUpperCase();
+		if (firstLetterNew.equals(firstLetter)) {
+			return name + "_";
+		} else {
+			return firstLetterNew + name.substring(1);
+		}
+	}
+	public static String uncapitalizeName(String name) {
+		var firstLetter = name.substring(0, 1);
+		var firstLetterNew = firstLetter.toLowerCase();
 		if (firstLetterNew.equals(firstLetter)) {
 			return name + "_";
 		} else {
