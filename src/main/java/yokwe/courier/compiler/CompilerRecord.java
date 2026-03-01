@@ -90,9 +90,10 @@ public class CompilerRecord extends CompilerPair {
 			List<String> initList = typeRecord.fieldList.stream().map(o -> String.format("%s(%s_)", o.name, o.name)).toList();
 
 			out.println("%s() {}", name);
+			out.println("%s(%s) : %s {}", name, String.join(", ", argList), String.join(", ", initList));
+			out.println();
 			out.println("%s(const %s& that) = default;", name, name);
 			out.println("%s(%s&& that)      = default;", name, name);
-			out.println("%s(%s) : %s {}", name, String.join(", ", argList), String.join(", ", initList));
 			out.println();
 			out.println("%s& operator=(const %s&)     = default;", name, name);
 			out.println("%s& operator=(%s&&) noexcept = default;", name, name);
