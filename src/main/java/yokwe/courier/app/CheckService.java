@@ -34,62 +34,60 @@ public class CheckService {
 			logger.info("{}", String.format("program   %-16s  %3d  %3d", program.self.toName(), program.dependList.size(), program.declList.size()));
 
 			var service = compiler.compile(program);
-			serviceList.add(service);
+
+			if (!service.procedureList.isEmpty()) {
+				serviceList.add(service);
+			}
 		}
 
-		generateService(serviceList);
+		for(var service: serviceList) {
+			generateService(service);
+		}
+		generateServices(serviceList);
 
 		logger.debug("STOP");
 	}
 
-	static private void generateService(List<Service> serviceList) {
-		var list = serviceList.stream().filter(o -> !o.procedureList.isEmpty()).toList();
+	static private void generateServices(List<Service> serviceList) {
+		// output Services.h
+		var path = Paths.get("src", "service", "Services.h");
+		logger.info("path  {}", path.toString());
+		try (var out = new AutoIndentPrintWriter(path)) {
+			out.printlnRaw(Compiler.COPYRIGHT_COMMENT);
+			out.println(
+				"""
+				//
+				// Services.h
+				//
 
-		for(var service: list) {
-			generateService(service);
-		}
-
-		// output services.h
-		{
-			var path = Paths.get("src", "service", "Services.h");
-			logger.info("path  {}", path.toString());
-			try (var out = new AutoIndentPrintWriter(path)) {
-				out.printlnRaw(Compiler.COPYRIGHT_COMMENT);
-				out.println(
-					"""
-					//
-					// Services.h
-					//
-
-					#pragma once
-					""");
-				for(var e: list) {
-					out.println("#include \"%s.h\"", e.module.toName());
-				}
-				out.println(
-				    """
-
-					#include "Service.h"
-
-					namespace service {""");
-
-				out.println("inline struct Services : public ServicesBase {");
-				out.prepareLayout();
-				for(int i = 0; i < list.size(); i++) {
-					var service     = list.get(i);
-					var programName = service.module.toName();
-					var name = "module" + i;
-					out.println("%s %s;", programName, name);
-				}
-				out.layout(Layout.LEFT, Layout.LEFT);
-				out.println();
-
-				var nameList = IntStream.range(0, list.size()).mapToObj(o -> ("&module" + o)).toList();
-				out.println("Services() : ServicesBase({%s}) {}", String.join(", ", nameList));
-				out.println("} services;");
-
-				out.println("}");
+				#pragma once
+				""");
+			for(var e: serviceList) {
+				out.println("#include \"%s.h\"", e.module.toName());
 			}
+			out.println(
+			    """
+
+				#include "Service.h"
+
+				namespace service {""");
+
+			out.println("inline struct Services : public ServicesBase {");
+			out.prepareLayout();
+			for(int i = 0; i < serviceList.size(); i++) {
+				var service     = serviceList.get(i);
+				var programName = service.module.toName();
+				var name = "module" + i;
+				out.println("%s %s;", programName, name);
+			}
+			out.layout(Layout.LEFT, Layout.LEFT);
+			out.println();
+
+			var nameList = IntStream.range(0, serviceList.size()).mapToObj(o -> ("&module" + o)).toList();
+			out.println("Services() : ServicesBase({%s}) {}", String.join(", ", nameList));
+			out.println("} services;");
+
+			out.println("}");
 		}
 	}
 
@@ -179,7 +177,6 @@ public class CheckService {
 				out.println("using Procedure::Procedure;");
 				out.println("} proc%s {%d, \"%s\"};", procValue, procValue, procName);
 			}
-			out.println();
 
 			out.println("};");
 			out.println("}");
