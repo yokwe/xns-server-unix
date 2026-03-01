@@ -96,9 +96,6 @@ public class Compiler {
 				#pragma once
 
 				#include <string>
-				#include <vector>
-				#include <array>
-				#include <functional>
 
 				#include "../util/Util.h"
 				#include "../util/ByteBuffer.h"
