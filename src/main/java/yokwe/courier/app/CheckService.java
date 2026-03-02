@@ -3,7 +3,6 @@ package yokwe.courier.app;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import yokwe.courier.compiler.Compiler;
 import yokwe.courier.compiler.Service;
@@ -20,8 +19,7 @@ public class CheckService {
 
 
 		String[] pathList = {
-			"data/courier/custom",
-			"data/courier/XNSonUX",
+			"data/courier/private",
 		};
 
 		var builder = new Builder();
@@ -77,13 +75,13 @@ public class CheckService {
 			for(int i = 0; i < serviceList.size(); i++) {
 				var service     = serviceList.get(i);
 				var programName = service.module.toName();
-				var name = "module" + i;
+				var name = Util.uncapitalizeName(programName);
 				out.println("%s %s;", programName, name);
 			}
 			out.layout(Layout.LEFT, Layout.LEFT);
 			out.println();
 
-			var nameList = IntStream.range(0, serviceList.size()).mapToObj(o -> ("&module" + o)).toList();
+			var nameList = serviceList.stream().map(o -> "&" + Util.uncapitalizeName(o.module.toName())).toList();
 			out.println("Services() : ServicesBase({%s}) {}", String.join(", ", nameList));
 			out.println("} services;");
 
@@ -146,8 +144,6 @@ public class CheckService {
 			for(var e: service.procedureList) {
 				var procName  = e.name;
 				var procValue = e.value;
-
-				// GetStrongCredentials.set(functionTable.getStrongCredential);
 				out.println("proc%d.set(functionTable.%s);", procValue, Util.sanitizeSymbol(Util.uncapitalizeName(procName)));
 			}
 			out.println("};");
