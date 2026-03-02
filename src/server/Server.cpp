@@ -39,6 +39,8 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../service/Services.h"
+
 #include "Server.h"
 
 namespace server {
@@ -123,6 +125,17 @@ std::string toString(const xns::IDP& value) {
         value.control,
         xns::IDP::toString(value.packetType),
         toString(value.dst), toString(value.src));    
+}
+
+ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context) {
+    (void)context;
+    auto tx = service::services.callExpeditedMessage(rx);
+    return tx;
+}
+ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context) {
+    (void)context;
+    auto tx = service::services.callCourierMessage(rx);
+    return tx;
 }
 
 }

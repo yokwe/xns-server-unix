@@ -178,8 +178,8 @@ namespace SPP {
 namespace Time {
     ByteBuffer process  (ByteBuffer& rx, Context& context);
 }
-namespace CHS {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
-}
+
+ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context);
+ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context);
 
 }
