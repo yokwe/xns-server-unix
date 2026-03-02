@@ -55,9 +55,9 @@ public:
     SST      sst;     // Sub System Type
     uint16_t srcID;   // connection id of source
     uint16_t dstID;   // connection id of destination
-    uint16_t seq;     // sequence
-    uint16_t ack;     // acknowledgment
-    uint16_t alloc;   // allocation
+    uint16_t seq;     // sequence of this packet
+    uint16_t ack;     // sequence number of the next expected packet  OR  sequence number before this number was acknowledged
+    uint16_t alloc;   // sequence number
 
     // format of control
     //   bit 0  system packet
@@ -69,16 +69,16 @@ public:
     const uint8_t BIT_ATTENSION      = 0x20;
     const uint8_t BIT_END_OF_MESSAGE = 0x10;
     
-    bool sysemPacke() {
+    bool systemPacket() const {
         return control & BIT_SYSTEM_PACKET;
     }
-    bool sendAck() {
+    bool sendAck() const {
         return control & BIT_SEND_ACK;
     }
-    bool attention() {
+    bool attention() const {
         return control & BIT_ATTENSION;
     }
-    bool endOfMessage() {
+    bool endOfMessage() const {
         return control & BIT_END_OF_MESSAGE;
     }
 
@@ -91,9 +91,13 @@ public:
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
     }
     std::string toString() const {
-        return std_sprintf("{%02X  %d  %04X  %04X  %5d  %5d  %5d}", control, toString(sst), srcID, dstID, seq, ack, alloc);
+        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %5d  %5d  %5d}",
+            systemPacket() ? "S" : "_",
+            sendAck() ? "S" : "_",
+            attention() ? "A" : "_",
+            endOfMessage() ? "E" : "_",
+            toString(sst), srcID, dstID, seq, ack, alloc);
     }
-
 };
 
 }
