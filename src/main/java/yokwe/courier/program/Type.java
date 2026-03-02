@@ -41,13 +41,15 @@ public class Type {
 	public static final Type STRING        = new Type(Kind.STRING);
 	public static final Type UNSPECIFIED   = new Type(Kind.UNSPECIFIED);
 
+	public static final Type EXTERNAL      = new Type(Kind.EXTERNAL);
+
 	public enum Kind {
 		// predefined
 		BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED,
 		// constructed
 		ARRAY, CHOICE, ENUM, ERROR, PROCEDURE, RECORD, SEQUENCE,
 		// reference
-		REFERENCE
+		REFERENCE, EXTERNAL,
 	}
 
 	public final Kind kind;

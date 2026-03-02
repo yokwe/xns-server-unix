@@ -228,11 +228,13 @@ public class Compiler {
 				return true;
 			}
 
-			list.addLast(qName);
-			var result = containsSelf(context, refType.value, list);
-			list.removeLast();
-			if (result) {
-				return true;
+			if (refType.isInternal()) {
+				list.addLast(qName);
+				var result = containsSelf(context, refType.value, list);
+				list.removeLast();
+				if (result) {
+					return true;
+				}
 			}
 		}
 		if (type.isRecord()) {

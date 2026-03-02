@@ -53,13 +53,13 @@ public abstract class Reference<V> {
 			valueMap = new TreeMap<>();
 			refMap   = new TreeMap<>();
 		}
-		void add(final R value) {
+		void addAll(final R value) {
 			all.add(value);
 		}
-		void add(final String name, final V value) {
+		void addValueMap(final String name, final V value) {
 			valueMap.put(name, value);
 		}
-		void add(final String name, final R ref) {
+		void addRefMap(final String name, final R ref) {
 			refMap.put(name, ref);
 		}
 
@@ -85,6 +85,9 @@ public abstract class Reference<V> {
 
 		public void fix() {
 			for(R e: all) {
+				if (e.isExternal()) {
+					continue;
+				}
 				if (e.needsFix()) {
 					var name = e.toName();
 					var value = getValue(name);
@@ -114,13 +117,13 @@ public abstract class Reference<V> {
 		public static Context<TYPE, Type> context = new Context<>();
 
 		public static void add(final TYPE value) {
-			context.add(value);
+			context.addAll(value);
 		}
 		public static void add(final String name, final Type value) {
-			context.add(name, value);
+			context.addValueMap(name, value);
 		}
 		public static void add(final String name, final TYPE ref) {
-			context.add(name, ref);
+			context.addRefMap(name, ref);
 		}
 		public static void fix() {
 			context.fix();
@@ -128,15 +131,17 @@ public abstract class Reference<V> {
 
 		public TYPE(final Program myProgram, final String name) {
 			super(Kind.TYPE, myProgram, name);
-			context.add(this);
+			context.addAll(this);
 		}
 		public TYPE(final Program myProgram, final String program, final String name) {
 			super(Kind.TYPE, myProgram, program, name);
-			context.add(this);
+			context.addAll(this);
 		}
 		public TYPE(final String namespace, final String name) {
 			super(Kind.TYPE, namespace, name);
-			context.add(this);
+			value = Type.EXTERNAL;
+			context.addAll(this);
+			context.addValueMap(toName(), Type.EXTERNAL);
 		}
 
 		@Override
@@ -152,13 +157,13 @@ public abstract class Reference<V> {
 		public static Context<CONS, Cons> context = new Context<>();
 
 		public static void add(final CONS value) {
-			context.add(value);
+			context.addAll(value);
 		}
 		public static void add(final String name, final Cons value) {
-			context.add(name, value);
+			context.addValueMap(name, value);
 		}
 		public static void add(final String name, final CONS ref) {
-			context.add(name, ref);
+			context.addRefMap(name, ref);
 		}
 		public static void fix() {
 			context.fix();
@@ -166,15 +171,15 @@ public abstract class Reference<V> {
 
 		public CONS(final Program myProgram, final String name) {
 			super(Kind.CONS, myProgram, name);
-			context.add(this);
+			context.addAll(this);
 		}
 		public CONS(final Program myProgram, final String program, final String name) {
 			super(Kind.CONS, myProgram, program, name);
-			context.add(this);
+			context.addAll(this);
 		}
 		public CONS(final String namespace, final String name) {
 			super(Kind.CONS, namespace, name);
-			context.add(this);
+			context.addAll(this);
 		}
 
 		@Override
@@ -229,7 +234,8 @@ public abstract class Reference<V> {
 
 	@Override
 	public String toString() {
-		return String.format("{%s  %s%s}", kind, fixed() ? "" : "?", toName());
+//		return String.format("{%s  %s%s}", kind, fixed() ? "" : "?", toName());
+		return String.format("{%s  %s  %s  %s}", kind, fixed() ? "" : "?", namespace, name);
 	}
 
 	public String toName() {
@@ -241,10 +247,10 @@ public abstract class Reference<V> {
 
 	// isXXX
 	public boolean isInternal() {
-		return namespace == null;
+		return module != null;
 	}
 	public boolean isExternal() {
-		return namespace != null;
+		return !isInternal();
 	}
 
 	// toXXX
