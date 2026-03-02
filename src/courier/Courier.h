@@ -42,6 +42,8 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
+#include "../xns/XNS.h"
+
 namespace courier {
 //
 
@@ -53,7 +55,6 @@ namespace courier {
 //
 // ARRAY
 //
-// use std::aray for ARRAY
 template<typename T, std::size_t N>
 struct ARRAY {
 private:
@@ -114,7 +115,6 @@ public:
 //
 // SEQUENCE
 //
-// use std::vector for SEQUENCE
 template<typename T, std::size_t N=65535>
 struct SEQUENCE {
 private:
@@ -212,5 +212,12 @@ struct ErrorBase {
     virtual void write(ByteBuffer& bb) const = 0;
     virtual std::string toString() const = 0;
 };
+
+//
+// For Courier
+//
+using Network = xns::Network;
+using Host    = xns::Host;
+using Socket  = xns::Socket;
 
 }
