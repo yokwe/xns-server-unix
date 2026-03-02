@@ -278,8 +278,8 @@ struct ServicesBase {
         return 0;
     }
 
-    ByteBuffer call(const ByteBuffer& rx);
-    ByteBuffer callExpedited(const ByteBuffer& rx);
+    ByteBuffer callCourierMessage(const ByteBuffer& rx);
+    ByteBuffer callExpeditedMessage(const ByteBuffer& rx);
 
 protected:
     std::vector<ServiceBase*> serviceList;

@@ -51,8 +51,8 @@ using PEX = xns::PEX;
 
 using ClientType = PEX::ClientType;
 static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
-    {ClientType::TIME,      Time::process},
-    {ClientType::CHS,       CHS::process},
+    {ClientType::TIME, Time::process},
+    {ClientType::CHS,  callExpeditedMessage},
 };
 ByteBuffer process  (ByteBuffer& rx, Context& context) {
     (void)context;

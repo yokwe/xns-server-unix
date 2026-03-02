@@ -44,10 +44,11 @@ static const Logger logger(__FILE__);
 namespace service {
 //
 
-ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callExpeditedMessage(const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;
         rx.read(protocolRange);
+        logger.info("%s  %s", __func__, protocolRange.toString());
     
         if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
             logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
@@ -57,7 +58,7 @@ ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
 
     {
         courier::Courier3::ProtocolRange protocolRange = {courier::Courier3::SupportingProtol, courier::Courier3::SupportingProtol};
-        auto response = call(rx);
+        auto response = callCourierMessage(rx);
         auto tx = getByteBuffer();
         tx.write(protocolRange);
         tx.write(response);
@@ -66,7 +67,7 @@ ByteBuffer ServicesBase::callExpedited(const ByteBuffer& rx) {
     }
 }
 
-ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callCourierMessage(const ByteBuffer& rx) {
     courier::Courier3::Message message;
     rx.read(message);
 
@@ -115,35 +116,39 @@ ByteBuffer ServicesBase::call(const ByteBuffer& rx) {
         }
         
         // Return
-        courier::Courier3::ReturnMessage returnMessage{transactionID};
-        auto result = proc->call(rx);
-
-        logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
-
-        auto tx = getByteBuffer();
-        tx.write(returnMessage);
-        tx.write(result);
-        return tx;
+        {
+            courier::Courier3::ReturnMessage returnMessage{transactionID};
+            auto message = courier::Courier3::Message::fromReturn(returnMessage);
+    
+            auto result = proc->call(rx);
+    
+            logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
+    
+            auto tx = getByteBuffer();
+            tx.write(message);
+            tx.write(result);
+            return tx;    
+        }
     } catch (const courier::ErrorBase& errorBase) {
         // Abort
         logger.info("ABORT   %04X  %d  %s", transactionID, errorBase.number, errorBase.name);
         courier::Courier3::AbortMessage abortMessage{transactionID, errorBase.number};
-        auto replyMessage = courier::Courier3::Message::fromAbort(abortMessage);
+        auto message = courier::Courier3::Message::fromAbort(abortMessage);
 
         auto tx = getByteBuffer();
-        tx.write(replyMessage);
+        tx.write(message);
         tx.write(errorBase);
         return tx;
     } catch (const RejectBase& rejectBase) {
         // Reject
         logger.info("REJECT  %04X  %d  %s", transactionID, rejectBase.value, rejectBase.name);
         courier::Courier3::RejectMessage rejectMessage{transactionID, rejectBase.toRejectDetail()};
-        auto replyMessage = courier::Courier3::Message::fromReject(rejectMessage);
+        auto message = courier::Courier3::Message::fromReject(rejectMessage);
 
         logger.info("rejectMessage  %s", rejectMessage.toString());
 
         auto tx = getByteBuffer();
-        tx.write(replyMessage);
+        tx.write(message);
         return tx;
     }
 }
