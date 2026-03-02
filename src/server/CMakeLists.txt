@@ -9,11 +9,12 @@ add_executable(
 target_sources(
 	server
 	PUBLIC
+    CHS.h
     Config.h
     Server.h
   PRIVATE
-    Config.cpp
     CHS.cpp
+    Config.cpp
     Echo.cpp
     Error.cpp
     Ethernet.cpp
@@ -24,7 +25,7 @@ target_sources(
     Server.cpp
     SPP.cpp
     Time.cpp
-)
+  )
 
 add_dependencies(server service courier xns util)
 
