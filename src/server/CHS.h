@@ -28,50 +28,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // CHS.cpp
+ // CHS.h
  //
 
-#include "../util/Util.h"
-static const Logger logger(__FILE__);
-
-
-#include "../xns/XNS.h"
-#include "../service/Clearinghouse3.h"
-#include "../service/Services.h"
+#pragma once
 
 #include "Server.h"
 
 namespace server::CHS {
 //
-server::Context* context;
-
-using namespace courier::Clearinghouse3;
-
-RetrieveAddresses::Result RetrieveAddres() {
-    logger.info("%s", __func__);
-
-    auto host = xns::Host(context->me);
-    NetworkAddress networkAddress = {context->net, host, xns::Socket::CHS};
-    NetworkAddressList list{networkAddress};
-    RetrieveAddresses::Result result = {list};
-
-    logger.info("%s  %s", __func__, list.toString());
-
-    return result;
-}
-
-
-service::Clearinghouse3::FunctionTable functionTable {
-    RetrieveAddres,
-};
-
-
-void init(server::Context& context_) {
-    context = &context_;
-
-    service::services.clearinghouse3.set(functionTable);
-}
-
+void init(server::Context&);
 }
