@@ -40,6 +40,7 @@ static const Logger logger(__FILE__);
 #include "../util/ThreadControl.h"
 
 #include "Server.h"
+#include "CHS.h"
 
 int main(int, char **) {
     using namespace server;
@@ -51,40 +52,14 @@ int main(int, char **) {
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
 
-    {
-        auto bb = getByteBuffer();
-        std::string string("ABCD");
-
-        bb.write(string);
-        bb.flip();
-        logger.info("bb  %d  %s", bb.byteLimit(), bb.toString());
-
-        std::string a;
-        bb.read(a);
-        logger.info("a  \"%s\"", a);
-    }
-    {
-        auto bb = getByteBuffer();
-
-        std::vector<std::string> vector;
-        vector.push_back("A");
-        vector.push_back("B");
-        vector.push_back("C");
-        bb.write(vector);
-        bb.flip();
-        logger.info("bb  %d  %s", bb.byteLimit(), bb.toString());
-
-        std::vector<std::string>a;
-        bb.read(a);
-        logger.info("a  %d  %s  %s  %s", a.size(), a[0], a[1], a[2]);
-    }
-
-    Context context;
+    server::Context context{};
 
 	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), toStringHost(context.driver->device.address), context.driver->device.name);
 	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), toStringHost(context.me));
 	logger.info("network  %d  %s", context.net, toStringNetwork(context.net));
 
+    // init CHS
+    server::CHS::init(context);
 
     auto& driver = *context.driver;
 	driver.open();
