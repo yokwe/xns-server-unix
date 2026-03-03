@@ -70,7 +70,11 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         }
     }
 
+
+    context.rxHeader = &rxHeader;
     auto txbb = map.at(rxHeader.packetType)(rxbb, context);
+    context.rxHeader = 0;
+
     txbb.flip();
     if (txbb.empty()) return ByteBuffer{};
 
