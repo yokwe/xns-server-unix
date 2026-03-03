@@ -100,6 +100,14 @@ public class Type {
 		};
 	}
 
+	public boolean isSimpleType() {
+		return switch(kind) {
+			case BOOLEAN, CARDINAL, INTEGER, LONG_CARDINAL, LONG_INTEGER, STRING, UNSPECIFIED, ENUM -> true;
+			case REFERENCE -> this.toTypeReference().toReferenceType().value.isSimpleType();
+			default -> false;
+		};
+	}
+
 	// isXXX
 	public boolean isBoolean() {
 		return kind == Kind.BOOLEAN;
