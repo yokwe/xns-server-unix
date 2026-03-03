@@ -114,4 +114,6 @@ enum class Socket : uint16_t {
 };
 std::string toString(Socket value);
 
+inline const constexpr uint16_t MAX_WELLKNOWN_SOCKET = 3000;
+
 }
