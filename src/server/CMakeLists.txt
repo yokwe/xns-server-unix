@@ -12,6 +12,7 @@ target_sources(
     CHS.h
     Config.h
     Server.h
+    SPP.h
   PRIVATE
     CHS.cpp
     Config.cpp
@@ -29,4 +30,4 @@ target_sources(
 
 add_dependencies(server service courier xns util)
 
-target_link_libraries (server service courier xns courier util)
+target_link_libraries (server service courier xns util)
