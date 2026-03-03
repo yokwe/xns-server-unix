@@ -66,7 +66,7 @@ public:
     //   bit 3  end of message
     const uint8_t BIT_SYSTEM_PACKET  = 0x80;
     const uint8_t BIT_SEND_ACK       = 0x40;
-    const uint8_t BIT_ATTENSION      = 0x20;
+    const uint8_t BIT_ATTENTION      = 0x20;
     const uint8_t BIT_END_OF_MESSAGE = 0x10;
     
     bool systemPacket() const {
@@ -76,10 +76,23 @@ public:
         return control & BIT_SEND_ACK;
     }
     bool attention() const {
-        return control & BIT_ATTENSION;
+        return control & BIT_ATTENTION;
     }
     bool endOfMessage() const {
         return control & BIT_END_OF_MESSAGE;
+    }
+
+    void systemPacket(bool newValue) {
+        if (newValue) control = (control & ~BIT_SYSTEM_PACKET) | BIT_SYSTEM_PACKET;
+    }
+    void sendAck(bool newValue) {
+        if (newValue) control = (control & ~BIT_SEND_ACK) | BIT_SEND_ACK;
+    }
+    void attention(bool newValue) {
+        if (newValue) control = (control & ~BIT_ATTENTION) | BIT_ATTENTION;
+    }
+    void endOfMessage(bool newValue) {
+        if (newValue) control = (control & ~BIT_END_OF_MESSAGE) | BIT_END_OF_MESSAGE;
     }
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
