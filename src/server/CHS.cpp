@@ -62,9 +62,14 @@ RetrieveAddresses::Result RetrieveAddres() {
     return result;
 }
 
+void ListDomainServed(courier::Clearinghouse3::ListDomainServed::Argument argument) {
+    //
+    logger.info("%s  argument %s", __func__, argument.toString());
+}
 
 service::Clearinghouse3::FunctionTable functionTable {
     RetrieveAddres,
+    ListDomainServed,
 };
 
 
