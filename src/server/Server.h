@@ -36,6 +36,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <map>
 #include <utility>
@@ -101,7 +102,15 @@ struct Context {
     NetworkNameMap  networkNameMap;
     HostNameMap     hostNameMap;
 
+    xns::IDP*       rxHeader;
+
     Context();
+
+    uint16_t allocateSocket();
+    void     freeSocket(uint16_t value);
+private:
+    std::mutex         mutex;
+    std::set<uint16_t> activeSocketSet;
 };
 
 

@@ -34,6 +34,8 @@
  //
 
 
+#include <chrono>
+#include <mutex>
 #include <string>
 
 #include "../util/Util.h"
@@ -76,6 +78,34 @@ Context::Context() {
     // set static uglobal variable context
     context = this;
 }
+
+uint16_t Context::allocateSocket() {
+    std::lock_guard<std::mutex> lock{mutex};
+
+    uint16_t newSocket;
+    for(;;) {
+        newSocket = (uint16_t)std::chrono::steady_clock::now().time_since_epoch().count();
+        if (newSocket < xns::MAX_WELLKNOWN_SOCKET) {
+            newSocket += xns::MAX_WELLKNOWN_SOCKET;
+        }
+        if (activeSocketSet.contains(newSocket)) continue;
+        break;
+    }
+    activeSocketSet.emplace(newSocket);
+
+    return newSocket;
+}
+void Context::freeSocket(uint16_t value) {
+    std::lock_guard<std::mutex> lock{mutex};
+    if (activeSocketSet.contains(value)) {
+        activeSocketSet.erase(value);
+    } else {
+        logger.error("Unexpected value");
+        logger.error("  value  %d", value);
+        ERROR()
+    }
+}
+
 
 std::string toStringNetwork(uint32_t value) {
     if (context == 0) ERROR()
