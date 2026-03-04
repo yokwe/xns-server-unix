@@ -175,9 +175,9 @@ signedNumberType
     ;
 
 reference
-    :    name=ID                 # ReferenceLocal
-    |    program=ID '.'  name=ID # ReferenceRemote
-    |    program=ID '::' name=ID # ReferenceExternal
+    :    name=ID                   # ReferenceLocal
+    |    program=ID   '.'  name=ID # ReferenceRemote
+    |    namespace=ID '::' name=ID # ReferenceExternal
     ;
 
 /* 3.4 Predefiend types */

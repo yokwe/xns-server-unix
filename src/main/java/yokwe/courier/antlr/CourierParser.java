@@ -1576,7 +1576,7 @@ public class CourierParser extends Parser {
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class ReferenceExternalContext extends ReferenceContext {
-		public Token program;
+		public Token namespace;
 		public Token name;
 		public List<TerminalNode> ID() { return getTokens(CourierParser.ID); }
 		public TerminalNode ID(int i) {
@@ -1633,7 +1633,7 @@ public class CourierParser extends Parser {
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(252);
-				((ReferenceExternalContext)_localctx).program = match(ID);
+				((ReferenceExternalContext)_localctx).namespace = match(ID);
 				setState(253);
 				match(T__7);
 				setState(254);

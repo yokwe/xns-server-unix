@@ -529,9 +529,9 @@ public class Builder {
 				yield new Reference.TYPE(myProgram, program, name);
 			}
 			case CourierParser.ReferenceExternalContext ut -> {
-				var program = ut.program.getText();
+				var namespace = ut.namespace.getText();
 				var name = ut.name.getText();
-				yield new Reference.TYPE(program, name);
+				yield new Reference.TYPE(namespace, name);
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
@@ -548,9 +548,9 @@ public class Builder {
 				yield new Reference.CONS(myProgram, program, name);
 			}
 			case CourierParser.ReferenceExternalContext ut -> {
-				var program = ut.program.getText();
+				var namespace = ut.namespace.getText();
 				var name = ut.name.getText();
-				yield new Reference.CONS(program, name);
+				yield new Reference.CONS(namespace, name);
 			}
 			default -> throw new UnexpectedException("Unexpected");
 		};
