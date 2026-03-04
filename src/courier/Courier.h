@@ -43,6 +43,7 @@
 #include "../util/ByteBuffer.h"
 
 #include "../xns/XNS.h"
+#include "../xns/IDP.h"
 
 namespace courier {
 //
@@ -214,10 +215,10 @@ struct ErrorBase {
 };
 
 //
-// For Courier
+// For generated files
 //
-using Network = xns::Network;
-using Host    = xns::Host;
-using Socket  = xns::Socket;
-
+using Network        = xns::Network;
+using Host           = xns::Host;
+using Socket         = xns::Socket;
+using NetworkAddress = xns::IDP::NetworkAddress;
 }
