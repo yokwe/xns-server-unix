@@ -32,13 +32,12 @@ package yokwe.courier.compiler;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import yokwe.courier.compiler.Compiler.CompilerPair;
 import yokwe.courier.compiler.Compiler.Context;
 import yokwe.courier.program.Cons;
-import yokwe.courier.program.Program.NameNumberType;
+import yokwe.courier.program.Program.NameType;
 import yokwe.courier.program.Program.NumberName;
 import yokwe.courier.program.Type;
 import yokwe.courier.program.TypeChoice;
@@ -49,7 +48,7 @@ import yokwe.util.AutoIndentPrintWriter.Layout;
 import yokwe.util.UnexpectedException;
 
 public class CompilerChoice extends CompilerPair {
-//	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
+	private static final org.slf4j.Logger logger = yokwe.util.LoggerUtil.getLogger();
 
 	@Override
 	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
@@ -64,10 +63,8 @@ public class CompilerChoice extends CompilerPair {
 	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Anon type) {
 		out.println("struct %s {  // CHOICE ANON  %s", name, context.decl.name);
 
-		var choiceName = name;
-
 		// output enum type
-		var enumName = "Key";
+		var enumTypeName = "Key";
 		{
 			var list = new ArrayList<NumberName>();
 			for(var e: type.candidateList) {
@@ -76,12 +73,12 @@ public class CompilerChoice extends CompilerPair {
 
 			var anonEnum = new TypeEnum(list);
 			var compiler = Compiler.getCompilerPair(anonEnum);
-			compiler.compileType(context, out, enumName, anonEnum);
+			compiler.compileType(context, out, enumTypeName, anonEnum);
 		}
 
-		var candidateList = toCandidateList(type);
-
-		outputBody(context, out, choiceName, enumName, candidateList);
+		var choiceList    = toChoiceList(type.candidateList.stream().map(o -> o.type).toList());
+		var candidateList = toCandidateListAnon(context, type);
+		outputBody(context, out, name, enumTypeName, choiceList, candidateList);
 
 		out.println("};");
 		out.println();
@@ -90,46 +87,52 @@ public class CompilerChoice extends CompilerPair {
 	private void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final TypeChoice.Name type) {
 		out.println("struct %s {  // CHOICE NAME  %s", name, context.decl.name);
 
-		var choiceName = name;
+		var enumTypeName = type.designator.toQName(context.program.self);
 
-		var enumName = type.designator.toQName(context.program.self);
-		var candidateList = toCandidateList(type);
-
-		outputBody(context, out, choiceName, enumName, candidateList);
+		var choiceList    = toChoiceList(type.candidateNameList.stream().map(o -> o.type).toList());
+		var candidateList = toCandidateListName(context, type);
+		outputBody(context, out, name, enumTypeName, choiceList, candidateList);
 
 		out.println("};");
 		out.println();
 	}
 
-	private void outputBody(final Context context, final AutoIndentPrintWriter out, final String choiceName, final String enumName, final List<NameNumberType> candidateList) {
-		// create typeNameList and output mapping of enum and type
-		var typeNameList = toTypeNameList(context, out, candidateList);
+	private void outputBody(final Context context, final AutoIndentPrintWriter out, final String choiceName, final String enumTypeName, List<NameType> choiceList, final List<Candidate> candidateList) {
+		out.prepareLayout();
+		out.println("// number name, typeName");
+		for(var e: candidateList) {
+			out.println("// %d %s %s", e.number, e.name, e.typeName);
+		}
+		out.layout(Layout.LEFT, Layout.RIGHT, Layout.LEFT, Layout.LEFT);
+		out.println();
+
 
 		// compile constructed type in candidateList
-		compileConsructedType(context, out, candidateList);
+		compileChoice(context, out, choiceList);
 
 		// output enum field
-		out.println("%s key;", enumName);
+		out.println("%s key;", enumTypeName);
 
 		// output variables and methods
-		out.println("std::variant<%s> variant;", String.join(", ", typeNameList));
+		out.println("std::variant<%s> variant;", String.join(", ", candidateList.stream().map(o -> o.typeName).toList()));
 		out.println();
 
 		// output constructor for each candidate
 		out.println("// fromXXX()");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var myName     = candidateList.get(i).name;
-			var myTypeName = typeNameList.get(i);
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName     = candidate.name;
+			var myTypeName = candidate.typeName;
 
 			if (myTypeName.equals("std::monostate")) {
 				out.println("static %s from%s() {", choiceName, Util.capitalizeName(myName));
 				out.println("%s ret;", choiceName);
-				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
+				out.println("ret.key = %s::%s;", enumTypeName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
 				out.println("static %s from%s(%s value) {", choiceName, Util.capitalizeName(myName), myTypeName);
 				out.println("%s ret;", choiceName);
-				out.println("ret.key = %s::%s;", enumName, Util.sanitizeSymbol(myName));
+				out.println("ret.key = %s::%s;", enumTypeName, Util.sanitizeSymbol(myName));
 				out.println("ret.variant.emplace<%d>(value);", i, myTypeName);
 			}
 			out.println("return ret;");
@@ -139,9 +142,10 @@ public class CompilerChoice extends CompilerPair {
 
 		// output toXXX method for each candidate
 		out.println("// toXXX");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var myName     = candidateList.get(i).name;
-			var myTypeName = typeNameList.get(i);
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName     = candidate.name;
+			var myTypeName = candidate.typeName;
 
 			if (myTypeName.equals("std::monostate")) {
 				//
@@ -159,11 +163,12 @@ public class CompilerChoice extends CompilerPair {
 		out.println("inline void read(const ByteBuffer& bb) {");
 		out.println("bb.read(key);");
 		out.println("switch(key) {");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var myName     = candidateList.get(i).name;
-			var myTypeName = typeNameList.get(i);
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName     = candidate.name;
+			var myTypeName = candidate.typeName;
 
-			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
+			out.println("case %s::%s:", enumTypeName, Util.sanitizeSymbol(myName));
 			if (myTypeName.equals("std::monostate")) {
 				out.println("variant.emplace<%d>(std::monostate{}); // Empty record  %s", i, myName);
 			} else {
@@ -179,12 +184,13 @@ public class CompilerChoice extends CompilerPair {
 		out.println("inline void write(ByteBuffer& bb) const {");
 		out.println("bb.write(key);");
 		out.println("switch(key) {");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var myName = candidateList.get(i).name;
-			var myType = candidateList.get(i).type;
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate = candidateList.get(i);
+			var myName     = candidate.name;
+			var myTypeName = candidate.typeName;
 
-			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
-			if (myType.isRecord() && myType.toTypeRecord().isEmpty()) {
+			out.println("case %s::%s:", enumTypeName, Util.sanitizeSymbol(myName));
+			if (myTypeName.equals("std::monostate")) {
 				out.println("// Empty record  %s", myName);
 			} else {
 				out.println("bb.write(std::get<%d>(variant));", i);
@@ -198,15 +204,16 @@ public class CompilerChoice extends CompilerPair {
 	    // output toString
 		out.println("inline std::string toString() const {");
 		out.println("switch(key) {");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var myName = candidateList.get(i).name;
-			var myTypeName = typeNameList.get(i);
+		for(var candidate: candidateList) {
+			var myName     = candidate.name;
+			var myTypeName = candidate.typeName;
+			var myNumber   = candidate.number;
 
-			out.println("case %s::%s:", enumName, Util.sanitizeSymbol(myName));
+			out.println("case %s::%s:", enumTypeName, Util.sanitizeSymbol(myName));
 			if (myTypeName.equals("std::monostate")) {
 				out.println("return \"{%s  {}}\";", myName);
 			} else {
-				out.println("return \"{\" + ::toString(key) + \"  \" + ::toString((%s)std::get<%d>(variant)) + \"}\"; ", myTypeName, i);
+				out.println("return \"{%s  \" + ::toString((%s)std::get<%d>(variant)) + \"}\"; ", myName, myTypeName, myNumber);
 			}
 		}
 		out.println("default: ERROR()");
@@ -219,82 +226,106 @@ public class CompilerChoice extends CompilerPair {
 		out.println("// %4d  CONS  %s  %s", context.decl.line, type.toString(), name);
 	}
 
-	private static List<NameNumberType> toCandidateList(final TypeChoice.Name typeChoiceName) {
-		Map<String, Integer> map = typeChoiceName.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
-
-		var ret = new ArrayList<NameNumberType>();
-
-		for(var e: typeChoiceName.candidateNameList) {
-			var type = e.type;
-			for(var ee: e.nameList) {
-				var name   = ee;
-				var number = map.get(name);
-
-				ret.add(new NameNumberType(name, number, type));
+	private static List<NameType> toChoiceList(final List<Type> typeList) {
+		var ret = new ArrayList<NameType>();
+		int choiceIndex = 0;
+		for(var type: typeList) {
+			if (type.isRecord() && type.toTypeRecord().isEmpty()) {
+				continue;
+			}
+			if (type.isConstructedType()) {
+				var name = String.format("Choice_%d", choiceIndex++);
+				ret.add(new NameType(name, type));
 			}
 		}
-
-		return ret;
-	}
-	private static List<NameNumberType> toCandidateList(final TypeChoice.Anon typeChoiceAnon) {
-		var ret = new ArrayList<NameNumberType>();
-
-		for(var e: typeChoiceAnon.candidateList) {
-			var type = e.type;
-			for(var ee: e.designatorList) {
-				var name   = ee.name;
-				var number = ee.number;
-
-				ret.add(new NameNumberType(name, number, type));
-			}
-		}
-
 		return ret;
 	}
 
-	private static List<String> toTypeNameList(final Context context, final AutoIndentPrintWriter out, final List<NameNumberType> candidateList) {
-		var typeNameList = new ArrayList<String>();
-		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
-				typeNameList.add("std::monostate");
-			} else if (candidate.type.isReference()) {
-				var typeName = candidate.type.toTypeReference().toReferenceType().toQName(context.program.self);
-				typeNameList.add(typeName);
-			} else if (candidate.type.isConstructedType()) {
-				var typeName = String.format("Choice_%d", i);
-				typeNameList.add(typeName);
+
+	private static class Candidate {
+		final String name;
+		final int    number;
+		final String typeName;
+
+		public Candidate(String name_, int number_, String typeName_) {
+			name = name_;
+			number = number_;
+			typeName = typeName_;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("{%s  %d  %s}", name, number, typeName);
+		}
+	}
+
+	private static List<Candidate> toCandidateListAnon(Context context, final TypeChoice.Anon typeChoiceAnon) {
+		var ret = new ArrayList<Candidate>();
+
+		int choiceIndex = 0;
+		for(var candidate: typeChoiceAnon.candidateList) {
+			var type = candidate.type;
+
+			String typeName;
+			if (type.isRecord() && type.toTypeRecord().isEmpty()) {
+				typeName = "std::monostate";
+			} else if (type.isReference()) {
+				typeName = type.toTypeReference().toReferenceType().toQName(context.program.self);
+			} else if (type.isConstructedType()) {
+				typeName = String.format("Choice_%d", choiceIndex++);
 			} else {
-				var myName = toTypeString(context.program.self, candidate.type);
-				typeNameList.add(myName);
+				typeName = toTypeString(context.program.self, type);
+			}
+
+			for(var designator: candidate.designatorList) {
+				var name   = designator.name;
+				var number = designator.number;
+
+				ret.add(new Candidate(name, number, typeName));
 			}
 		}
 
-		// output choice and type
-		out.prepareLayout();
-		out.println("// number name type");
-		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-			out.println("//  %d  %s  %s", i, candidate.name, typeNameList.get(i));
-		}
-		out.layout(Layout.LEFT, Layout.RIGHT, Layout.LEFT, Layout.LEFT);
-		out.println();
+		return ret;
+	}
+	private static List<Candidate> toCandidateListName(Context context, final TypeChoice.Name typeChoiceName) {
+		var ret = new ArrayList<Candidate>();
 
-		return typeNameList;
+		var enumMap = typeChoiceName.designator.value.toTypeEnum().list.stream().collect(Collectors.toMap(o -> o.name, o -> o.number));
+
+		int choiceIndex = 0;
+		for(var candidate: typeChoiceName.candidateNameList) {
+			var type = candidate.type;
+
+			String typeName;
+			if (type.isRecord() && type.toTypeRecord().isEmpty()) {
+				typeName = "std::monostate";
+			} else if (type.isReference()) {
+				typeName = type.toTypeReference().toReferenceType().toQName(context.program.self);
+			} else if (type.isConstructedType()) {
+				typeName = String.format("Choice_%d", choiceIndex++);
+			} else {
+				typeName = toTypeString(context.program.self, type);
+			}
+
+			for(var name: candidate.nameList) {
+				if (enumMap.containsKey(name)) {
+					int number = enumMap.get(name);
+					ret.add(new Candidate(name, number, typeName));
+				} else {
+					logger.error("Unexpected name");
+					logger.error("  name  {}", name);
+					throw new UnexpectedException("Unexpected name");
+				}
+			}
+		}
+
+		return ret;
 	}
 
-	private static void compileConsructedType(final Context context, final AutoIndentPrintWriter out, final List<NameNumberType> candidateList) {
-		for(var i = 0; i < candidateList.size(); i++) {
-			var candidate = candidateList.get(i);
-
-			if (candidate.type.isRecord() && candidate.type.toTypeRecord().isEmpty()) {
-				//
-			} else if (candidate.type.isConstructedType()) {
-				var typeName = String.format("Choice_%d", i);
-				var myType = candidate.type;
-				var compiler = Compiler.getCompilerPair(myType);
-				compiler.compileType(context, out, typeName, myType);
-			}
+	private static void compileChoice(final Context context, final AutoIndentPrintWriter out, final List<NameType> choiceList) {
+		for(var choice: choiceList) {
+			var compiler = Compiler.getCompilerPair(choice.type);
+			compiler.compileType(context,  out, choice.name, choice.type);
 		}
 	}
 }
