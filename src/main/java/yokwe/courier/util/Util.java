@@ -57,6 +57,12 @@ public class Util {
 		if ((value & 0xFFFF) == 0xFFFF) {
 			return String.format("0x%X", value);
 		}
+		if ((value & 0xFF) == 0xFF) {
+			return String.format("0x%X", value);
+		}
+		if ((value & 0xFF) == 0 && (value & 0xFF00) != 0) {
+			return String.format("0x%X", value);
+		}
 		return Integer.toUnsignedString(value);
 	}
 
