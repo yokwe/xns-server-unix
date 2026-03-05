@@ -63,23 +63,6 @@ public:
         ENUM_NAME_VALUE(PacketType, BOOT,   6)
     };
     static std::string toString(PacketType value);
-
-    class NetworkAddress {
-    public:
-        Network network;
-        Host    host;
-        Socket  socket;
-    
-        void read(const ByteBuffer& bb) {
-            bb.read(network, host, socket);
-        }
-        void write(ByteBuffer& bb) const {
-            bb.write(network, host, socket);
-        }
-        std::string toString() const {
-            return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
-        }
-    };
     
     static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
 

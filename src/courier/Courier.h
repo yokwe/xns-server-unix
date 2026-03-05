@@ -220,5 +220,5 @@ struct ErrorBase {
 using Network        = xns::Network;
 using Host           = xns::Host;
 using Socket         = xns::Socket;
-using NetworkAddress = xns::IDP::NetworkAddress;
+using NetworkAddress = xns::NetworkAddress;
 }

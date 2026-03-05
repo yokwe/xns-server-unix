@@ -116,4 +116,24 @@ std::string toString(Socket value);
 
 inline const constexpr uint16_t MAX_WELLKNOWN_SOCKET = 3000;
 
+//
+// NetworkAddress
+//
+class NetworkAddress {
+public:
+    Network network;
+    Host    host;
+    Socket  socket;
+
+    void read(const ByteBuffer& bb) {
+        bb.read(network, host, socket);
+    }
+    void write(ByteBuffer& bb) const {
+        bb.write(network, host, socket);
+    }
+    std::string toString() const {
+        return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
+    }
+};
+
 }

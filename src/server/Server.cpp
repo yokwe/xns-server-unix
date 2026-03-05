@@ -142,7 +142,7 @@ std::string toString(const xns::RIP& value) {
         string.empty() ? "" : string.substr(1));
 }
 
-static std::string toString(const xns::IDP::NetworkAddress& value) {
+static std::string toString(const xns::NetworkAddress& value) {
     return std_sprintf("%s-%s-%s",
         toStringNetwork(value.network),
         toStringHost(value.host),
