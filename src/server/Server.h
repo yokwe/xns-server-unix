@@ -206,7 +206,7 @@ namespace Time {
     ByteBuffer process  (ByteBuffer& rx, Context& context, Response& response);
 }
 
-ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context);
-ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context);
+ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context, Response& response);
+ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context, Response& response);
 
 }

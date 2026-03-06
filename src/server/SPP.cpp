@@ -190,7 +190,7 @@ void processClientSocket(ByteBuffer& rx, Context& context, Response& response) {
         }
     } else {
         // FIXME
-        auto txbb = callCourier(rxbb, context, response);
+        auto txbb = callExpeditedMessage(rxbb, context, response);
         tx.write(txHeader);
         tx.write(txbb);
     }
