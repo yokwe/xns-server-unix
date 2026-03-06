@@ -59,6 +59,10 @@ public:
         return value;
     }
 
+    bool isBroadcas() {
+        return value == BROADCAST;
+    }
+
     void read(const ByteBuffer& bb) {
         uint16_t word1;
         uint16_t word2;

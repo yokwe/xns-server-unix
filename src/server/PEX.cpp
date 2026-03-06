@@ -47,26 +47,22 @@ static const Logger logger(__FILE__);
 
 namespace server::PEX {
 //
-using PEX = xns::PEX;
-
-using ClientType = PEX::ClientType;
-static std::unordered_map<ClientType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
-    {ClientType::TIME, Time::process},
-    {ClientType::CHS,  callExpeditedMessage},
+static std::unordered_map<xns::PEX::ClientType, ByteBuffer(*)(ByteBuffer&, Context&, Response&)> map {
+    {xns::PEX::ClientType::TIME, Time::process},
+    {xns::PEX::ClientType::CHS,  callExpeditedMessage},
 };
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    PEX rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    xns::PEX rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
 
     if constexpr (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto txbb = map.at(rxHeader.clientType)(rxbb, context);
+    auto txbb = map.at(rxHeader.clientType)(rxbb, context, response);
     txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
+    if (txbb.empty()) return;
 
-    PEX txHeader{rxHeader};
+    xns::PEX txHeader{rxHeader.id, rxHeader.clientType};
 
     auto tx = getByteBuffer();
     tx.write(txHeader);
@@ -74,7 +70,7 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
 
     if constexpr (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
-    return tx;
+    response.transmitAsIDP(tx, context); // FIXME
 }
 
 }

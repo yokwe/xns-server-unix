@@ -48,15 +48,15 @@ static const Logger logger(__FILE__);
 namespace server::IDP {
 //
 using PacketType = xns::IDP::PacketType;
-static std::unordered_map<PacketType, ByteBuffer(*)(ByteBuffer&, Context&)> map {
+static std::unordered_map<PacketType, void(*)(ByteBuffer&, Context&, Response&)> map {
     {PacketType::RIP,    RIP::process},
     {PacketType::ECHO,   Echo::process},
     {PacketType::ERROR_, Error::process},
     {PacketType::PEX,    PEX::process},
     {PacketType::SPP,    SPP::process},
 };
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    xns::IDP rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    xns::IDP& rxHeader(response.rxIDP);
     rx.read(rxHeader);
     auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
     if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
@@ -66,54 +66,12 @@ ByteBuffer process  (ByteBuffer& rx, Context& context) {
         auto checksum = xns::IDP::computeChecksum(rx.data(), 2, rxHeader.length);
         if (rxHeader.checksum != checksum) {
             logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
-            return ByteBuffer{};
+            // FIXME send Error packet
+            return;
         }
     }
 
-
-    context.rxHeader = &rxHeader;
-    auto txbb = map.at(rxHeader.packetType)(rxbb, context);
-    context.rxHeader = 0;
-
-    txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
-
-    // prepare transmit
-    xns::IDP txHeader;
-    txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
-    txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
-    txHeader.control     = 0;
-    txHeader.packetType  = rxHeader.packetType;
-    txHeader.dst.network = rxHeader.src.network;
-    txHeader.dst.host    = rxHeader.src.host;
-    txHeader.dst.socket  = rxHeader.src.socket;
-    txHeader.src.network = static_cast<Network>(context.net);
-    txHeader.src.host    = context.me;
-    txHeader.src.socket  = rxHeader.dst.socket;    
-
-    // build tx
-    auto tx = getByteBuffer();
-    tx.write(txHeader);
-    tx.write(txbb);
-    // to make even length data, add Garbage Byte if length is odd.
-    if (tx.byteLimit() & 1) tx.put8(0);
-
-    // update checksum
-    // Garbage Byte, which is included in the Checksum, but not in the Length
-    auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
-    // IMPORTANT position of tx is imporant
-    // because caller flip tx to set limit
-    // save position of tx
-    tx.mark();
-    tx.rewind();
-    tx.write(checksum);
-    // restore position of tx
-    tx.reset();
-
-    txHeader.checksum = checksum;
-    if constexpr (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
-
-    return tx;
+    map.at(rxHeader.packetType)(rxbb, context, response);
 }
 
 }

@@ -65,6 +65,7 @@ public:
     ClientType clientType;
 
     PEX() : id(0), clientType(ClientType::UNSPEC) {}
+    PEX(uint32_t id_, ClientType clientType_) : id(id_), clientType(clientType_) {}
 
     void read(const ByteBuffer& bb) {
         bb.read(id, clientType);

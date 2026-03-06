@@ -45,42 +45,27 @@ static const Logger logger(__FILE__);
 
 namespace server::Ethernet {
 //
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    xns::Ethernet rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    xns::Ethernet& rxHeader(response.rxEthernet);
+
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
 
     bool myPacket = false;
     if (rxHeader.type == xns::Ethernet::Type::XNS) {
-        if (rxHeader.source != context.me && (rxHeader.dest == context.me || rxHeader.dest == xns::Host::BROADCAST)) {
-            myPacket = true;
+        if (rxHeader.source == context.me) {
+            // NOT myPacket
+        } else {
+            if (rxHeader.dest.isBroadcas() || rxHeader.dest == context.me) {
+                myPacket = true;
+            }
         }
     }
-    if (!myPacket) return ByteBuffer{};
+    if (!myPacket) return;
 
     if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
-    auto txbb = IDP::process(rxbb, context);        
-    txbb.flip();
-    if (txbb.empty()) return ByteBuffer{};
-
-    // prepare transmit
-    xns::Ethernet txHeader;
-    txHeader.dest   = rxHeader.source;
-    txHeader.source = context.me;
-    txHeader.type   = rxHeader.type;
-
-    // build tx
-    auto tx = getByteBuffer();
-    tx.write(txHeader);
-    tx.write(txbb);
-    // add padding if it is smaller than MINIMUM_LENGTH
-    auto length = tx.byteLimit();
-    for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
-
-    if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
-
-    return tx;
+    IDP::process(rxbb, context, response);
 }
 
 }

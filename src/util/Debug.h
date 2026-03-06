@@ -44,5 +44,7 @@ constexpr const int SHOW_PACKET_RIP      = 1;
 constexpr const int SHOW_PACKET_SPP      = 1;
 constexpr const int SHOW_PACKET_TIME     = 1;
 
+constexpr const int SHOW_RESPONSE_DURATION  = 1;
+
 constexpr const int TRACE_BYTE_BUFFER_READ  = 0;
 constexpr const int TRACE_BYTE_BUFFER_WRITE = 0;

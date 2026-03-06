@@ -45,15 +45,12 @@ static const Logger logger(__FILE__);
 
 namespace server::Error {
 //
-using Error   = xns::Error;
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    (void)context;
-    Error rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    (void)context; (void)response;
+    xns::Error rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-
-    return ByteBuffer{};
 }
 
 }

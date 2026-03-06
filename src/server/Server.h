@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -102,8 +103,6 @@ struct Context {
     NetworkNameMap  networkNameMap;
     HostNameMap     hostNameMap;
 
-    xns::IDP*       rxHeader;
-
     Context();
 
     uint16_t allocateSocket();
@@ -157,35 +156,54 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     }
 };
 
+struct Response {
+    ThreadTransmit& threadTransmit;
+    std::chrono::steady_clock::time_point startTime;
+    // received headers
+    xns::Ethernet rxEthernet;
+    xns::IDP      rxIDP;
+
+    Response(ThreadTransmit& threadTransmit_) : threadTransmit(threadTransmit_), startTime(std::chrono::steady_clock::now()) {}
+
+    template<typename T>
+    uint64_t duration() {
+        return std::chrono::duration_cast<T>(std::chrono::steady_clock::now() - startTime).count();
+    }
+    uint64_t durationMilli() {
+        return duration<std::chrono::milliseconds>();
+    }
+    uint64_t durationMicro() {
+        return duration<std::chrono::microseconds>();
+    }
+
+    void transmitAsEther(ByteBuffer& bb, Context& context);
+    void transmitAsIDP(ByteBuffer& bb, Context& context);
+};
 
 namespace Ethernet {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace IDP {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace RIP {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace Echo {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace Error {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace PEX {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
-
-    ByteBuffer unspec   (ByteBuffer& rx, Context& context);
-    ByteBuffer chs      (ByteBuffer& rx, Context& context);
-    ByteBuffer teledebug(ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 namespace SPP {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    void process  (ByteBuffer& rx, Context& context, Response& response);
 }
 
 namespace Time {
-    ByteBuffer process  (ByteBuffer& rx, Context& context);
+    ByteBuffer process  (ByteBuffer& rx, Context& context, Response& response);
 }
 
 ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context);

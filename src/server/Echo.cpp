@@ -45,46 +45,24 @@ static const Logger logger(__FILE__);
 
 namespace server::Echo {
 //
-using Echo   = xns::Echo;
-using Type   = xns::Echo::Type;
-using Result = HeaderBody<Echo>;
 
-Result request(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    (void)rxHeader; (void)context;
-    Echo txHeader{Type::RESPONSE};
-    ByteBuffer txbb = rxbb;
-    return Result{txHeader, txbb};
-}
-Result response(Echo& rxHeader, ByteBuffer& rxbb, Context& context) {
-    logger.info("## %s", __PRETTY_FUNCTION__);
-    (void)rxHeader; (void)rxbb; (void)context;
-    Echo txHeader;
-    ByteBuffer txbb;
-    return Result{txHeader, txbb};
-}
-
-static std::unordered_map<Type, Result (*)(Echo&, ByteBuffer&, Context&)> map {
-    {Type::REQUEST,  request},
-    {Type::RESPONSE, response},
-};
-
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    Echo rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    xns::Echo rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto [txHeader, txbb] = map.at(rxHeader.type)(rxHeader, rxbb, context);
-    auto tx = getByteBuffer();
-    
-    if (rxHeader.type == Type::REQUEST) {
-        tx.write(txHeader);
-        tx.write(txbb);
-        if constexpr (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
-    }
+    if (rxHeader.type == xns::Echo::Type::REQUEST) {
+        xns::Echo txHeader{xns::Echo::Type::RESPONSE};
+        const auto& txbb = rxbb;
 
-    return tx;
+        auto tx = getByteBuffer();
+        tx.write(txHeader);
+        tx.write(rxbb);
+
+        if constexpr (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+        response.transmitAsIDP(tx, context);
+    }
 }
 
 }

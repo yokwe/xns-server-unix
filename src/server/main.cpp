@@ -79,16 +79,13 @@ int main(int, char **) {
 
     for(;;) {
         ReceiveData receiveData;
+        Response    response(threadTransmit);
         
         threadReceive.pop(receiveData);
         auto& rx = receiveData.rx;
         if (rx.empty()) continue;
 
-        auto tx = Ethernet::process(rx, context);
-        if (tx.empty()) continue;
-
-        TransmitData transmitData(tx);
-        threadTransmit.push(transmitData);
+        Ethernet::process(rx, context, response);
 	}
 
     threadReceive.stop();

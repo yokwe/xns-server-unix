@@ -119,29 +119,29 @@ void Sessions::update(const xns::SPP& spp) {
 
 using SPP   = xns::SPP;
 
-ByteBuffer processCourierSocket(ByteBuffer& rx, Context& context) {
+void processCourierSocket(ByteBuffer& rx, Context& context, Response& response) {
     SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto txbb = getByteBuffer();
+    auto tx = getByteBuffer();
 
     if (!rxHeader.systemPacket()) {
         logger.info("Unexpected NOT system packet");
-        return txbb;
+        return;
     }
 
     if (sessions.contains(rxHeader.dstID)) {
         logger.info("Unexpected srcID in sessions");
-        return txbb;
+        return;
     }
 
     auto session = sessions.allocate(context, rxHeader.srcID);
     logger.info("NEW SESSION  %d  %04X  %d", session.socket, session.srcID, sessions.sessionList.size());
     // update IDP dst.socket for new session
-    context.rxHeader->dst.socket = static_cast<xns::Socket>(session.socket);
-
+    response.rxIDP.dst.socket = static_cast<xns::Socket>(session.socket);
+    
     SPP txHeader;
     txHeader.systemPacket(true);
     txHeader.sendAck(true);
@@ -151,13 +151,13 @@ ByteBuffer processCourierSocket(ByteBuffer& rx, Context& context) {
     txHeader.ack = 0;
     txHeader.alloc = 1;
 
-    txbb.write(txHeader);
+    tx.write(txHeader);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s", txHeader.toString());
 
-    return txbb;
+    response.transmitAsIDP(tx, context);
 }
 
-ByteBuffer processClientSocket(ByteBuffer& rx, Context& context) {
+void processClientSocket(ByteBuffer& rx, Context& context, Response& response) {
     SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -167,7 +167,7 @@ ByteBuffer processClientSocket(ByteBuffer& rx, Context& context) {
 
     if (!sessions.contains(rxHeader.dstID)) {
         logger.info("Unexpected dstID not in sessions  %04X  %", rxHeader.dstID, sessions.sessionList.size());
-        return tx;
+        return;
     }
 
     auto session = sessions.get(rxHeader.dstID);
@@ -190,19 +190,18 @@ ByteBuffer processClientSocket(ByteBuffer& rx, Context& context) {
         }
     } else {
         // FIXME
-        auto txbb = callExpeditedMessage(rxbb, context);
+        auto txbb = callCourier(rxbb, context, response);
         tx.write(txHeader);
         tx.write(txbb);
     }
-
-    return tx;
+    response.transmitAsIDP(tx, context);
 }
 
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    if (context.rxHeader->dst.socket == xns::Socket::COURIER) {
-        return processCourierSocket(rx, context);
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    if (response.rxIDP.dst.socket == xns::Socket::COURIER) {
+        processCourierSocket(rx, context, response);
     } else {
-        return processClientSocket(rx, context);
+        processClientSocket(rx, context, response);
     }
 }
 

@@ -45,31 +45,30 @@ static const Logger logger(__FILE__);
 
 namespace server::Time {
 //
-using namespace courier::Time;
-
-static Response call(Request request, Context& context) {
+static courier::Time::Response call(courier::Time::Request request, Context& context) {
     // sanity check
-    if (request.version != Version::CURRENT) ERROR()
-    if (request.type    != Type::REQUEST)    ERROR()
+    if (request.version != courier::Time::Version::CURRENT) ERROR()
+    if (request.type    != courier::Time::Type::REQUEST)    ERROR()
 
-    Response response;
+    courier::Time::Response response;
 
-    response.version         = Version::CURRENT;
-    response.type            = Type::RESPONSE;
+    response.version         = courier::Time::Version::CURRENT;
+    response.type            = courier::Time::Type::RESPONSE;
     response.time            = Util::getMesaTime();
-    response.offsetDirection = static_cast<Response::Direction>(context.config.time.offsetDirection);
+    response.offsetDirection = static_cast<courier::Time::Response::Direction>(context.config.time.offsetDirection);
     response.offsetHours     = context.config.time.offsetHours;
     response.offsetMinutes   = context.config.time.offsetMinutes;
-    response.dstStart        = static_cast<Response::DST>(context.config.time.dstStart);
-    response.dstEnd          = static_cast<Response::DST>(context.config.time.dstEnd);
-    response.tolerance       = Response::Tolerance::KNOWN;
+    response.dstStart        = static_cast<courier::Time::Response::DST>(context.config.time.dstStart);
+    response.dstEnd          = static_cast<courier::Time::Response::DST>(context.config.time.dstEnd);
+    response.tolerance       = courier::Time::Response::Tolerance::KNOWN;
     response.toleranceValue  = 10;
 
     return response;
 }
 
-ByteBuffer process(ByteBuffer& rx, Context& context) {
-    Request rxHeader;
+ByteBuffer process(ByteBuffer& rx, Context& context, Response& response) {
+    (void)response;
+    courier::Time::Request rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
 

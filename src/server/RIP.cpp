@@ -47,74 +47,36 @@ static const Logger logger(__FILE__);
 
 namespace server::RIP {
 //
-using RIP     = xns::RIP;
-using Delay   = xns::RIP::Delay;
-using Type    = xns::RIP::Type;
-using Network = xns::Network;
-//
-static RIP request(RIP& rxHeader, Context& context) {
-//    logger.info("## %s", __PRETTY_FUNCTION__);
-    RIP txHeader{Type::RESPONSE};
-    for(const auto& e: rxHeader.entryList) {
-        if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
-            for(const auto& [key, value] : context.routingMap) {
-                txHeader.entryList.emplace_back(value.net, value.delay);
-            }
-        } else {
-            if (context.routingMap.contains(e.network)) {
-                const auto& entry = context.routingMap[e.network];
-                txHeader.entryList.emplace_back(entry.net, entry.delay);
-            }
-        }
-    }
-    return txHeader;
-}
-RIP response(RIP& rxHeader, Context& context) {
-//    logger.info("## %s", __PRETTY_FUNCTION__);
-    RIP txHeader{Type::REQUEST};
-    // update context.routingMap
-    for(const auto& e: rxHeader.entryList) {
-        auto net = e.network;
-        if (context.routingMap.contains(net)) {
-            if (context.routingMap[net].delay != e.delay) {
-                // update delay
-                context.routingMap[net].delay = e.delay;
-            }
-        } else {
-            // add entry
-            auto name = std_sprintf("NET_%d", static_cast<uint32_t>(e.network));
-            context.routingMap[net] = Routing(e.network, e.delay, name);
-        }
-    }
-
-    return txHeader;
-}
-
-static std::unordered_map<RIP::Type, RIP (*)(RIP&, Context&)> map {
-    {RIP::Type::REQUEST,  request},
-    {RIP::Type::RESPONSE, response},
-};
-
-
-ByteBuffer process  (ByteBuffer& rx, Context& context) {
-    RIP rxHeader;
+void process  (ByteBuffer& rx, Context& context, Response& response) {
+    xns::RIP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
-
     if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (!rxbb.empty()) ERROR();
 
-    auto txHeader = map.at(rxHeader.type)(rxHeader, context);
-    auto tx = getByteBuffer();
+    if (rxHeader.type == xns::RIP::Type::REQUEST) {
+        xns::RIP txHeader{xns::RIP::Type::RESPONSE};
+        for(const auto& e: rxHeader.entryList) {
+            if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
+                for(const auto& [key, value] : context.routingMap) {
+                    txHeader.entryList.emplace_back(value.net, value.delay);
+                }
+            } else {
+                if (context.routingMap.contains(e.network)) {
+                    const auto& entry = context.routingMap[e.network];
+                    txHeader.entryList.emplace_back(entry.net, entry.delay);
+                }
+            }
+        }
 
-    if (rxHeader.type == Type::REQUEST) {
+        auto tx = getByteBuffer();
         tx.write(txHeader);
         if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", toString(txHeader));
-    }
 
-    return tx;
+        response.transmitAsIDP(tx, context);
+    }
 }
 
 }
