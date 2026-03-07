@@ -50,7 +50,16 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
     xns::Error rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
-    if constexpr (SHOW_PACKET_ERROR) logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_ERROR) {
+        if (15 <= rxbb.limit()) {
+            xns::IDP  idp;
+            ByteBuffer bb;
+            rxbb.read(idp, bb);
+            logger.info("Error>>  %s  IDP  %s  (%d) %s", rxHeader.toString(), idp.toString(), bb.byteLimit(), bb.toString());
+        } else {
+            logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+        }
+    }
 }
 
 }
