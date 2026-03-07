@@ -49,7 +49,7 @@ namespace xns {
 //
 std::string Host::toString() const {
     if (value == BROADCAST) return "BROADCAST";
-    return net::toHexaDecimalString(value);
+    return net::toHexaDecimalString(value, "");
 }
 
 std::string toString(Network value) {
