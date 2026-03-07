@@ -52,7 +52,9 @@ void ByteBuffer::checkBeforeRead(uint32_t byteSize) const {
     logger.error("  capacity  %u", myByteCapacity);
     logger.error("  pos       %u", myBytePos);
     logger.error("  limit     %u", myByteLimit);
-    ERROR()
+
+    throw ByteBufferException(*this, byteSize);
+    // ERROR()
 }
 void ByteBuffer::checkBeforeWrite(uint32_t byteSize) const {
     auto newBytePos = myBytePos + byteSize;
@@ -64,7 +66,9 @@ void ByteBuffer::checkBeforeWrite(uint32_t byteSize) const {
     logger.error("  capacity  %u", myByteCapacity);
     logger.error("  pos       %u", myBytePos);
     logger.error("  limit     %u", myByteLimit);
-    ERROR()
+    
+    throw ByteBufferException(*this, byteSize);
+    // ERROR()
 }
 
 ByteBuffer ByteBuffer::byteRange(uint32_t byteOffset, uint32_t byteSize) const {

@@ -452,6 +452,17 @@ public:
     }
 };
 
+struct ByteBufferException {
+    const ByteBuffer bb;
+    const uint32_t   byteSize;
+
+    ByteBufferException(const ByteBuffer& bb_, uint32_t byteSize_) : bb(bb_), byteSize(byteSize_) {}
+    std::string toString() {
+        return std_sprintf("myBytePos  %u  byteSize  %u  myByteLimit  %u", bb.bytePos(), byteSize, bb.byteLimit());
+    }
+};
+
+
 //
 // std::string
 //
