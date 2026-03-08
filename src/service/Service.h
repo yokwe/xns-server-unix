@@ -225,15 +225,20 @@ public:
                 tx.write(result);
             }
         } else {
-            A argument = rx.get<A>();
-            if (rx.remains() != 0) {
+            try {
+                A argument = rx.get<A>();
+                if (rx.remains() != 0) {
+                    throw InvalidArgumentReject{};
+                }
+                if constexpr (std::is_void_v<R>) {
+                    function(argument);
+                } else {
+                    R result = function(argument);
+                    tx.write(result);
+                }
+            } catch (ByteBufferException e) {
+                // When rx is too short for argument
                 throw InvalidArgumentReject{};
-            }
-            if constexpr (std::is_void_v<R>) {
-                function(argument);
-            } else {
-                R result = function(argument);
-                tx.write(result);
             }
         }
         return tx;
