@@ -46,7 +46,7 @@ static const Logger logger(__FILE__);
 namespace server::Echo {
 //
 
-void process  (ByteBuffer& rx, Context& context, Response& response) {
+void process  (Session& session, ByteBuffer& rx) {
     xns::Echo rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -61,7 +61,8 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
         tx.write(rxbb);
 
         if constexpr (SHOW_PACKET_ECHO) logger.info("Echo <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
-        response.transmitAsIDP(tx, context);
+
+        session.sendIDP(rx);
     }
 }
 

@@ -47,7 +47,10 @@ static const Logger logger(__FILE__);
 
 namespace server::RIP {
 //
-void process  (ByteBuffer& rx, Context& context, Response& response) {
+void process  (Session& session, ByteBuffer& rx) {
+    // make reference
+    auto& context = session.context;
+
     xns::RIP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
@@ -75,7 +78,7 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
         tx.write(txHeader);
         if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", toString(txHeader));
 
-        response.transmitAsIDP(tx, context);
+        session.sendIDP(tx);
     }
 }
 

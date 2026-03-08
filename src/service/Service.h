@@ -44,6 +44,11 @@
 
 #include "../courier/Courier3.h"
 
+namespace server {
+//
+struct Session;
+}
+
 namespace service {
 //
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
@@ -278,8 +283,8 @@ struct ServicesBase {
         return 0;
     }
 
-    ByteBuffer callCourierMessage(const ByteBuffer& rx);
-    ByteBuffer callExpeditedMessage(const ByteBuffer& rx);
+    ByteBuffer callCourierMessage  (server::Session& session, const ByteBuffer& rx);
+    ByteBuffer callExpeditedMessage(server::Session& session, const ByteBuffer& rx);
 
 protected:
     std::vector<ServiceBase*> serviceList;

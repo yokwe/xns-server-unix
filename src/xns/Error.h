@@ -71,6 +71,7 @@ public:
     uint16_t    errorParameter;
 
     Error() : errorNumber(ErrorNumber::UNSPEC), errorParameter(0) {}
+    Error(ErrorNumber errorNumber_, uint16_t errorParameter_ = 0) : errorNumber(errorNumber_), errorParameter(errorParameter_) {}
 
     void read(const ByteBuffer& bb) {
         bb.read(errorNumber, errorParameter);

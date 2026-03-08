@@ -45,7 +45,10 @@ static const Logger logger(__FILE__);
 
 namespace server::Time {
 //
-static courier::Time::Response call(courier::Time::Request request, Context& context) {
+static courier::Time::Response call(Session& session, courier::Time::Request request) {
+    // make reference
+    auto& context = session.context;
+
     // sanity check
     if (request.version != courier::Time::Version::CURRENT) ERROR()
     if (request.type    != courier::Time::Type::REQUEST)    ERROR()
@@ -66,8 +69,7 @@ static courier::Time::Response call(courier::Time::Request request, Context& con
     return response;
 }
 
-ByteBuffer process(ByteBuffer& rx, Context& context, Response& response) {
-    (void)response;
+ByteBuffer process(Session& session, ByteBuffer& rx) {
     courier::Time::Request rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
@@ -76,11 +78,12 @@ ByteBuffer process(ByteBuffer& rx, Context& context, Response& response) {
 
     if (rx.remains()) ERROR()
 
-    auto txHeader = call(rxHeader, context);
+    auto txHeader = call(session, rxHeader);
     if constexpr (SHOW_PACKET_TIME) logger.info("TIME <<  %s", txHeader.toString());
 
     auto tx = getByteBuffer();
     tx.write(txHeader);
+    
     return tx;
 }
 

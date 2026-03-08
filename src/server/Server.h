@@ -50,6 +50,7 @@
 #include "../xns/RIP.h"
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
+#include "../xns/Error.h"
 
 #include "../courier/Config.h"
 
@@ -156,57 +157,60 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     }
 };
 
-struct Response {
-    ThreadTransmit& threadTransmit;
-    std::chrono::steady_clock::time_point startTime;
+struct Session {
+    using steady_clock = std::chrono::steady_clock;
+    Context&                 context;
+    ThreadTransmit&          threadTransmit;
+    steady_clock::time_point startTime;
     // received headers
-    xns::Ethernet rxEthernet;
-    xns::IDP      rxIDP;
+    xns::Ethernet            rxEthernet;
+    xns::IDP                 rxIDP;
 
-    Response(ThreadTransmit& threadTransmit_) : threadTransmit(threadTransmit_), startTime(std::chrono::steady_clock::now()) {}
+    Session(Context& context_, ThreadTransmit& threadTransmit_) : context(context_), threadTransmit(threadTransmit_), startTime(std::chrono::steady_clock::now()) {}
 
     template<typename T>
     uint64_t duration() {
-        return std::chrono::duration_cast<T>(std::chrono::steady_clock::now() - startTime).count();
+        return std::chrono::duration_cast<T>(steady_clock::now() - startTime).count();
     }
     uint64_t durationMilli() {
         return duration<std::chrono::milliseconds>();
     }
-    uint64_t durationMicro() {
-        return duration<std::chrono::microseconds>();
-    }
 
-    void transmitAsEther(ByteBuffer& bb, Context& context);
-    void transmitAsIDP(ByteBuffer& bb, Context& context);
+    void send(const xns::Ethernet& header, const ByteBuffer& body);
+    void send(const xns::IDP&      header, const ByteBuffer& body);
+
+    void sendEther(const ByteBuffer& body);
+    void sendIDP  (const ByteBuffer& body);
+    void sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter = 0);
 };
 
 namespace Ethernet {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace IDP {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace RIP {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace Echo {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace Error {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace PEX {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 namespace SPP {
-    void process  (ByteBuffer& rx, Context& context, Response& response);
+    void process  (Session& session, ByteBuffer& rx);
 }
 
 namespace Time {
-    ByteBuffer process  (ByteBuffer& rx, Context& context, Response& response);
+    ByteBuffer process  (Session& session, ByteBuffer& rx);
 }
 
-ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context, Response& response);
-ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context, Response& response);
+ByteBuffer callExpeditedMessage(Session& session, ByteBuffer& rx);
+ByteBuffer callCourierMessage(Session& session, ByteBuffer& rx);
 
 }

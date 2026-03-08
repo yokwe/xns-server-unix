@@ -45,8 +45,10 @@ static const Logger logger(__FILE__);
 
 namespace server::Ethernet {
 //
-void process  (ByteBuffer& rx, Context& context, Response& response) {
-    xns::Ethernet& rxHeader(response.rxEthernet);
+void process  (Session& session, ByteBuffer& rx) {
+    // makre reference
+    auto& context(session.context);
+    auto& rxHeader(session.rxEthernet);
 
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -65,7 +67,7 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
 
     if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
 
-    IDP::process(rxbb, context, response);
+    IDP::process(session, rxbb);
 }
 
 }

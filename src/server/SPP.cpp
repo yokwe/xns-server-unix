@@ -54,44 +54,44 @@ static uint16_t nextSrcID = 1;
 //
 // Sessions
 //
-static Sessions   sessions;
-static std::mutex mutex;
+static Connections connections;
+static std::mutex  mutex;
 
 
-void Sessions::maintain() {
+void Connections::maintain() {
     std::lock_guard<std::mutex>lock (mutex);
 
     auto now = Util::getSecondsSinceEpoch();
-    auto pred = [&](Session& o) { return o.endingTime < now; };
+    auto pred = [&](Connection& o) { return o.expired(now); };
     
-   std::erase_if(sessionList, pred);
+   std::erase_if(list, pred);
 }
-Session Sessions::allocate(Context& context, uint16_t dstID) {
+Connection Connections::allocate(Context& context, uint16_t dstID) {
     maintain();
     std::lock_guard<std::mutex>lock (mutex);
 
     uint16_t socket = context.allocateSocket();
     uint16_t srcID = nextSrcID++;
-    Session session{socket, srcID, dstID};
+    Connection connection{socket, srcID, dstID};
 
-    sessionList.push_back(session);
-    return session;
+    list.push_back(connection);
+    return connection;
 }
-void Sessions::free(uint16_t srcID) {
+void Connections::free(uint16_t srcID) {
     std::lock_guard<std::mutex>lock (mutex);
 
-    std::erase_if(sessionList, [&](Session& o){return o.srcID == srcID;});
+    std::erase_if(list, [&](Connection& o){return o.srcID == srcID;});
 }
-bool Sessions::contains(uint16_t srcID) {
+bool Connections::contains(uint16_t srcID) {
     maintain();
-    for(const auto& e: sessionList) {
+    for(const auto& e: list) {
         if (e.srcID == srcID) return true;
     }
     return false;
 }
-Session Sessions::get(uint16_t srcID) {
+Connection Connections::get(uint16_t srcID) {
     maintain();
-    for(const auto& e: sessionList) {
+    for(const auto& e: list) {
         if (e.srcID == srcID) return e;
     }
     logger.error("Unexpected srcID");
@@ -99,16 +99,16 @@ Session Sessions::get(uint16_t srcID) {
     ERROR()
 }
 
-void Sessions::update(const xns::SPP& spp) {
+void Connections::update(const xns::SPP& spp) {
     uint16_t srcID = spp.srcID;
 
-    for(auto& e: sessionList) {
+    for(auto& e: list) {
         if (e.srcID == srcID) {
-            e.state      = Session::State::ESTABLISHED;
-            e.endingTime = Util::getSecondsSinceEpoch() + GRACE_PERIOD_EXPIRATION;
-            e.seq        = spp.seq;
-            e.ack        = spp.ack;
-            e.alloc      = spp.alloc;
+            e.state          = Connection::State::ESTABLISHED;
+            e.expirationTime = Connection::nextExpirationTime();
+            e.seq            = spp.seq;
+            e.ack            = spp.ack;
+            e.alloc          = spp.alloc;
             return;
         }
     }
@@ -119,7 +119,7 @@ void Sessions::update(const xns::SPP& spp) {
 
 using SPP   = xns::SPP;
 
-void processCourierSocket(ByteBuffer& rx, Context& context, Response& response) {
+void processCourierSocket(Session& session, ByteBuffer& rx) {
     SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -132,21 +132,21 @@ void processCourierSocket(ByteBuffer& rx, Context& context, Response& response) 
         return;
     }
 
-    if (sessions.contains(rxHeader.dstID)) {
+    if (connections.contains(rxHeader.dstID)) {
         logger.info("Unexpected srcID in sessions");
         return;
     }
 
-    auto session = sessions.allocate(context, rxHeader.srcID);
-    logger.info("NEW SESSION  %d  %04X  %d", session.socket, session.srcID, sessions.sessionList.size());
+    auto connection = connections.allocate(session.context, rxHeader.srcID);
+    logger.info("NEW SESSION  %d  %04X  %d", connection.socket, connection.srcID, connections.list.size());
     // update IDP dst.socket for new session
-    response.rxIDP.dst.socket = static_cast<xns::Socket>(session.socket);
+    session.rxIDP.dst.socket = static_cast<xns::Socket>(connection.socket);
     
     SPP txHeader;
     txHeader.systemPacket(true);
     txHeader.sendAck(true);
-    txHeader.srcID = session.srcID;
-    txHeader.dstID = session.dstID;
+    txHeader.srcID = connection.srcID;
+    txHeader.dstID = connection.dstID;
     txHeader.seq = 0;
     txHeader.ack = 0;
     txHeader.alloc = 1;
@@ -154,10 +154,10 @@ void processCourierSocket(ByteBuffer& rx, Context& context, Response& response) 
     tx.write(txHeader);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s", txHeader.toString());
 
-    response.transmitAsIDP(tx, context);
+    session.sendIDP(tx);
 }
 
-void processClientSocket(ByteBuffer& rx, Context& context, Response& response) {
+void processClientSocket(Session& session, const ByteBuffer& rx) {
     SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -165,19 +165,19 @@ void processClientSocket(ByteBuffer& rx, Context& context, Response& response) {
 
     auto tx = getByteBuffer();
 
-    if (!sessions.contains(rxHeader.dstID)) {
-        logger.info("Unexpected dstID not in sessions  %04X  %", rxHeader.dstID, sessions.sessionList.size());
+    if (!connections.contains(rxHeader.dstID)) {
+        logger.info("Unexpected dstID not in sessions  %04X  %", rxHeader.dstID, connections.list.size());
         return;
     }
 
-    auto session = sessions.get(rxHeader.dstID);
+    auto connection = connections.get(rxHeader.dstID);
 
     SPP txHeader;
-    txHeader.srcID = session.srcID;
-    txHeader.dstID = session.dstID;
-    txHeader.seq   = session.seq;
-    txHeader.ack   = session.ack;
-    txHeader.alloc = session.alloc;
+    txHeader.srcID = connection.srcID;
+    txHeader.dstID = connection.dstID;
+    txHeader.seq   = connection.seq;
+    txHeader.ack   = connection.ack;
+    txHeader.alloc = connection.alloc;
 
     if (rxHeader.systemPacket()) {
         if (rxHeader.sendAck()) {
@@ -190,18 +190,18 @@ void processClientSocket(ByteBuffer& rx, Context& context, Response& response) {
         }
     } else {
         // FIXME
-        auto txbb = callExpeditedMessage(rxbb, context, response);
+        auto txbb = callExpeditedMessage(session, rxbb);
         tx.write(txHeader);
         tx.write(txbb);
     }
-    response.transmitAsIDP(tx, context);
+    session.sendIDP(tx);
 }
 
-void process  (ByteBuffer& rx, Context& context, Response& response) {
-    if (response.rxIDP.dst.socket == xns::Socket::COURIER) {
-        processCourierSocket(rx, context, response);
+void process  (Session& session, ByteBuffer& rx) {
+    if (session.rxIDP.dst.socket == xns::Socket::COURIER) {
+        processCourierSocket(session, rx);
     } else {
-        processClientSocket(rx, context, response);
+        processClientSocket(session, rx);
     }
 }
 

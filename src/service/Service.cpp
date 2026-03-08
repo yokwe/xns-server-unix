@@ -44,11 +44,10 @@ static const Logger logger(__FILE__);
 namespace service {
 //
 
-ByteBuffer ServicesBase::callExpeditedMessage(const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callExpeditedMessage(server::Session& session, const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;
         rx.read(protocolRange);
-        logger.info("%s  %s", __func__, protocolRange.toString());
     
         if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
             logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
@@ -58,7 +57,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(const ByteBuffer& rx) {
 
     {
         courier::Courier3::ProtocolRange protocolRange = {courier::Courier3::SupportingProtol, courier::Courier3::SupportingProtol};
-        auto response = callCourierMessage(rx);
+        auto response = callCourierMessage(session, rx);
         auto tx = getByteBuffer();
         tx.write(protocolRange);
         tx.write(response);
@@ -67,7 +66,8 @@ ByteBuffer ServicesBase::callExpeditedMessage(const ByteBuffer& rx) {
     }
 }
 
-ByteBuffer ServicesBase::callCourierMessage(const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callCourierMessage(server::Session& session, const ByteBuffer& rx) {
+    (void)session;
     courier::Courier3::Message message;
     rx.read(message);
 

@@ -45,8 +45,8 @@ static const Logger logger(__FILE__);
 
 namespace server::Error {
 //
-void process  (ByteBuffer& rx, Context& context, Response& response) {
-    (void)context; (void)response;
+void process  (Session& session, ByteBuffer& rx) {
+    (void)session;
     xns::Error rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);

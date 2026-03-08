@@ -79,13 +79,13 @@ int main(int, char **) {
 
     for(;;) {
         ReceiveData receiveData;
-        Response    response(threadTransmit);
+        Session     session(context, threadTransmit);
         
         threadReceive.pop(receiveData);
         auto& rx = receiveData.rx;
         if (rx.empty()) continue;
 
-        Ethernet::process(rx, context, response);
+        Ethernet::process(session, rx);
 	}
 
     threadReceive.stop();

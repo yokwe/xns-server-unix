@@ -47,18 +47,18 @@ static const Logger logger(__FILE__);
 
 namespace server::PEX {
 //
-static std::unordered_map<xns::PEX::ClientType, ByteBuffer(*)(ByteBuffer&, Context&, Response&)> map {
+static std::unordered_map<xns::PEX::ClientType, ByteBuffer(*)(Session&, ByteBuffer&)> map {
     {xns::PEX::ClientType::TIME, Time::process},
     {xns::PEX::ClientType::CHS,  callExpeditedMessage},
 };
-void process  (ByteBuffer& rx, Context& context, Response& response) {
+void process  (Session& session, ByteBuffer& rx) {
     xns::PEX rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
 
     if constexpr (SHOW_PACKET_PEX) logger.info("PEX  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto txbb = map.at(rxHeader.clientType)(rxbb, context, response);
+    auto txbb = map.at(rxHeader.clientType)(session, rxbb);
     txbb.flip();
     if (txbb.empty()) return;
 
@@ -70,7 +70,7 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
 
     if constexpr (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
-    response.transmitAsIDP(tx, context); // FIXME
+    session.sendIDP(tx);
 }
 
 }

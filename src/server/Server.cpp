@@ -157,18 +157,21 @@ std::string toString(const xns::IDP& value) {
         toString(value.dst), toString(value.src));    
 }
 
-ByteBuffer callExpeditedMessage(ByteBuffer& rx, Context& context, Response& response) {
-    (void)context; (void)response;
-    auto tx = service::services.callExpeditedMessage(rx);
+ByteBuffer callExpeditedMessage(Session& session, ByteBuffer& rx) {
+    auto tx = service::services.callExpeditedMessage(session, rx);
     return tx;
 }
-ByteBuffer callCourierMessage(ByteBuffer& rx, Context& context, Response& response) {
-    (void)context; (void)response;
-    auto tx = service::services.callCourierMessage(rx);
+ByteBuffer callCourierMessage(Session& session, ByteBuffer& rx) {
+    auto tx = service::services.callCourierMessage(session, rx);
     return tx;
 }
 
-void Response::transmitAsEther(ByteBuffer& bb, Context& context) {
+//
+// Session
+//
+
+void Session::sendEther(const ByteBuffer& bb) {
+    // make reference
     xns::Ethernet txEthernet;
 
     txEthernet.dest   = rxEthernet.source;
@@ -195,8 +198,8 @@ void Response::transmitAsEther(ByteBuffer& bb, Context& context) {
     threadTransmit.push(transmitData);
 }
 
-void Response::transmitAsIDP(ByteBuffer& txbb, Context& context) {
-    xns::IDP      txHeader;
+void Session::sendIDP(const ByteBuffer& txbb) {
+    xns::IDP txHeader;
 
     txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
     txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
@@ -224,7 +227,18 @@ void Response::transmitAsIDP(ByteBuffer& txbb, Context& context) {
     txHeader.checksum = checksum;
     if constexpr (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
 
-    transmitAsEther(tx, context);
+    sendEther(tx);
+}
+
+void Session::sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter) {
+    xns::Error txHeader{errorNumber, errorParameter};
+
+    auto tx = getByteBuffer();
+    tx.write(txHeader, rxIDP);
+
+    if constexpr (SHOW_PACKET_ERROR) logger.info("Error<<  %s  IDP  %s", txHeader.toString(), rxIDP.toString());
+
+    sendIDP(tx);
 }
 
 }

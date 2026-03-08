@@ -49,13 +49,20 @@ namespace server::SPP {
 inline const constexpr uint64_t GRACE_PERIOD_NEW_SESSION = 10; // unit is second
 inline const constexpr uint64_t GRACE_PERIOD_EXPIRATION  = 60; // unit is second
 
-struct Session {
+struct Connection {
     enum class State {
         NEW, ESTABLISHED, CLOSE,
     };
 
+    static inline uint64_t newExpirationTime() {
+        return Util::getSecondsSinceEpoch() + GRACE_PERIOD_NEW_SESSION;
+    }
+    static inline uint64_t nextExpirationTime() {
+        return Util::getSecondsSinceEpoch() + GRACE_PERIOD_EXPIRATION;
+    }
+
     State    state;
-    uint64_t endingTime;
+    uint64_t expirationTime;
     uint16_t socket;
 
     uint16_t srcID;   // connection id of source
@@ -64,24 +71,31 @@ struct Session {
     uint16_t ack;
     uint16_t alloc;
 
-    Session(uint16_t socket_, uint16_t srcID_, uint16_t dstID_) :
-        state(State::NEW), endingTime(Util::getSecondsSinceEpoch() + GRACE_PERIOD_NEW_SESSION), socket(socket_), srcID(srcID_), dstID(dstID_), seq(0), ack(0), alloc(0) {}
+    Connection(uint16_t socket_, uint16_t srcID_, uint16_t dstID_) :
+        state(State::NEW), expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(dstID_), seq(0), ack(0), alloc(0) {}
+    
+    void updateExpirationTime() {
+        expirationTime = nextExpirationTime();
+    }
+    bool expired(uint64_t now) {
+        return expirationTime < now;
+    }
 };
 
-struct Sessions {
+struct Connections {
     static inline uint64_t TIMEOUT = 60; // 60 seconds
 
-    std::list<Session> sessionList;
+    std::list<Connection> list;
 
 public:
     void maintain();
 
-    Session allocate(Context& context, uint16_t dstID);
+    Connection allocate(Context& context, uint16_t dstID);
     void free(uint16_t srcID);
     bool contains(uint16_t srcID);
 
     void update(const xns::SPP& spp);
-    Session get(uint16_t srcID);
+    Connection get(uint16_t srcID);
 };
 
 

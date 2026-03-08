@@ -48,15 +48,17 @@ static const Logger logger(__FILE__);
 namespace server::IDP {
 //
 using PacketType = xns::IDP::PacketType;
-static std::unordered_map<PacketType, void(*)(ByteBuffer&, Context&, Response&)> map {
-    {PacketType::RIP,    RIP::process},
+static std::unordered_map<PacketType, void(*)(Session&, ByteBuffer&)> map {
     {PacketType::ECHO,   Echo::process},
     {PacketType::ERROR_, Error::process},
     {PacketType::PEX,    PEX::process},
+    {PacketType::RIP,    RIP::process},
     {PacketType::SPP,    SPP::process},
 };
-void process  (ByteBuffer& rx, Context& context, Response& response) {
-    xns::IDP& rxHeader(response.rxIDP);
+void process  (Session& session, ByteBuffer& rx) {
+    // make reference
+    auto& rxHeader(session.rxIDP);
+
     rx.read(rxHeader);
     auto rxbb = rx.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, rxHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
     if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
@@ -67,11 +69,12 @@ void process  (ByteBuffer& rx, Context& context, Response& response) {
         if (rxHeader.checksum != checksum) {
             logger.warn("checksum error  %s  %s", xns::IDP::toString(rxHeader.checksum), xns::IDP::toString(checksum));
             // FIXME send Error packet
+            session.sendError(xns::Error::ErrorNumber::BAD_CHECKSUM);
             return;
         }
     }
 
-    map.at(rxHeader.packetType)(rxbb, context, response);
+    map.at(rxHeader.packetType)(session, rxbb);
 }
 
 }
