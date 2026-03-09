@@ -112,6 +112,7 @@ public class Builder {
 	}
 
 	public void scanFile(final Path path) {
+		logger.info("scanFile  {}", path.toString());
 		var context = getCourierProgramContext(path);
 		var program = getProgram(context);
 		programMap.put(program.self, program);
