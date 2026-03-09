@@ -66,7 +66,7 @@ public class Util {
 		return Integer.toUnsignedString(value);
 	}
 
-	private static Set<String> sanitizeSet = Set.of("abort", "and", "not", "or", "return", "delete", "continue");
+	private static Set<String> sanitizeSet = Set.of("abort", "and", "not", "or", "return", "delete", "continue", "INFINITY");
 
 	public static String sanitizeSymbol(final String symbol) {
 		return sanitizeSet.contains(symbol) ? (symbol + "_") : symbol;
