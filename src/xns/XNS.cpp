@@ -83,4 +83,12 @@ std::string toString(Socket value) {
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
+std::string toString(Operation value) {
+    static std::unordered_map<Operation, std::string, ScopedEnumHash> map = {
+        ENUM_NAME_VALUE(Operation, REQUEST,  1)
+        ENUM_NAME_VALUE(Operation, RESPONSE, 2)    
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
+
 }

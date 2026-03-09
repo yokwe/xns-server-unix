@@ -48,12 +48,6 @@ namespace xns {
 //
 class RIP {
 public:
-    enum class Type : uint16_t {
-        ENUM_NAME_VALUE(Type, REQUEST,  1)
-        ENUM_NAME_VALUE(Type, RESPONSE, 2)    
-    };
-    static std::string toString(Type type);
-
     enum class Delay : uint16_t {
         ENUM_NAME_VALUE(Delay, INFINITY, 16)
     };
@@ -78,11 +72,11 @@ public:
         }
     };
 
-    Type               type;
+    Operation          operation;
     std::vector<Entry> entryList;
 
-    RIP() : type(Type::REQUEST) {}
-    RIP(Type type_) : type(type_) {}
+    RIP() : operation(Operation::REQUEST) {}
+    RIP(Operation operation_) : operation(operation_) {}
 
     void read(const ByteBuffer& bb);
     void write(ByteBuffer& bb) const;

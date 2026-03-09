@@ -140,4 +140,13 @@ public:
     }
 };
 
+//
+// Operation
+//
+enum class Operation : uint16_t {
+    ENUM_NAME_VALUE(Operation, REQUEST,  1)
+    ENUM_NAME_VALUE(Operation, RESPONSE, 2)
+};
+std::string toString(Operation value);
+
 }

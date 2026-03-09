@@ -66,10 +66,10 @@ public:
     
     static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
 
-    Checksum       checksum;  // Checksum
+    Checksum       checksum;
     uint16_t       length;
     uint8_t        control;
-    PacketType     packetType;      // Type
+    PacketType     packetType;
 
     NetworkAddress dst;
     NetworkAddress src;

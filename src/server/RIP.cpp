@@ -33,8 +33,7 @@
  // RIP.cpp
  //
 
-#include <unordered_map>
-
+ 
 #include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -59,8 +58,8 @@ void process  (Session& session, ByteBuffer& rx) {
     // sanity check
     if (!rxbb.empty()) ERROR();
 
-    if (rxHeader.type == xns::RIP::Type::REQUEST) {
-        xns::RIP txHeader{xns::RIP::Type::RESPONSE};
+    if (rxHeader.operation == xns::Operation::REQUEST) {
+        xns::RIP txHeader{xns::Operation::RESPONSE};
         for(const auto& e: rxHeader.entryList) {
             if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
                 for(const auto& [key, value] : context.routingMap) {

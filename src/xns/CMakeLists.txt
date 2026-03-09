@@ -16,7 +16,6 @@ target_sources(
 		SPP.h
 		XNS.h
 	PRIVATE
-		Echo.cpp
 		Error.cpp
 		Ethernet.cpp
 		IDP.cpp

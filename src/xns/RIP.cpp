@@ -47,14 +47,6 @@ static const Logger logger(__FILE__);
 
 namespace xns {
 //
-std::string RIP::toString(Type value) {
-    static std::unordered_map<Type, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Type, REQUEST,  1)
-        ENUM_NAME_VALUE(Type, RESPONSE, 2)    
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
-
 std::string RIP::toString(Delay value) {
     static std::unordered_map<Delay, std::string, ScopedEnumHash> map = {
         ENUM_NAME_VALUE(Delay, INFINITY, 16)
@@ -63,7 +55,7 @@ std::string RIP::toString(Delay value) {
 }
 
 void RIP::read(const ByteBuffer& bb) {
-    bb.read(type);
+    bb.read(operation);
     for(;;) {
         if (bb.remains() == 0) break;
         Entry entry;
@@ -72,7 +64,7 @@ void RIP::read(const ByteBuffer& bb) {
     }
 }
 void RIP::write(ByteBuffer& bb) const {
-    bb.write(type);
+    bb.write(operation);
     for(auto& e: entryList) {
         bb.write(e);
     }
@@ -82,7 +74,7 @@ std::string RIP::toString() const {
     for(const auto& e: entryList) {
         string += std_sprintf(" %s", e.toString());
     }
-    return std_sprintf("{%-8s  (%d) %s}", toString(type), entryList.size(), string.empty() ? "" : string.substr(1));
+    return std_sprintf("{%-8s  (%d) %s}", ::toString(operation), entryList.size(), string.empty() ? "" : string.substr(1));
 }
 
 }

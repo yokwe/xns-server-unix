@@ -52,8 +52,8 @@ void process  (Session& session, ByteBuffer& rx) {
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_ECHO) logger.info("Echo >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    if (rxHeader.type == xns::Echo::Type::REQUEST) {
-        xns::Echo txHeader{xns::Echo::Type::RESPONSE};
+    if (rxHeader.operation == xns::Operation::REQUEST) {
+        xns::Echo txHeader{xns::Operation::RESPONSE};
         const auto& txbb = rxbb;
 
         auto tx = getByteBuffer();

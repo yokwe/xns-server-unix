@@ -35,35 +35,30 @@
 
 #pragma once
 
-#include <cstdint>
 #include <string>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
+#include "XNS.h"
+
 namespace xns {
 //
 class Echo {
 public:
-    enum class Type : uint16_t {
-        ENUM_NAME_VALUE(Type, REQUEST,  1)
-        ENUM_NAME_VALUE(Type, RESPONSE, 2)    
-    };
-    static std::string toString(Type type);
+    Operation operation;
 
-    Type type;
-
-    Echo() : type(Type::REQUEST) {}
-    Echo(Type type_) : type(type_) {}
+    Echo() : operation(Operation::REQUEST) {}
+    Echo(Operation operation_) : operation(operation_) {}
 
     void read(const ByteBuffer& bb) {
-        bb.read(type);
+        bb.read(operation);
     }
     void write(ByteBuffer& bb) const {
-        bb.write(type);
+        bb.write(operation);
     }
     std::string toString() const {
-        return std_sprintf("{%s}", toString(type));
+        return std_sprintf("{%s}", ::toString(operation));
     }
 };
 
