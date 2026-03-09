@@ -95,6 +95,10 @@ public:
         if (newValue) control = (control & ~BIT_END_OF_MESSAGE) | BIT_END_OF_MESSAGE;
     }
 
+    bool newConnection() {
+        return seq == 0 && dstID == 0;
+    }
+
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
 
     void read(const ByteBuffer& bb) {

@@ -44,15 +44,16 @@ static const Logger logger(__FILE__);
 
 #include "../xns/SPP.h"
 
+#include "../service/Services.h"
+
 #include "Server.h"
 #include "SPP.h"
 
 namespace server::SPP {
 //
-static uint16_t nextSrcID = 1;
 
 //
-// Sessions
+// Connections
 //
 static Connections connections;
 static std::mutex  mutex;
@@ -62,146 +63,142 @@ void Connections::maintain() {
     std::lock_guard<std::mutex>lock (mutex);
 
     auto now = Util::getSecondsSinceEpoch();
-    auto pred = [&](Connection& o) { return o.expired(now); };
-    
-   std::erase_if(list, pred);
+    auto pred = [&](auto& o) { return o.second.expired(now); };
+    std::erase_if(map, pred);
 }
-Connection Connections::allocate(Context& context, uint16_t dstID) {
+Connection Connections::allocate(uint16_t socket, const xns::SPP& rxHeader) {
     maintain();
     std::lock_guard<std::mutex>lock (mutex);
 
-    uint16_t socket = context.allocateSocket();
-    uint16_t srcID = nextSrcID++;
-    Connection connection{socket, srcID, dstID};
+    Connection connection{socket, socket, rxHeader.srcID};
 
-    list.push_back(connection);
+    auto key = getKey(connection);
+    map.emplace(key, connection);
+//    logger.info("allocate  %08X  %s", key, connection.toString());
+
     return connection;
 }
-void Connections::free(uint16_t srcID) {
+void Connections::free(const xns::SPP& spp) {
     std::lock_guard<std::mutex>lock (mutex);
 
-    std::erase_if(list, [&](Connection& o){return o.srcID == srcID;});
+    auto key = getKey(spp);
+    auto pred = [&](auto& o){return o.first == key;};
+    std::erase_if(map, pred);
 }
-bool Connections::contains(uint16_t srcID) {
+bool Connections::contains(const xns::SPP& spp) {
     maintain();
-    for(const auto& e: list) {
-        if (e.srcID == srcID) return true;
-    }
-    return false;
+    auto key = getKey(spp);
+    return map.contains(key);
 }
-Connection Connections::get(uint16_t srcID) {
+Connection Connections::get(const xns::SPP& rxHeader) {
     maintain();
-    for(const auto& e: list) {
-        if (e.srcID == srcID) return e;
+    auto key = getKey(rxHeader);
+    auto i = map.find(key);
+    if (i != map.end()) {
+        return i->second;
     }
-    logger.error("Unexpected srcID");
-    logger.error("  srcID  %d", srcID);
+
+    logger.error("Unexpected spp");
+    logger.error("  key       %08X", key);
+    logger.error("  rxHeader  %s", rxHeader.toString());
+    logger.error("  existing connections  %d", connections.size());
+    for(auto& e: map) {
+        logger.error("  %08X  %s", e.first, e.second.toString());
+    }
     ERROR()
 }
 
-void Connections::update(const xns::SPP& spp) {
-    uint16_t srcID = spp.srcID;
-
-    for(auto& e: list) {
-        if (e.srcID == srcID) {
-            e.state          = Connection::State::ESTABLISHED;
-            e.expirationTime = Connection::nextExpirationTime();
-            e.seq            = spp.seq;
-            e.ack            = spp.ack;
-            e.alloc          = spp.alloc;
-            return;
-        }
+void Connections::update(const xns::SPP& rxHeader) {
+    auto key = getKey(rxHeader);
+    auto i = map.find(key);
+    auto& connection = i->second;
+    if (i != map.end()) {
+        connection.expirationTime = Connection::nextExpirationTime();
+        connection.seq            = rxHeader.seq;
+        connection.ack            = rxHeader.ack;
+        connection.alloc          = rxHeader.alloc;
+        return;
     }
-    logger.error("Unexpected value");
-    logger.error("  spp  %d", spp.toString());
+
+    logger.error("Unexpected spp");
+    logger.error("  key       %08X", key);
+    logger.error("  rxHeader  %s", rxHeader.toString());
+    logger.error("  existing connections");
+    for(auto& e: map) {
+        logger.error("  %08X  %s", e.first, e.second.toString());
+    }
     ERROR()
 }
 
-using SPP   = xns::SPP;
 
-void processCourierSocket(Session& session, ByteBuffer& rx) {
-    SPP rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-
-    auto tx = getByteBuffer();
-
+void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    // sanity check
     if (!rxHeader.systemPacket()) {
-        logger.info("Unexpected NOT system packet");
+        logger.warn("Unexpected NOT system packet");
+        return;
+    }
+    if (!rxbb.empty()) {
+        logger.warn("Unexpected rxbb is not empty");
         return;
     }
 
-    if (connections.contains(rxHeader.dstID)) {
-        logger.info("Unexpected srcID in sessions");
-        return;
-    }
+    auto socket = session.context.allocateSocket();
+    auto connection = connections.allocate(socket, rxHeader);
+    logger.info("NEW      SESSION  %d  %s", connections.map.size(), connection.toString());
 
-    auto connection = connections.allocate(session.context, rxHeader.srcID);
-    logger.info("NEW SESSION  %d  %04X  %d", connection.socket, connection.srcID, connections.list.size());
-    // update IDP dst.socket for new session
-    session.rxIDP.dst.socket = static_cast<xns::Socket>(connection.socket);
-    
-    SPP txHeader;
+    xns::SPP txHeader;
     txHeader.systemPacket(true);
     txHeader.sendAck(true);
     txHeader.srcID = connection.srcID;
     txHeader.dstID = connection.dstID;
-    txHeader.seq = 0;
-    txHeader.ack = 0;
+    txHeader.seq   = 0;
+    txHeader.ack   = 0;
     txHeader.alloc = 1;
 
+    auto tx = getByteBuffer();
     tx.write(txHeader);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s", txHeader.toString());
 
     session.sendIDP(tx);
 }
 
-void processClientSocket(Session& session, const ByteBuffer& rx) {
-    SPP rxHeader;
+void processExistingConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)rxbb;
+    auto connection = connections.get(rxHeader);
+    logger.info("EXISTING SESSION  %d  %s", connections.map.size(), connection.toString());
+    if (rxHeader.systemPacket()) {
+        if (rxHeader.sendAck()) {
+            xns::SPP txHeader;
+
+            txHeader.systemPacket(true);
+            txHeader.srcID = connection.srcID;
+            txHeader.dstID = connection.dstID;
+            txHeader.seq   = connection.seq;
+            txHeader.ack   = connection.ack;
+            txHeader.alloc = connection.alloc;
+
+            auto tx = getByteBuffer();
+            tx.write(txHeader);
+            session.sendIDP(tx);
+            return;
+        }
+    } else {
+        service::services.callExpeditedMessage(session, rxbb);
+    }
+}
+
+void process  (Session& session, ByteBuffer& rx) {
+    xns::SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto tx = getByteBuffer();
-
-    if (!connections.contains(rxHeader.dstID)) {
-        logger.info("Unexpected dstID not in sessions  %04X  %", rxHeader.dstID, connections.list.size());
-        return;
-    }
-
-    auto connection = connections.get(rxHeader.dstID);
-
-    SPP txHeader;
-    txHeader.srcID = connection.srcID;
-    txHeader.dstID = connection.dstID;
-    txHeader.seq   = connection.seq;
-    txHeader.ack   = connection.ack;
-    txHeader.alloc = connection.alloc;
-
-    if (rxHeader.systemPacket()) {
-        if (rxHeader.sendAck()) {
-            // FIXME
-            txHeader.systemPacket(true);
-            tx.write(txHeader);
-        } else {
-            logger.info("Unexpected system packet");
-            // FIXME
-        }
+    if (rxHeader.newConnection()) {
+        // process new connection
+        processNewConnection(session, rxHeader, rxbb);
     } else {
-        // FIXME
-        auto txbb = callExpeditedMessage(session, rxbb);
-        tx.write(txHeader);
-        tx.write(txbb);
-    }
-    session.sendIDP(tx);
-}
-
-void process  (Session& session, ByteBuffer& rx) {
-    if (session.rxIDP.dst.socket == xns::Socket::COURIER) {
-        processCourierSocket(session, rx);
-    } else {
-        processClientSocket(session, rx);
+        // existing connection
+        processExistingConnection(session, rxHeader, rxbb);
     }
 }
 

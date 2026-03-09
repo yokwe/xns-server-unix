@@ -79,27 +79,26 @@ Context::Context() {
     context = this;
 }
 
+static uint16_t nextSocket = xns::MAX_WELLKNOWN_SOCKET;
 uint16_t Context::allocateSocket() {
     std::lock_guard<std::mutex> lock{mutex};
 
-    uint16_t newSocket;
     for(;;) {
-        newSocket = (uint16_t)std::chrono::steady_clock::now().time_since_epoch().count();
-        if (newSocket < xns::MAX_WELLKNOWN_SOCKET) {
-            newSocket += xns::MAX_WELLKNOWN_SOCKET;
+        if (nextSocket < xns::MAX_WELLKNOWN_SOCKET) {
+            nextSocket += xns::MAX_WELLKNOWN_SOCKET;
         }
-        if (activeSocketSet.contains(newSocket)) continue;
-        break;
+        if (!activeSocketSet.contains(nextSocket)) break;
+        nextSocket++;
     }
-    activeSocketSet.emplace(newSocket);
+    activeSocketSet.emplace(nextSocket);
 
-    return newSocket;
+    return nextSocket++;
 }
 void Context::freeSocket(uint16_t value) {
     std::lock_guard<std::mutex> lock{mutex};
-    if (activeSocketSet.contains(value)) {
-        activeSocketSet.erase(value);
-    } else {
+
+    auto count = activeSocketSet.erase(value);
+    if (count == 0) {
         logger.error("Unexpected value");
         logger.error("  value  %d", value);
         ERROR()
