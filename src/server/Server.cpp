@@ -135,7 +135,7 @@ std::string toString(const xns::RIP& value) {
         string += std_sprintf(" %s", toString(e));
     }
     return std_sprintf("{%-8s  (%d) %s}",
-        xns::RIP::toString(value.type),
+        xns::toString(value.operation),
         value.entryList.size(),
         string.empty() ? "" : string.substr(1));
 }
