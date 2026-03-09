@@ -36,14 +36,11 @@
 #pragma once
 
 #include <cstdint>
-#include <list>
 #include <unordered_map>
 
 #include "../util/Util.h"
 
 #include "../xns/SPP.h"
-
-#include "Server.h"
 
 namespace server::SPP {
 //
@@ -112,6 +109,5 @@ public:
     void update(const xns::SPP& spp);
     Connection get(const xns::SPP& spp);
 };
-
 
 }
