@@ -47,6 +47,8 @@ namespace server::SPP {
 inline const constexpr uint64_t GRACE_PERIOD_NEW_SESSION = 10; // unit is second
 inline const constexpr uint64_t GRACE_PERIOD_EXPIRATION  = 60; // unit is second
 
+inline const constexpr uint32_t MAX_DATA_LENGTH = 534;  // maximum length of SPP body
+
 struct Connection {
     static inline uint64_t newExpirationTime() {
         return Util::getSecondsSinceEpoch() + GRACE_PERIOD_NEW_SESSION;
@@ -60,12 +62,27 @@ struct Connection {
 
     uint16_t srcID;   // connection id self
     uint16_t dstID;   // connection id other end
-    uint16_t seq;
-    uint16_t ack;
-    uint16_t alloc;
+
+    // sending information
+    uint16_t txseq;
+    // sequence number of sending packet -- transmit
+    // for user packet sequqnce number of the packet
+    // for system packe sequence number of next packet
+    uint16_t txack;
+    // sequence number of next expecting packet -- receive
+    uint16_t txalloc;
+    // sequence number of accepting packet -- receive
+    // [ack .. alloc] is accepting packe
+
+    // received information
+    uint16_t rxseq;
+    uint16_t rxack;
+    uint16_t rxalloc;
 
     Connection(uint16_t socket_, uint16_t srcID_, uint16_t dstID_) :
-        expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(dstID_), seq(0), ack(0), alloc(0) {}
+        expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(dstID_),
+        txseq(0), txack(0), txalloc(0),
+        rxseq(0), rxack(0), rxalloc(0) {}
     
     void updateExpirationTime() {
         expirationTime = nextExpirationTime();
@@ -79,7 +96,7 @@ struct Connection {
     }
 
     std::string toString() {
-        return std_sprintf("{%5d  %04X  %04X  %d  %d  %d}", socket, srcID, dstID, seq, ack, alloc);
+        return std_sprintf("{%04X  %04X  %04X  {%d  %d  %d}  {%d  %d  %d}}", socket, srcID, dstID, txseq, txack, txalloc, rxseq, rxack, rxalloc);
     }
 };
 

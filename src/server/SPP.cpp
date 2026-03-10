@@ -114,9 +114,9 @@ void Connections::update(const xns::SPP& rxHeader) {
     auto& connection = i->second;
     if (i != map.end()) {
         connection.expirationTime = Connection::nextExpirationTime();
-        connection.seq            = rxHeader.seq;
-        connection.ack            = rxHeader.ack;
-        connection.alloc          = rxHeader.alloc;
+        connection.rxseq            = rxHeader.seq;
+        connection.rxack            = rxHeader.ack;
+        connection.rxalloc          = rxHeader.alloc;
         return;
     }
 
@@ -144,20 +144,23 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
 
     auto socket = session.context.allocateSocket();
     auto connection = connections.allocate(socket, rxHeader);
-    logger.info("NEW      SESSION  %d  %s", connections.map.size(), connection.toString());
+    logger.info("NEW SESSION  %d  %s", connections.map.size(), connection.toString());
 
     xns::SPP txHeader;
     txHeader.systemPacket(true);
     txHeader.sendAck(true);
     txHeader.srcID = connection.srcID;
     txHeader.dstID = connection.dstID;
-    txHeader.seq   = 0;
-    txHeader.ack   = 0;
-    txHeader.alloc = 1;
+    txHeader.seq   = connection.txseq;
+    txHeader.ack   = connection.txack;
+    txHeader.alloc = connection.txalloc;
 
     auto tx = getByteBuffer();
     tx.write(txHeader);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s", txHeader.toString());
+
+    // set socket to txHeader.src.socket
+    session.rxIDP.dst.socket = static_cast<xns::Socket>(socket);
 
     session.sendIDP(tx);
 }
@@ -165,7 +168,7 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
 void processExistingConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     (void)rxbb;
     auto connection = connections.get(rxHeader);
-    logger.info("EXISTING SESSION  %d  %s", connections.map.size(), connection.toString());
+    logger.info("OLD SESSION  %d  %s", connections.map.size(), connection.toString());
     if (rxHeader.systemPacket()) {
         if (rxHeader.sendAck()) {
             xns::SPP txHeader;
@@ -173,9 +176,9 @@ void processExistingConnection(Session& session, const xns::SPP& rxHeader, ByteB
             txHeader.systemPacket(true);
             txHeader.srcID = connection.srcID;
             txHeader.dstID = connection.dstID;
-            txHeader.seq   = connection.seq;
-            txHeader.ack   = connection.ack;
-            txHeader.alloc = connection.alloc;
+            txHeader.seq   = connection.txseq;
+            txHeader.ack   = connection.txack;
+            txHeader.alloc = connection.txalloc;
 
             auto tx = getByteBuffer();
             tx.write(txHeader);

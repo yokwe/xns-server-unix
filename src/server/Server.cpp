@@ -78,20 +78,21 @@ Context::Context() {
     context = this;
 }
 
-static uint16_t nextSocket = xns::MAX_WELLKNOWN_SOCKET;
 uint16_t Context::allocateSocket() {
     std::lock_guard<std::mutex> lock{mutex};
 
-    for(;;) {
-        if (nextSocket < xns::MAX_WELLKNOWN_SOCKET) {
-            nextSocket += xns::MAX_WELLKNOWN_SOCKET;
-        }
-        if (!activeSocketSet.contains(nextSocket)) break;
-        nextSocket++;
-    }
-    activeSocketSet.emplace(nextSocket);
+    uint16_t newSocket = std::chrono::system_clock::now().time_since_epoch().count() >> 10;
 
-    return nextSocket++;
+    for(;;) {
+        if (newSocket < xns::MAX_WELLKNOWN_SOCKET) {
+            newSocket += xns::MAX_WELLKNOWN_SOCKET;
+        }
+        if (!activeSocketSet.contains(newSocket)) break;
+        newSocket++;
+    }
+    activeSocketSet.emplace(newSocket);
+
+    return newSocket;
 }
 void Context::freeSocket(uint16_t value) {
     std::lock_guard<std::mutex> lock{mutex};
@@ -108,7 +109,7 @@ void Context::freeSocket(uint16_t value) {
 std::string toStringNetwork(uint32_t value) {
     if (context == 0) ERROR()
     auto& map = context->networkNameMap;
-    return map.contains(value) ? map[value] : std_sprintf("%u", value);
+    return map.contains(value) ? map[value] : std_sprintf("%08X", value);
 }
 std::string toStringHost(uint64_t value) {
     if (context == 0) ERROR()

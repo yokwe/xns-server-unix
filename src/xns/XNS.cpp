@@ -57,7 +57,7 @@ std::string toString(Network value) {
         ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
         ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    return map.contains(value) ? map[value] : std_sprintf("%08X", std::to_underlying(value));
 }
 std::string toString(Socket value) {
     static std::unordered_map<Socket, std::string, ScopedEnumHash> map = {
@@ -80,7 +80,7 @@ std::string toString(Socket value) {
         ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
         ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
     };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
 }
 
 std::string toString(Operation value) {
