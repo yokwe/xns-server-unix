@@ -51,8 +51,11 @@
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
 #include "../xns/Error.h"
+#include "../xns/SPP.h"
 
 #include "../courier/Config.h"
+
+#include "SPP.h"
 
 #include "Config.h"
 
@@ -179,10 +182,25 @@ struct Session {
     void send(const xns::Ethernet& header, const ByteBuffer& body);
     void send(const xns::IDP&      header, const ByteBuffer& body);
 
+    void send(const xns::SPP&      header, const ByteBuffer& body);
+    void send(const xns::SPP&      header) {
+        auto body = getByteBuffer();
+        send(header, body);
+    }
+
     void sendEther(const ByteBuffer& body);
     void sendIDP  (const ByteBuffer& body);
     void sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter = 0);
 };
+
+// CallContext for service
+struct CallContext {
+    Session&         session;
+    SPP::Connection& connection;
+
+    CallContext(Session& session_, SPP::Connection& connection_) : session(session_), connection(connection_) {}
+};
+
 
 namespace Ethernet {
     void process  (Session& session, ByteBuffer& rx);
@@ -210,7 +228,7 @@ namespace Time {
     ByteBuffer process  (Session& session, ByteBuffer& rx);
 }
 
-ByteBuffer callExpeditedMessage(Session& session, ByteBuffer& rx);
-ByteBuffer callCourierMessage(Session& session, ByteBuffer& rx);
+ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx);
+ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx);
 
 }

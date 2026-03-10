@@ -51,6 +51,7 @@ int main(int, char **) {
 	setSignalHandler(SIGTERM);
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
+	setSignalHandler(SIGTRAP);
 
     server::Context context{};
 

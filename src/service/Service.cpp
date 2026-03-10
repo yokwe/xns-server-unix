@@ -44,7 +44,7 @@ static const Logger logger(__FILE__);
 namespace service {
 //
 
-ByteBuffer ServicesBase::callExpeditedMessage(server::Session& session, const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callExpeditedMessage(server::CallContext& callContext, const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;
         rx.read(protocolRange);
@@ -57,7 +57,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(server::Session& session, const By
 
     {
         courier::Courier3::ProtocolRange protocolRange = {courier::Courier3::SupportingProtol, courier::Courier3::SupportingProtol};
-        auto response = callCourierMessage(session, rx);
+        auto response = callCourierMessage(callContext, rx);
         auto tx = getByteBuffer();
         tx.write(protocolRange);
         tx.write(response);
@@ -66,8 +66,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(server::Session& session, const By
     }
 }
 
-ByteBuffer ServicesBase::callCourierMessage(server::Session& session, const ByteBuffer& rx) {
-    (void)session;
+ByteBuffer ServicesBase::callCourierMessage(server::CallContext& callContext, const ByteBuffer& rx) {
     courier::Courier3::Message message;
     rx.read(message);
 
@@ -120,7 +119,7 @@ ByteBuffer ServicesBase::callCourierMessage(server::Session& session, const Byte
             courier::Courier3::ReturnMessage returnMessage{transactionID};
             auto message = courier::Courier3::Message::fromReturn(returnMessage);
     
-            auto result = proc->call(rx);
+            auto result = proc->call(callContext, rx);
     
             logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
     

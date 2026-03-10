@@ -47,9 +47,17 @@ static const Logger logger(__FILE__);
 
 namespace server::PEX {
 //
+
+
+static ByteBuffer callExpeditedMessageX(Session& session, ByteBuffer& rx) {
+    SPP::Connection connection;
+    CallContext callContext{session, connection};
+    return callExpeditedMessage(callContext, rx);
+}
+
 static std::unordered_map<xns::PEX::ClientType, ByteBuffer(*)(Session&, ByteBuffer&)> map {
     {xns::PEX::ClientType::TIME, Time::process},
-    {xns::PEX::ClientType::CHS,  callExpeditedMessage},
+    {xns::PEX::ClientType::CHS,  callExpeditedMessageX},
 };
 void process  (Session& session, ByteBuffer& rx) {
     xns::PEX rxHeader;

@@ -49,7 +49,7 @@ server::Context* context;
 
 using namespace courier::Clearinghouse3;
 
-RetrieveAddresses::Result RetrieveAddres() {
+RetrieveAddresses::Result RetrieveAddres(CallContext&) {
     logger.info("%s", __func__);
 
     auto host = xns::Host(context->me);
@@ -62,9 +62,54 @@ RetrieveAddresses::Result RetrieveAddres() {
     return result;
 }
 
-void ListDomainServed(courier::Clearinghouse3::ListDomainServed::Argument argument) {
-    //
+void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::ListDomainServed::Argument argument) {
     logger.info("%s  argument %s", __func__, argument.toString());
+    if (argument.domains.key == courier::BulkData1::Descriptor::Key::immediate) {
+        // return data as bulk data
+        DomainName myDomain{"FXIS", "Fuji Xerox"};
+        courier::SEQUENCE<DomainName, 65535> segment = {
+            {myDomain},
+        };
+        auto ret = StreamOfDomainName::fromLastSegment(segment);
+
+
+        auto txbb = getByteBuffer();
+        txbb.write(ret);
+
+        auto& session = callContext.session;
+        auto& connection = callContext.connection;
+
+        {
+            xns::SPP txHeader;
+            txHeader.endOfMessage(true);
+            txHeader.sst   = xns::SPP::SST::BULK;
+            txHeader.srcID = connection.srcID;
+            txHeader.dstID = connection.dstID;
+            txHeader.seq   = connection.txseq++;
+            txHeader.ack   = ++connection.txack;
+            txHeader.alloc = ++connection.txalloc;
+    
+            session.send(txHeader, txbb);
+        }
+        {
+            xns::SPP txHeader;
+            txHeader.systemPacket(true);
+            txHeader.sendAck(true);
+            txHeader.sst   = xns::SPP::SST::DATA;
+            txHeader.srcID = connection.srcID;
+            txHeader.dstID = connection.dstID;
+            txHeader.seq   = connection.txseq;
+            txHeader.ack   = connection.txack;
+            txHeader.alloc = connection.txalloc;
+    
+            session.send(txHeader, txbb);    
+        }
+
+
+    } else {
+        logger.error("Not expected");
+        ERROR()
+    }
 }
 
 service::Clearinghouse3::FunctionTable functionTable {

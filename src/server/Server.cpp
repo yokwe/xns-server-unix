@@ -156,12 +156,12 @@ std::string toString(const xns::IDP& value) {
         toString(value.dst), toString(value.src));    
 }
 
-ByteBuffer callExpeditedMessage(Session& session, ByteBuffer& rx) {
-    auto tx = service::services.callExpeditedMessage(session, rx);
+ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx) {
+    auto tx = service::services.callExpeditedMessage(callContext, rx);
     return tx;
 }
-ByteBuffer callCourierMessage(Session& session, ByteBuffer& rx) {
-    auto tx = service::services.callCourierMessage(session, rx);
+ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx) {
+    auto tx = service::services.callCourierMessage(callContext, rx);
     return tx;
 }
 
@@ -237,6 +237,14 @@ void Session::sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParam
 
     if constexpr (SHOW_PACKET_ERROR) logger.info("Error<<  %s  IDP  %s", txHeader.toString(), rxIDP.toString());
 
+    sendIDP(tx);
+}
+
+void Session::send(const xns::SPP& header, const ByteBuffer& body) {
+    auto tx = getByteBuffer();
+    tx.write(header, body);
+
+    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
     sendIDP(tx);
 }
 

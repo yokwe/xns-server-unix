@@ -57,6 +57,25 @@ struct Connection {
         return Util::getSecondsSinceEpoch() + GRACE_PERIOD_EXPIRATION;
     }
 
+    enum class State {
+        OPENING,
+        WAIT_ACK,
+        WAIT_DATA,
+        CLOSING,
+        CLOSED,
+    };
+    inline std::string toString(State value) {
+        static std::unordered_map<State, std::string, ScopedEnumHash> map = {
+            {State::OPENING,   "OPENING"},
+            {State::WAIT_ACK,  "WAIT_ACK"},
+            {State::WAIT_DATA, "WAIT_DATA"},
+            {State::CLOSING,   "CLOSING"},
+            {State::CLOSED,    "CLOSED"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    };
+
+    State    state;
     uint64_t expirationTime;
     uint16_t socket;
 
@@ -79,8 +98,13 @@ struct Connection {
     uint16_t rxack;
     uint16_t rxalloc;
 
+    Connection() :
+        state(State::CLOSED), expirationTime(0), socket(0), srcID(0), dstID(0),
+        txseq(0), txack(0), txalloc(0),
+        rxseq(0), rxack(0), rxalloc(0) {}
+
     Connection(uint16_t socket_, uint16_t srcID_, const xns::SPP& rxHeader) :
-        expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(rxHeader.srcID),
+        state(State::OPENING), expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(rxHeader.srcID),
         txseq(0), txack(0), txalloc(0),
         rxseq(rxHeader.seq), rxack(rxHeader.ack), rxalloc(rxHeader.alloc) {}
 
@@ -96,7 +120,10 @@ struct Connection {
     }
 
     std::string toString() {
-        return std_sprintf("{%04X  %04X  %04X  {%d  %d  %d}  {%d  %d  %d}}", socket, srcID, dstID, txseq, txack, txalloc, rxseq, rxack, rxalloc);
+        return std_sprintf("{%s  %04X  %04X  %04X  {%d  %d  %d}  {%d  %d  %d}}",
+            toString(state), socket, srcID, dstID, // must be toString(state)
+            txseq, txack, txalloc,
+            rxseq, rxack, rxalloc);
     }
 };
 
@@ -124,7 +151,7 @@ public:
     bool contains(const xns::SPP& spp);
 
     void update(const xns::SPP& spp);
-    Connection get(const xns::SPP& spp);
+    Connection& get(const xns::SPP& spp);
 };
 
 }

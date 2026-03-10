@@ -90,12 +90,13 @@ bool Connections::contains(const xns::SPP& spp) {
     auto key = getKey(spp);
     return map.contains(key);
 }
-Connection Connections::get(const xns::SPP& rxHeader) {
+Connection& Connections::get(const xns::SPP& rxHeader) {
     maintain();
     auto key = getKey(rxHeader);
     auto i = map.find(key);
     if (i != map.end()) {
-        return i->second;
+        auto& ret = i->second;
+        return ret;
     }
 
     logger.error("Unexpected spp");
@@ -144,7 +145,10 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
 
     auto socket = session.context.allocateSocket();
     auto connection = connections.allocate(socket, rxHeader);
-    logger.info("NEW SESSION  %d  %s", connections.map.size(), connection.toString());
+    logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
+
+    // set socket to txHeader.src.socket
+    session.rxIDP.dst.socket = static_cast<xns::Socket>(socket);
 
     xns::SPP txHeader;
     txHeader.systemPacket(true);
@@ -155,38 +159,79 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
     txHeader.ack   = connection.txack;
     txHeader.alloc = connection.txalloc;
 
-    auto tx = getByteBuffer();
-    tx.write(txHeader);
-    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s", txHeader.toString());
-
-    // set socket to txHeader.src.socket
-    session.rxIDP.dst.socket = static_cast<xns::Socket>(socket);
-
-    session.sendIDP(tx);
+    session.send(txHeader);
 }
 
-void processOldConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processOldConnectionOpening(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     (void)rxbb;
-    auto connection = connections.get(rxHeader);
-    logger.info("OLD SESSION  %d  %s", connections.map.size(), connection.toString());
+
+    // process system packet
+    if (rxHeader.systemPacket()) {
+        connection.state = Connection::State::WAIT_DATA;
+
+        logger.info("OPEN CONNECTION  %d  %s", connections.map.size(), connection.toString());
+
+
+        xns::SPP txHeader;
+        txHeader.systemPacket(true);
+        txHeader.srcID = connection.srcID;
+        txHeader.dstID = connection.dstID;
+        txHeader.seq   = connection.txseq;
+        txHeader.ack   = connection.txack;
+        txHeader.alloc = connection.txalloc;
+
+        session.send(rxHeader);
+        return;
+    }
+    logger.warn("Unexpected");
+}
+void processOldConnectionWaitData(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)rxbb;
+    logger.info("DATA CONNECTION  %d  %s", connections.map.size(), connection.toString());
+
+    // process system packet
     if (rxHeader.systemPacket()) {
         if (rxHeader.sendAck()) {
             xns::SPP txHeader;
-
             txHeader.systemPacket(true);
             txHeader.srcID = connection.srcID;
             txHeader.dstID = connection.dstID;
             txHeader.seq   = connection.txseq;
             txHeader.ack   = connection.txack;
             txHeader.alloc = connection.txalloc;
-
-            auto tx = getByteBuffer();
-            tx.write(txHeader);
-            session.sendIDP(tx);
-            return;
+    
+            session.send(rxHeader);
         }
+        return;
+    }
+    // check duplicate
+    if (rxHeader.seq == connection.txack) {
+        // process user data
+        CallContext callContext{session, connection};
+        auto tx = service::services.callExpeditedMessage(callContext, rxbb);
+        // increment txack and txalloc
+        connection.txack = connection.txalloc = rxHeader.seq + 1;
+        // send result
+
     } else {
-        service::services.callExpeditedMessage(session, rxbb);
+        // ?
+    }
+
+    //service::services.callExpeditedMessage(session, rxbb);
+}
+
+void processOldConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)rxbb;
+    auto& connection = connections.get(rxHeader);
+    switch(connection.state) {
+    case Connection::State::OPENING:
+        processOldConnectionOpening(connection, session, rxHeader, rxbb);
+        break;
+    case Connection::State::WAIT_DATA:
+        processOldConnectionWaitData(connection, session, rxHeader, rxbb);
+        break;
+    default:
+        ERROR()
     }
 }
 

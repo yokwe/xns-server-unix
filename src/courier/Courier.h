@@ -43,10 +43,17 @@
 #include "../util/ByteBuffer.h"
 
 #include "../xns/XNS.h"
-#include "../xns/IDP.h"
+
+// forward declaration
+namespace server {
+//
+struct CallContext;
+}
 
 namespace courier {
 //
+
+using CallContext = server::CallContext;
 
 //
 // STRING
