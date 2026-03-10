@@ -79,11 +79,11 @@ struct Connection {
     uint16_t rxack;
     uint16_t rxalloc;
 
-    Connection(uint16_t socket_, uint16_t srcID_, uint16_t dstID_) :
-        expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(dstID_),
+    Connection(uint16_t socket_, uint16_t srcID_, const xns::SPP& rxHeader) :
+        expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(rxHeader.srcID),
         txseq(0), txack(0), txalloc(0),
-        rxseq(0), rxack(0), rxalloc(0) {}
-    
+        rxseq(rxHeader.seq), rxack(rxHeader.ack), rxalloc(rxHeader.alloc) {}
+
     void updateExpirationTime() {
         expirationTime = nextExpirationTime();
     }

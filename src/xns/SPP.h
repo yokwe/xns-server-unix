@@ -108,7 +108,7 @@ public:
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
     }
     std::string toString() const {
-        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %5d  %5d  %5d}",
+        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
             systemPacket() ? "S" : "_",
             sendAck() ? "S" : "_",
             attention() ? "A" : "_",

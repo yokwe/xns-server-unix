@@ -70,7 +70,7 @@ Connection Connections::allocate(uint16_t socket, const xns::SPP& rxHeader) {
     maintain();
     std::lock_guard<std::mutex>lock (mutex);
 
-    Connection connection{socket, socket, rxHeader.srcID};
+    Connection connection{socket, socket, rxHeader};
 
     auto key = getKey(connection);
     map.emplace(key, connection);
@@ -114,9 +114,9 @@ void Connections::update(const xns::SPP& rxHeader) {
     auto& connection = i->second;
     if (i != map.end()) {
         connection.expirationTime = Connection::nextExpirationTime();
-        connection.rxseq            = rxHeader.seq;
-        connection.rxack            = rxHeader.ack;
-        connection.rxalloc          = rxHeader.alloc;
+        connection.rxseq          = rxHeader.seq;
+        connection.rxack          = rxHeader.ack;
+        connection.rxalloc        = rxHeader.alloc;
         return;
     }
 
@@ -165,7 +165,7 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
     session.sendIDP(tx);
 }
 
-void processExistingConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processOldConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     (void)rxbb;
     auto connection = connections.get(rxHeader);
     logger.info("OLD SESSION  %d  %s", connections.map.size(), connection.toString());
@@ -196,12 +196,10 @@ void process  (Session& session, ByteBuffer& rx) {
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    if (rxHeader.newConnection()) {
-        // process new connection
-        processNewConnection(session, rxHeader, rxbb);
+    if (connections.contains(rxHeader)) {
+        processOldConnection(session, rxHeader, rxbb);
     } else {
-        // existing connection
-        processExistingConnection(session, rxHeader, rxbb);
+        processNewConnection(session, rxHeader, rxbb);
     }
 }
 
