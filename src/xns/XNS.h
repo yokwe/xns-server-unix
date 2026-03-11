@@ -80,6 +80,10 @@ public:
         bb.write(word1, word2, word3);
     }
     std::string toString() const;
+
+    bool operator == (const Host& that) const {
+        return this->value == that.value;
+    }
 };
 
 //
@@ -137,6 +141,10 @@ public:
     }
     std::string toString() const {
         return std_sprintf("%s-%s-%s", xns::toString(network), host.toString(), xns::toString(socket));
+    }
+
+    bool operator ==(const NetworkAddress& that) const {
+        return this->network == that.network && this->host == that.host && this->socket == that.socket;
     }
 };
 
