@@ -42,31 +42,37 @@ static const Logger logger(__FILE__);
 // valid range of myBytePos   is [0..myByteCapacity)
 // valid range of myByteLimit is [myBytePos..myByteCapacity)
 
-void ByteBuffer::checkBeforeRead(uint32_t byteSize) const {
+void ByteBuffer::checkBeforeRead(uint32_t byteSize, std::source_location source_location) const {
     auto newBytePos = myBytePos + byteSize;
     if (newBytePos <= myByteLimit) return;
 
     logger.error("Unexpected value  %s", __FUNCTION__);
+    logger.error("  location  %s", LogSourceLocation::toString(source_location));
     logger.error("  byteSize  %u", byteSize);
     logger.error("  data      %p", myData);
     logger.error("  capacity  %u", myByteCapacity);
     logger.error("  pos       %u", myBytePos);
     logger.error("  limit     %u", myByteLimit);
 
+    logBackTrace();
+
     throw ByteBufferException(*this, byteSize);
     // ERROR()
 }
-void ByteBuffer::checkBeforeWrite(uint32_t byteSize) const {
+void ByteBuffer::checkBeforeWrite(uint32_t byteSize, std::source_location source_location) const {
     auto newBytePos = myBytePos + byteSize;
     if (newBytePos <= myByteCapacity) return;
 
     logger.error("Unexpected value  %s", __FUNCTION__);
+    logger.error("  location  %s", LogSourceLocation::toString(source_location));
     logger.error("  byteSize  %u", byteSize);
     logger.error("  data      %p", myData);
     logger.error("  capacity  %u", myByteCapacity);
     logger.error("  pos       %u", myBytePos);
     logger.error("  limit     %u", myByteLimit);
     
+    logBackTrace();
+
     throw ByteBufferException(*this, byteSize);
     // ERROR()
 }

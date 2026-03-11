@@ -38,6 +38,7 @@
 #include <concepts>
 #include <cstdint>
 #include <memory>
+#include <source_location>
 #include <span>
 #include <string>
 #include <type_traits>
@@ -107,8 +108,8 @@ class ByteBuffer {
     
     // valid range of myBytePos   is [0..myByteCapacity)
     // valid range of myByteLimit is [myBytePos..myByteCapacity)
-    void checkBeforeRead (uint32_t byteSize) const;
-    void checkBeforeWrite(uint32_t byteSize) const;
+    void checkBeforeRead (uint32_t byteSize, std::source_location source_location = std::source_location::current()) const;
+    void checkBeforeWrite(uint32_t byteSize, std::source_location source_location = std::source_location::current()) const;
         
 public:
     ByteBuffer() : ByteBuffer(0, 0, 0) {}
