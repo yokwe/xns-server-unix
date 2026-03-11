@@ -40,10 +40,13 @@
 
 #include "../util/Util.h"
 
+#include "../xns/XNS.h"
 #include "../xns/SPP.h"
 
 namespace server::SPP {
 //
+using NetworkAddress = xns::NetworkAddress;
+
 inline const constexpr uint64_t GRACE_PERIOD_NEW_SESSION = 10; // unit is second
 inline const constexpr uint64_t GRACE_PERIOD_EXPIRATION  = 60; // unit is second
 
@@ -58,27 +61,24 @@ struct Connection {
     }
 
     enum class State {
-        OPENING,
-        WAIT_ACK,
-        WAIT_DATA,
+        NEW,
+        DATA,
         CLOSING,
         CLOSED,
     };
     inline std::string toString(State value) {
         static std::unordered_map<State, std::string, ScopedEnumHash> map = {
-            {State::OPENING,   "OPENING"},
-            {State::WAIT_ACK,  "WAIT_ACK"},
-            {State::WAIT_DATA, "WAIT_DATA"},
-            {State::CLOSING,   "CLOSING"},
-            {State::CLOSED,    "CLOSED"},
+            {State::NEW,     "NEW"},
+            {State::DATA,    "DATA"},
+            {State::CLOSING, "CLOSING"},
+            {State::CLOSED,  "CLOSED"},
         };
         return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
     };
 
     State    state;
     uint64_t expirationTime;
-    uint16_t socket;
-
+    uint16_t srcSocket;
     uint16_t srcID;   // connection id self
     uint16_t dstID;   // connection id other end
 
@@ -99,12 +99,13 @@ struct Connection {
     uint16_t rxalloc;
 
     Connection() :
-        state(State::CLOSED), expirationTime(0), socket(0), srcID(0), dstID(0),
+        state(State::CLOSED), expirationTime(0), srcSocket(0), srcID(0), dstID(0),
         txseq(0), txack(0), txalloc(0),
         rxseq(0), rxack(0), rxalloc(0) {}
 
-    Connection(uint16_t socket_, uint16_t srcID_, const xns::SPP& rxHeader) :
-        state(State::OPENING), expirationTime(newExpirationTime()), socket(socket_), srcID(srcID_), dstID(rxHeader.srcID),
+    Connection(uint16_t srcSocket_, uint16_t srcID_, const xns::SPP& rxHeader) :
+        state(State::NEW), expirationTime(newExpirationTime()),
+        srcSocket(srcSocket_), srcID(srcID_), dstID(rxHeader.srcID),
         txseq(0), txack(0), txalloc(0),
         rxseq(rxHeader.seq), rxack(rxHeader.ack), rxalloc(rxHeader.alloc) {}
 
@@ -121,7 +122,7 @@ struct Connection {
 
     std::string toString() {
         return std_sprintf("{%s  %04X  %04X  %04X  {%d  %d  %d}  {%d  %d  %d}}",
-            toString(state), socket, srcID, dstID, // must be toString(state)
+            toString(state), srcSocket, srcID, dstID, // must be toString(state)
             txseq, txack, txalloc,
             rxseq, rxack, rxalloc);
     }
@@ -139,19 +140,19 @@ struct Connections {
     static inline uint32_t getKey(uint16_t srcID, uint16_t dstID) {
         return (srcID << 16) | dstID;
     }
-public:
+
     void maintain();
 
     uint32_t size() {
         return (uint32_t)map.size();
     }
 
-    Connection allocate(uint16_t socket, const xns::SPP& spp);
-    void free(const xns::SPP& spp);
-    bool contains(const xns::SPP& spp);
+    Connection& allocate(uint16_t srcSocket, const xns::SPP& spp);
+    void        update(const xns::SPP& spp);
 
-    void update(const xns::SPP& spp);
-    Connection& get(const xns::SPP& spp);
+    void        free(uint32_t key);
+    bool        contains(uint32_t key);
+    Connection& get(uint32_t key);
 };
 
 }

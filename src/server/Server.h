@@ -184,8 +184,7 @@ struct Session {
 
     void send(const xns::SPP&      header, const ByteBuffer& body);
     void send(const xns::SPP&      header) {
-        auto body = getByteBuffer();
-        send(header, body);
+        send(header, ByteBuffer{});
     }
 
     void sendEther(const ByteBuffer& body);

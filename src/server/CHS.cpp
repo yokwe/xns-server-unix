@@ -81,6 +81,7 @@ void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::ListDom
 
         {
             xns::SPP txHeader;
+            txHeader.sendAck(true);
             txHeader.endOfMessage(true);
             txHeader.sst   = xns::SPP::SST::BULK;
             txHeader.srcID = connection.srcID;
@@ -91,20 +92,6 @@ void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::ListDom
     
             session.send(txHeader, txbb);
         }
-        {
-            xns::SPP txHeader;
-            txHeader.systemPacket(true);
-            txHeader.sendAck(true);
-            txHeader.sst   = xns::SPP::SST::DATA;
-            txHeader.srcID = connection.srcID;
-            txHeader.dstID = connection.dstID;
-            txHeader.seq   = connection.txseq;
-            txHeader.ack   = connection.txack;
-            txHeader.alloc = connection.txalloc;
-    
-            session.send(txHeader, txbb);    
-        }
-
 
     } else {
         logger.error("Not expected");

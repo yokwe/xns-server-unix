@@ -84,6 +84,9 @@ public:
     bool operator == (const Host& that) const {
         return this->value == that.value;
     }
+    bool operator == (uint64_t that) const {
+        return this->value == that;
+    }
 };
 
 //

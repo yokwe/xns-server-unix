@@ -66,33 +66,31 @@ void Connections::maintain() {
     auto pred = [&](auto& o) { return o.second.expired(now); };
     std::erase_if(map, pred);
 }
-Connection Connections::allocate(uint16_t socket, const xns::SPP& rxHeader) {
+Connection& Connections::allocate(uint16_t srcSocket, const xns::SPP& rxHeader) {
     maintain();
     std::lock_guard<std::mutex>lock (mutex);
 
-    Connection connection{socket, socket, rxHeader};
+    Connection connection{srcSocket, srcSocket, rxHeader};
 
     auto key = getKey(connection);
     map.emplace(key, connection);
 //    logger.info("allocate  %08X  %s", key, connection.toString());
 
-    return connection;
+    auto& ret = map[key];
+    return ret;
 }
-void Connections::free(const xns::SPP& spp) {
+void Connections::free(uint32_t key) {
     std::lock_guard<std::mutex>lock (mutex);
 
-    auto key = getKey(spp);
     auto pred = [&](auto& o){return o.first == key;};
     std::erase_if(map, pred);
 }
-bool Connections::contains(const xns::SPP& spp) {
+bool Connections::contains(uint32_t key) {
     maintain();
-    auto key = getKey(spp);
     return map.contains(key);
 }
-Connection& Connections::get(const xns::SPP& rxHeader) {
+Connection& Connections::get(uint32_t key) {
     maintain();
-    auto key = getKey(rxHeader);
     auto i = map.find(key);
     if (i != map.end()) {
         auto& ret = i->second;
@@ -101,7 +99,6 @@ Connection& Connections::get(const xns::SPP& rxHeader) {
 
     logger.error("Unexpected spp");
     logger.error("  key       %08X", key);
-    logger.error("  rxHeader  %s", rxHeader.toString());
     logger.error("  existing connections  %d", connections.size());
     for(auto& e: map) {
         logger.error("  %08X  %s", e.first, e.second.toString());
@@ -143,12 +140,12 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
         return;
     }
 
-    auto socket = session.context.allocateSocket();
-    auto connection = connections.allocate(socket, rxHeader);
+    auto srcSocket = session.context.allocateSocket();
+    auto connection = connections.allocate(srcSocket, rxHeader);
     logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
 
-    // set socket to txHeader.src.socket
-    session.rxIDP.dst.socket = static_cast<xns::Socket>(socket);
+    // set socket to txHeader.src.socket to redirect
+    session.rxIDP.dst.socket = static_cast<xns::Socket>(srcSocket);
 
     xns::SPP txHeader;
     txHeader.systemPacket(true);
@@ -167,7 +164,7 @@ void processOldConnectionOpening(Connection& connection, Session& session, const
 
     // process system packet
     if (rxHeader.systemPacket()) {
-        connection.state = Connection::State::WAIT_DATA;
+        connection.state = Connection::State::DATA;
 
         logger.info("OPEN CONNECTION  %d  %s", connections.map.size(), connection.toString());
 
@@ -180,7 +177,7 @@ void processOldConnectionOpening(Connection& connection, Session& session, const
         txHeader.ack   = connection.txack;
         txHeader.alloc = connection.txalloc;
 
-        session.send(rxHeader);
+        session.send(txHeader);
         return;
     }
     logger.warn("Unexpected");
@@ -200,7 +197,7 @@ void processOldConnectionWaitData(Connection& connection, Session& session, cons
             txHeader.ack   = connection.txack;
             txHeader.alloc = connection.txalloc;
     
-            session.send(rxHeader);
+            session.send(txHeader);
         }
         return;
     }
@@ -222,12 +219,14 @@ void processOldConnectionWaitData(Connection& connection, Session& session, cons
 
 void processOldConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     (void)rxbb;
-    auto& connection = connections.get(rxHeader);
+    auto& connection = connections.get(Connections::getKey(rxHeader));
+    connection.updateExpirationTime();
+
     switch(connection.state) {
-    case Connection::State::OPENING:
+    case Connection::State::NEW:
         processOldConnectionOpening(connection, session, rxHeader, rxbb);
         break;
-    case Connection::State::WAIT_DATA:
+    case Connection::State::DATA:
         processOldConnectionWaitData(connection, session, rxHeader, rxbb);
         break;
     default:
@@ -241,7 +240,7 @@ void process  (Session& session, ByteBuffer& rx) {
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    if (connections.contains(rxHeader)) {
+    if (connections.contains(Connections::getKey(rxHeader))) {
         processOldConnection(session, rxHeader, rxbb);
     } else {
         processNewConnection(session, rxHeader, rxbb);

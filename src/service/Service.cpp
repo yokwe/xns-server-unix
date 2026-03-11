@@ -51,7 +51,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(server::CallContext& callContext, 
     
         if (courier::Courier3::SupportingProtol < protocolRange.lowest || protocolRange.highest < courier::Courier3::SupportingProtol) {
             logger.warn("Unpexpected protolRange  %d  %d", protocolRange.lowest, protocolRange.highest);
-            return getByteBuffer();
+            return ByteBuffer{};
         }
     }
 
