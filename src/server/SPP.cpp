@@ -129,7 +129,10 @@ void Connections::update(const xns::SPP& rxHeader) {
 }
 
 
-void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+//
+// processXXX
+//
+void processNew(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     // sanity check
     if (!rxHeader.systemPacket()) {
         logger.warn("Unexpected NOT system packet");
@@ -159,7 +162,7 @@ void processNewConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer
     session.send(txHeader);
 }
 
-void processOldConnectionOpening(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processOldConnectionNew(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     (void)rxbb;
 
     // process system packet
@@ -182,25 +185,40 @@ void processOldConnectionOpening(Connection& connection, Session& session, const
     }
     logger.warn("Unexpected");
 }
-void processOldConnectionWaitData(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
-    (void)rxbb;
-    logger.info("DATA CONNECTION  %d  %s", connections.map.size(), connection.toString());
 
-    // process system packet
-    if (rxHeader.systemPacket()) {
-        if (rxHeader.sendAck()) {
-            xns::SPP txHeader;
-            txHeader.systemPacket(true);
-            txHeader.srcID = connection.srcID;
-            txHeader.dstID = connection.dstID;
-            txHeader.seq   = connection.txseq;
-            txHeader.ack   = connection.txack;
-            txHeader.alloc = connection.txalloc;
-    
-            session.send(txHeader);
-        }
-        return;
-    }
+void processClose(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)connection; (void)session; (void)rxHeader; (void)rxbb;
+    logger.info("## Close");
+
+    connection.state = Connection::State::CLOSING;
+    xns::SPP txHeader;
+    txHeader.sendAck(true);
+    txHeader.sst = xns::SPP::SST::CLOSE_REPLY;
+    txHeader.srcID = connection.srcID;
+    txHeader.dstID = connection.dstID;
+    txHeader.seq   = connection.txseq++;
+    txHeader.ack   = ++connection.txack;
+    txHeader.alloc = ++connection.txalloc;
+
+    session.send(txHeader);
+    return;
+}
+void processCloseReply(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)connection; (void)session; (void)rxHeader; (void)rxbb;
+    logger.info("## CloseReply");
+
+    // xns::SPP txHeader;
+    // txHeader.sendAck(true);
+    // txHeader.sst = xns::SPP::SST::CLOSE_REPLY;
+    // txHeader.srcID = connection.srcID;
+    // txHeader.dstID = connection.dstID;
+    // txHeader.seq   = connection.txseq++;
+    // txHeader.ack   = ++connection.txack;
+    // txHeader.alloc = ++connection.txalloc;
+
+    // session.send(txHeader);
+}
+void processData(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     // check duplicate
     if (rxHeader.seq == connection.txack) {
         // process user data
@@ -209,29 +227,14 @@ void processOldConnectionWaitData(Connection& connection, Session& session, cons
         // increment txack and txalloc
         connection.txack = connection.txalloc = rxHeader.seq + 1;
         // send result
-
     } else {
-        // ?
+        // Igore other packet
+        logger.info("## Ignore packet");
     }
-
-    //service::services.callExpeditedMessage(session, rxbb);
 }
-
-void processOldConnection(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
-    (void)rxbb;
-    auto& connection = connections.get(Connections::getKey(rxHeader));
-    connection.updateExpirationTime();
-
-    switch(connection.state) {
-    case Connection::State::NEW:
-        processOldConnectionOpening(connection, session, rxHeader, rxbb);
-        break;
-    case Connection::State::DATA:
-        processOldConnectionWaitData(connection, session, rxHeader, rxbb);
-        break;
-    default:
-        ERROR()
-    }
+void processBulk(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+    (void)connection; (void)session; (void)rxHeader; (void)rxbb;
+    logger.info("## BULK");
 }
 
 void process  (Session& session, ByteBuffer& rx) {
@@ -241,9 +244,42 @@ void process  (Session& session, ByteBuffer& rx) {
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     if (connections.contains(Connections::getKey(rxHeader))) {
-        processOldConnection(session, rxHeader, rxbb);
+        auto& connection = connections.get(Connections::getKey(rxHeader));
+        connection.updateExpirationTime();
+
+        if (rxHeader.systemPacket()) {
+            if (rxHeader.sendAck()) {
+                xns::SPP txHeader;
+                txHeader.systemPacket(true);
+                txHeader.srcID = connection.srcID;
+                txHeader.dstID = connection.dstID;
+                txHeader.seq   = connection.txseq;
+                txHeader.ack   = connection.txack;
+                txHeader.alloc = connection.txalloc;
+        
+                session.send(txHeader);
+            }
+            return;
+        }
+        
+        switch(rxHeader.sst) {
+        case xns::SPP::SST::CLOSE:
+            processClose(connection, session, rxHeader, rxbb);
+            break;
+        case xns::SPP::SST::CLOSE_REPLY:
+            processCloseReply(connection, session, rxHeader, rxbb);
+            break;
+        case xns::SPP::SST::DATA:
+            processData(connection, session, rxHeader, rxbb);
+            break;
+        case xns::SPP::SST::BULK:
+            processBulk(connection, session, rxHeader, rxbb);
+            break;
+        default:
+            ERROR()
+        }
     } else {
-        processNewConnection(session, rxHeader, rxbb);
+        processNew(session, rxHeader, rxbb);
     }
 }
 

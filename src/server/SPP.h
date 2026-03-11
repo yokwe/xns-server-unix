@@ -87,6 +87,8 @@ struct Connection {
     // sequence number of sending packet -- transmit
     // for user packet sequqnce number of the packet
     // for system packe sequence number of next packet
+
+    // receiving information
     uint16_t txack;
     // sequence number of next expecting packet -- receive
     uint16_t txalloc;
@@ -126,6 +128,44 @@ struct Connection {
             txseq, txack, txalloc,
             rxseq, rxack, rxalloc);
     }
+
+
+    void writePacket() {
+        txseq++;
+    }
+    void readPacket() {
+        txack++;
+        txalloc++;
+    }
+    xns::SPP spp(xns::SPP::SST sst, bool systemPacket = false, bool sendAck = false) {
+        xns::SPP ret;
+
+        ret.systemPacket(systemPacket);
+        ret.sendAck(sendAck);
+
+        ret.sst   = sst;
+        ret.srcID = srcID;
+        ret.dstID = dstID;
+        ret.seq   = txseq;     // sequence of this packet
+        ret.ack   = txack;     // sequence number of the next expected packet  OR  sequence number before this number was acknowledged
+        ret.alloc = txalloc;   // sequence number
+
+        return ret;
+    }
+
+    xns::SPP sppData(bool systemPacket = false, bool sendAck = false) {
+        return spp(xns::SPP::SST::DATA, systemPacket, sendAck);
+    }
+    xns::SPP sppBuild(bool systemPacket = false, bool sendAck = false) {
+        return spp(xns::SPP::SST::BULK, systemPacket, sendAck);
+    }
+    xns::SPP sppClose(bool systemPacket = false, bool sendAck = false) {
+        return spp(xns::SPP::SST::CLOSE, systemPacket, sendAck);
+    }
+    xns::SPP sppCloseReply(bool systemPacket = false, bool sendAck = false) {
+        return spp(xns::SPP::SST::CLOSE_REPLY, systemPacket, sendAck);
+    }
+
 };
 
 struct Connections {
