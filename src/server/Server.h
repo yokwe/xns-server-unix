@@ -37,9 +37,11 @@
 
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <utility>
 
 #include "../util/ThreadQueue.h"
@@ -51,7 +53,7 @@
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
 #include "../xns/Error.h"
-#include "../xns/SPP.h"
+#include "../xns/PEX.h"
 
 #include "../courier/Config.h"
 
@@ -72,19 +74,6 @@ inline ByteBuffer getByteBuffer() {
     return ByteBuffer(MAX_PACKET_SIZE);
 }
 
-std::string toStringNetwork(uint32_t value);
-inline std::string toStringNetwork(Network value) {
-    return toStringNetwork(std::to_underlying(value));
-}
-
-std::string toStringHost(uint64_t value);
-inline std::string toStringHost(Host value) {
-    return toStringHost((uint64_t)value);
-}
-
-std::string toString(const xns::Ethernet& value);
-std::string toString(const xns::RIP& value);
-std::string toString(const xns::IDP& value);
 
 struct Routing {
     Network     net;
@@ -109,21 +98,10 @@ struct Context {
 
     Context();
 
-    uint16_t allocateSocket();
-    void     freeSocket(uint16_t value);
 private:
     std::mutex         mutex;
-    std::set<uint16_t> activeSocketSet;
 };
 
-
-template <class T>
-struct HeaderBody {
-    T          header;
-    ByteBuffer body;
-
-    HeaderBody(const T& header_, ByteBuffer& body_) : header(header_), body(body_) {}
-};
 
 struct TransmitData {
     ByteBuffer tx;
@@ -165,11 +143,17 @@ struct Session {
     Context&                 context;
     ThreadTransmit&          threadTransmit;
     steady_clock::time_point startTime;
-    // received headers
-    xns::Ethernet            rxEthernet;
-    xns::IDP                 rxIDP;
 
-    Session(Context& context_, ThreadTransmit& threadTransmit_) : context(context_), threadTransmit(threadTransmit_), startTime(std::chrono::steady_clock::now()) {}
+    // received headers
+    xns::Ethernet rxEthernet;
+    xns::IDP      rxIDP;
+    xns::PEX      rxPEX;
+    xns::SPP      rxSPP;
+
+    Session(Context& context_, ThreadTransmit& threadTransmit_) :
+        context(context_),
+        threadTransmit(threadTransmit_),
+        startTime(std::chrono::steady_clock::now()) {}
 
     template<typename T>
     uint64_t duration() {
@@ -190,6 +174,7 @@ struct Session {
     void sendEther(const ByteBuffer& body);
     void sendIDP  (const ByteBuffer& body);
     void sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter = 0);
+    void sendPEX(const ByteBuffer& body);
 };
 
 // CallContext for service
@@ -201,33 +186,55 @@ struct CallContext {
 };
 
 
-namespace Ethernet {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace IDP {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace RIP {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace Echo {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace Error {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace PEX {
-    void process  (Session& session, ByteBuffer& rx);
-}
-namespace SPP {
-    void process  (Session& session, ByteBuffer& rx);
+// create IDP not wellknown socket
+uint16_t allocateSocket();
+void     freeSocket(uint16_t value);
+
+
+void listenerRIP  (Session&, ByteBuffer&);
+void listenerECHO (Session&, ByteBuffer&);
+void listenerERROR(Session&, ByteBuffer&);
+void listenerTIME (Session&, ByteBuffer&);
+void listenerCHS  (Session&, ByteBuffer&);
+
+
+class Server {
+public:
+    using Listener = std::function<void(Session&, ByteBuffer&)>;
+
+    void listen(uint16_t socket, Listener listener);
+    void unlisten(uint16_t socket);
+
+    void listen(xns::Socket socket, Listener listener) {
+        listen(std::to_underlying(socket), listener);
+    }
+    void unlisten(xns::Socket socket) {
+        unlisten(std::to_underlying(socket));
+    }
+
+    void process(Session& session, ByteBuffer& rx); // for ethernet packet
+
+private:
+    std::unordered_map<uint16_t, Listener> listenerMap;
+};
+
+
+//
+// toString()
+//
+
+std::string toStringNetwork(uint32_t value);
+inline std::string toStringNetwork(Network value) {
+    return toStringNetwork(std::to_underlying(value));
 }
 
-namespace Time {
-    ByteBuffer process  (Session& session, ByteBuffer& rx);
+std::string toStringHost(uint64_t value);
+inline std::string toStringHost(Host value) {
+    return toStringHost((uint64_t)value);
 }
 
-ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx);
-ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx);
+std::string toString(const xns::Ethernet& value);
+std::string toString(const xns::RIP& value);
+std::string toString(const xns::IDP& value);
 
 }

@@ -41,9 +41,11 @@ static const Logger logger(__FILE__);
 
 #include "../courier/Time.h"
 
+#include "../xns/PEX.h"
+
 #include "Server.h"
 
-namespace server::Time {
+namespace server {
 //
 static courier::Time::Response call(Session& session, courier::Time::Request request) {
     // make reference
@@ -69,10 +71,16 @@ static courier::Time::Response call(Session& session, courier::Time::Request req
     return response;
 }
 
-ByteBuffer process(Session& session, ByteBuffer& rx) {
+void listenerTIME(Session& session, ByteBuffer& rx) {
+    xns::PEX&   pexHeader(session.rxPEX);
+    ByteBuffer pexBody;
+
+    rx.read(pexHeader, pexBody);
+    if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
+
     courier::Time::Request rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
+    ByteBuffer rxbb;
+    pexBody.read(rxHeader, rxbb);
 
     if constexpr (SHOW_PACKET_TIME) logger.info("TIME >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
@@ -84,7 +92,7 @@ ByteBuffer process(Session& session, ByteBuffer& rx) {
     auto tx = getByteBuffer();
     tx.write(txHeader);
     
-    return tx;
+    session.sendPEX(tx);
 }
 
 }

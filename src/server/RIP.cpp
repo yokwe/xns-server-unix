@@ -44,9 +44,9 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace server::RIP {
+namespace server {
 //
-void process  (Session& session, ByteBuffer& rx) {
+void listenerRIP(Session& session, ByteBuffer& rx) {
     // make reference
     auto& context = session.context;
 

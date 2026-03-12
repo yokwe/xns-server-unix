@@ -9,22 +9,16 @@ add_executable(
 target_sources(
 	server
 	PUBLIC
-    CHS.h
     Config.h
     Server.h
-    SPP.h
   PRIVATE
     CHS.cpp
     Config.cpp
     Echo.cpp
     Error.cpp
-    Ethernet.cpp
-    IDP.cpp
     main.cpp
-    PEX.cpp
     RIP.cpp
     Server.cpp
-    SPP.cpp
     Time.cpp
   )
 

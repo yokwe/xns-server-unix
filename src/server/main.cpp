@@ -59,9 +59,6 @@ int main(int, char **) {
 	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), toStringHost(context.me));
 	logger.info("network  %d  %s", context.net, toStringNetwork(context.net));
 
-    // init CHS
-    server::CHS::init(context);
-
     auto& driver = *context.driver;
 	driver.open();
 
@@ -74,19 +71,25 @@ int main(int, char **) {
 	ThreadControl t1("threadReceive",  f1);
 	ThreadControl t2("threadTransmit", f2);
 
+    Server server;
+    server.listen(xns::Socket::RIP,    listenerRIP);
+    server.listen(xns::Socket::ECHO,   listenerECHO);
+    server.listen(xns::Socket::ERROR_, listenerERROR);
+    server.listen(xns::Socket::TIME,   listenerTIME);
+    server.listen(xns::Socket::CHS,    listenerCHS);
+
     driver.clear();
     t1.start();
     t2.start();
 
     for(;;) {
-        ReceiveData receiveData;
-        Session     session(context, threadTransmit);
-        
+        ReceiveData receiveData;        
         threadReceive.pop(receiveData);
         auto& rx = receiveData.rx;
         if (rx.empty()) continue;
 
-        Ethernet::process(session, rx);
+        Session session(context, threadTransmit);
+        server.process(session, rx);
 	}
 
     threadReceive.stop();

@@ -43,10 +43,9 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace server::Echo {
+namespace server {
 //
-
-void process  (Session& session, ByteBuffer& rx) {
+void listenerECHO(Session& session, ByteBuffer& rx) {
     xns::Echo rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);

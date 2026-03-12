@@ -36,6 +36,7 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "SPP.h"
 
 #include "../xns/XNS.h"
 #include "../service/Clearinghouse3.h"
@@ -43,8 +44,52 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace server::CHS {
+namespace server {
 //
+static void listenerCHS_PEX(Session& session, ByteBuffer& rx);
+static void listenerCHS_SPP(Session& session, ByteBuffer& rx);
+
+void listenerCHS  (Session& session, ByteBuffer& rx) {
+    switch(session.rxIDP.packetType) {
+    case xns::IDP::PacketType::PEX:
+        listenerCHS_PEX(session, rx);
+        break;
+    case xns::IDP::PacketType::SPP:
+        listenerCHS_SPP(session, rx);
+        break;
+    default:
+        ERROR()
+    }
+}
+
+static void listenerCHS_PEX(Session& session, ByteBuffer& rx) {
+    xns::PEX&  pexHeader(session.rxPEX);
+    ByteBuffer pexBody;
+
+    rx.read(pexHeader, pexBody);
+    if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
+
+    SPP::Connection connection;
+    CallContext callContext{session, connection};
+    auto tx = service::services.callExpeditedMessage(callContext, pexBody);
+    if (tx.empty()) return;
+
+    session.sendPEX(tx);
+}
+static void listenerCHS_SPP(Session& session, ByteBuffer& rx) {
+    xns::SPP&  sppHeader(session.rxSPP);
+    ByteBuffer sppBody;
+
+    rx.read(sppHeader, sppBody);
+    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
+
+    // FIXME
+}
+
+
+
+
+
 server::Context* context;
 
 using namespace courier::Clearinghouse3;

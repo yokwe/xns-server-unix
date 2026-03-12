@@ -36,6 +36,8 @@
 
 #include <mutex>
 #include <string>
+#include <unordered_set>
+#include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -49,6 +51,9 @@ namespace server {
 
 static Context* context = 0;
 
+//
+// Context
+//
 Context::Context() {
     courier = courier::Config::getInstance();
     config = Config::getInstance();
@@ -78,26 +83,96 @@ Context::Context() {
     context = this;
 }
 
-uint16_t Context::allocateSocket() {
-    std::lock_guard<std::mutex> lock{mutex};
+
+//
+// Server
+//
+void Server::listen(uint16_t socket, Listener listener) {
+    if (listenerMap.contains(socket)) {
+        logger.error("Unexpected socket");
+        logger.error("  socket  %d", socket);
+        ERROR()
+    }
+    listenerMap[socket] = listener;
+}
+void Server::unlisten(uint16_t value) {
+    auto count = listenerMap.erase(value);
+    if (count == 0) {
+        logger.error("Unexpected value");
+        logger.error("  value  %d", value);
+        ERROR()
+    }
+}
+void Server::process(Session& session, ByteBuffer& rx) {
+    // makre reference
+    auto& context(session.context);
+    auto& ethernetHeader(session.rxEthernet);
+    auto& idpHeader(session.rxIDP);
+
+    ByteBuffer ethenetBody;
+    rx.read(ethernetHeader, ethenetBody);
+
+    bool myPacket = false;
+    if (ethernetHeader.type == xns::Ethernet::Type::XNS) {
+        if (ethernetHeader.source == context.me) {
+            // NOT myPacket
+        } else {
+            if (ethernetHeader.dest.isBroadcas() || ethernetHeader.dest == context.me) {
+                myPacket = true;
+            }
+        }
+    }
+    if (!myPacket) return;
+
+    if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(ethernetHeader), ethenetBody.byteLimit(), ethenetBody.toString());
+
+    ethenetBody.read(idpHeader);
+    auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, idpHeader.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
+    if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(idpHeader), idpBody.byteLimit(), idpBody.toString());
+
+    // sanity check
+    if (idpHeader.checksum != xns::IDP::Checksum::NOCHECK) {
+        auto checksum = xns::IDP::computeChecksum(ethenetBody.data(), 2, idpHeader.length);
+        if (idpHeader.checksum != checksum) {
+            logger.warn("checksum error  %s  %s", xns::IDP::toString(idpHeader.checksum), xns::IDP::toString(checksum));
+            // FIXME send Error packet
+            session.sendError(xns::Error::ErrorNumber::BAD_CHECKSUM);
+            return;
+        }
+    }
+
+    auto socket = std::to_underlying(idpHeader.dst.socket);
+    if (listenerMap.contains(socket)) {
+        listenerMap[socket](session, idpBody);
+    } else {
+        logger.warn("Unknown socket  %d", socket);
+    }
+}
+
+//
+// Socket
+//
+static std::mutex socketSetMutex;
+static std::unordered_set<uint16_t> socketSet;
+uint16_t allocateSocket() {
+    std::lock_guard<std::mutex> lock{socketSetMutex};
 
     uint16_t newSocket = std::chrono::system_clock::now().time_since_epoch().count() >> 10;
-
     for(;;) {
         if (newSocket < xns::MAX_WELLKNOWN_SOCKET) {
             newSocket += xns::MAX_WELLKNOWN_SOCKET;
         }
-        if (!activeSocketSet.contains(newSocket)) break;
+        if (!socketSet.contains(newSocket)) break;
         newSocket++;
     }
-    activeSocketSet.emplace(newSocket);
+    socketSet.emplace(newSocket);
 
     return newSocket;
 }
-void Context::freeSocket(uint16_t value) {
-    std::lock_guard<std::mutex> lock{mutex};
+void freeSocket(uint16_t value) {
+    std::lock_guard<std::mutex> lock{socketSetMutex};
 
-    auto count = activeSocketSet.erase(value);
+    auto count = socketSet.erase(value);
     if (count == 0) {
         logger.error("Unexpected value");
         logger.error("  value  %d", value);
@@ -105,56 +180,6 @@ void Context::freeSocket(uint16_t value) {
     }
 }
 
-
-std::string toStringNetwork(uint32_t value) {
-    if (context == 0) ERROR()
-    auto& map = context->networkNameMap;
-    return map.contains(value) ? map[value] : std_sprintf("%08X", value);
-}
-std::string toStringHost(uint64_t value) {
-    if (context == 0) ERROR()
-    auto& map = context->hostNameMap;
-    return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
-}
-
-
-std::string toString(const xns::Ethernet& value) {
-    return std_sprintf("{%s  %s  %s}",
-        toStringHost(value.dest),
-        toStringHost(value.source),
-        xns::Ethernet::toString(value.type));
-}
-
-static std::string toString(const xns::RIP::Entry& value) {
-    return std_sprintf("{%s  %s}",
-        toStringNetwork(value.network),
-        xns::RIP::toString(value.delay));
-}
-std::string toString(const xns::RIP& value) {
-    std::string string;
-    for(const auto& e: value.entryList) {
-        string += std_sprintf(" %s", toString(e));
-    }
-    return std_sprintf("{%-8s  (%d) %s}",
-        xns::toString(value.operation),
-        value.entryList.size(),
-        string.empty() ? "" : string.substr(1));
-}
-
-static std::string toString(const xns::NetworkAddress& value) {
-    return std_sprintf("%s-%s-%s",
-        toStringNetwork(value.network),
-        toStringHost(value.host),
-        xns::toString(value.socket));
-}
-std::string toString(const xns::IDP& value) {
-    return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-        xns::IDP::toString(value.checksum),
-        value.length,
-        value.control,
-        xns::IDP::toString(value.packetType),
-        toString(value.dst), toString(value.src));    
-}
 
 ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx) {
     auto tx = service::services.callExpeditedMessage(callContext, rx);
@@ -240,12 +265,77 @@ void Session::sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParam
     sendIDP(tx);
 }
 
+void Session::sendPEX(const ByteBuffer& txbb) {
+    auto& txHeader = rxPEX;
+
+    auto tx = getByteBuffer();
+    tx.write(txHeader);
+    tx.write(txbb);
+
+    if constexpr (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
+
+    sendIDP(tx);
+}
+
 void Session::send(const xns::SPP& header, const ByteBuffer& body) {
     auto tx = getByteBuffer();
     tx.write(header, body);
 
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
     sendIDP(tx);
+}
+
+
+//
+// toString()
+//
+std::string toStringNetwork(uint32_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->networkNameMap;
+    return map.contains(value) ? map[value] : std_sprintf("%08X", value);
+}
+std::string toStringHost(uint64_t value) {
+    if (context == 0) ERROR()
+    auto& map = context->hostNameMap;
+    return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
+}
+
+std::string toString(const xns::Ethernet& value) {
+    return std_sprintf("{%s  %s  %s}",
+        toStringHost(value.dest),
+        toStringHost(value.source),
+        xns::Ethernet::toString(value.type));
+}
+
+static std::string toString(const xns::RIP::Entry& value) {
+    return std_sprintf("{%s  %s}",
+        toStringNetwork(value.network),
+        xns::RIP::toString(value.delay));
+}
+std::string toString(const xns::RIP& value) {
+    std::string string;
+    for(const auto& e: value.entryList) {
+        string += std_sprintf(" %s", toString(e));
+    }
+    return std_sprintf("{%-8s  (%d) %s}",
+        xns::toString(value.operation),
+        value.entryList.size(),
+        string.empty() ? "" : string.substr(1));
+}
+
+static std::string toString(const xns::NetworkAddress& value) {
+    return std_sprintf("%s-%s-%s",
+        toStringNetwork(value.network),
+        toStringHost(value.host),
+        xns::toString(value.socket));
+}
+std::string toString(const xns::IDP& value) {
+    return std_sprintf("{%s  %d  %d  %s  %s  %s}",
+        xns::IDP::toString(value.checksum),
+        value.length,
+        value.control,
+        xns::IDP::toString(value.packetType),
+        toString(value.dst), toString(value.src));    
 }
 
 }

@@ -43,9 +43,9 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 
-namespace server::Error {
+namespace server {
 //
-void process  (Session& session, ByteBuffer& rx) {
+void listenerERROR(Session& session, ByteBuffer& rx) {
     (void)session;
     xns::Error rxHeader;
     ByteBuffer rxbb;
