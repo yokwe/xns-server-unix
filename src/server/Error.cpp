@@ -46,7 +46,8 @@ static const Logger logger(__FILE__);
 namespace server {
 //
 void listenerERROR(Session& session, ByteBuffer& rx) {
-    (void)session;
+    if (session.rxIDP.packetType != xns::IDP::PacketType::ERROR_) ERROR()
+
     xns::Error rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);

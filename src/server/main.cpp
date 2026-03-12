@@ -40,7 +40,6 @@ static const Logger logger(__FILE__);
 #include "../util/ThreadControl.h"
 
 #include "Server.h"
-#include "CHS.h"
 
 int main(int, char **) {
     using namespace server;
