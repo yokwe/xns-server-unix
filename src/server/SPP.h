@@ -197,28 +197,18 @@ struct Connections {
     Connection& get(uint32_t key);
 };
 
-void listenerSPP  (server::Session&, ByteBuffer&);
+void listenerSPP  (server::Session&, const ByteBuffer&);
 
+using Listener = std::function<void(Session&, const ByteBuffer&)>;
 
-struct SPP {
-    using Listener = std::function<void(Session&, ByteBuffer&)>;
+void listen(uint16_t socket, Listener listener);
+void unlisten(uint16_t socket);
 
-    void listen(uint16_t socket, Listener listener);
-    void unlisten(uint16_t socket);
-
-    void listen(xns::Socket socket, Listener listener) {
-        listen(std::to_underlying(socket), listener);
-    }
-    void unlisten(xns::Socket socket) {
-        unlisten(std::to_underlying(socket));
-    }
-
-    void process(Session& session, ByteBuffer& rx);
-
-private:
-    std::unordered_map<uint16_t, Listener> listenerMap;
-};
-
-
+inline void listen(xns::Socket socket, Listener listener) {
+    server::SPP::listen(std::to_underlying(socket), listener);
+}
+inline void unlisten(xns::Socket socket) {
+    server::SPP::unlisten(std::to_underlying(socket));
+}
 
 }

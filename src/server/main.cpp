@@ -40,6 +40,7 @@ static const Logger logger(__FILE__);
 #include "../util/ThreadControl.h"
 
 #include "Server.h"
+#include "SPP.h"
 
 int main(int, char **) {
     using namespace server;
@@ -70,12 +71,16 @@ int main(int, char **) {
 	ThreadControl t1("threadReceive",  f1);
 	ThreadControl t2("threadTransmit", f2);
 
+    // set listener to socket
     server::listen(xns::Socket::RIP,     listenerRIP);
     server::listen(xns::Socket::ECHO,    listenerECHO);
     server::listen(xns::Socket::ERROR_,  listenerERROR);
     server::listen(xns::Socket::TIME,    listenerTIME);
     server::listen(xns::Socket::CHS,     listenerCHS);
     server::listen(xns::Socket::COURIER, listenerCOURIER);
+
+    // set spp listener to socket
+    server::SPP::listen(xns::Socket::COURIER, server::SPP::listenerSPP);
 
     // enable service implementation
     server::Clearinghouse3::enable();

@@ -34,6 +34,7 @@
  //
 
 #include <mutex>
+#include <utility>
 #include <vector>
 
 #include "../util/Debug.h"
@@ -130,9 +131,30 @@ void Connections::update(const xns::SPP& rxHeader) {
 
 
 //
+// Listener
+//
+static std::unordered_map<uint16_t, Listener> listenerMap;
+void listen(uint16_t socket, Listener listener) {
+    if (listenerMap.contains(socket)) {
+        ERROR()
+    } else {
+        listenerMap[socket] = listener;
+    }
+}
+void unlisten(uint16_t socket) {
+    if (listenerMap.contains(socket)) {
+        listenerMap.erase(socket);
+    } else {
+        ERROR()
+    }
+}
+
+
+//
 // processXXX
 //
-void processNew(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processNew(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     // sanity check
     if (!rxHeader.systemPacket()) {
         logger.warn("Unexpected NOT system packet");
@@ -143,12 +165,16 @@ void processNew(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
         return;
     }
 
-    auto srcSocket = session.context.allocateSocket();
+    auto srcSocket = allocateSocket();
     auto connection = connections.allocate(srcSocket, rxHeader);
     logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
 
     // set socket to txHeader.src.socket to redirect
     session.rxIDP.dst.socket = static_cast<xns::Socket>(srcSocket);
+
+    // add listener
+    server::listen(srcSocket, listenerCOURIER);
+    server::SPP::listen(srcSocket, server::SPP::listenerSPP);
 
     xns::SPP txHeader;
     txHeader.systemPacket(true);
@@ -162,7 +188,8 @@ void processNew(Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
     session.send(txHeader);
 }
 
-void processOldConnectionNew(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processOldConnectionNew(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     (void)rxbb;
 
     // process system packet
@@ -186,7 +213,8 @@ void processOldConnectionNew(Connection& connection, Session& session, const xns
     logger.warn("Unexpected");
 }
 
-void processClose(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processClose(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     (void)connection; (void)session; (void)rxHeader; (void)rxbb;
     logger.info("## Close");
 
@@ -203,7 +231,8 @@ void processClose(Connection& connection, Session& session, const xns::SPP& rxHe
     session.send(txHeader);
     return;
 }
-void processCloseReply(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processCloseReply(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     (void)connection; (void)session; (void)rxHeader; (void)rxbb;
     logger.info("## CloseReply");
 
@@ -218,7 +247,8 @@ void processCloseReply(Connection& connection, Session& session, const xns::SPP&
 
     // session.send(txHeader);
 }
-void processData(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processData(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     // check duplicate
     if (rxHeader.seq == connection.txack) {
         // process user data
@@ -232,16 +262,24 @@ void processData(Connection& connection, Session& session, const xns::SPP& rxHea
         logger.info("## Ignore packet");
     }
 }
-void processBulk(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb) {
+void processBulk(Connection& connection, Session& session, const xns::SPP& rxHeader, ByteBuffer& rxbb, Listener listener) {
+    (void)listener;
     (void)connection; (void)session; (void)rxHeader; (void)rxbb;
     logger.info("## BULK");
 }
 
-void process  (Session& session, ByteBuffer& rx) {
+void listenerSPP  (Session& session, const ByteBuffer& rx) {
     xns::SPP rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    auto socket = std::to_underlying(session.rxIDP.dst.socket);
+    if (!listenerMap.contains(socket)) {
+        logger.warn("Unknown socket  %d", socket);
+        return;
+    }
+    auto& listener = listenerMap[socket];
 
     if (connections.contains(Connections::getKey(rxHeader))) {
         auto& connection = connections.get(Connections::getKey(rxHeader));
@@ -264,22 +302,22 @@ void process  (Session& session, ByteBuffer& rx) {
         
         switch(rxHeader.sst) {
         case xns::SPP::SST::CLOSE:
-            processClose(connection, session, rxHeader, rxbb);
+            processClose(connection, session, rxHeader, rxbb, listener);
             break;
         case xns::SPP::SST::CLOSE_REPLY:
-            processCloseReply(connection, session, rxHeader, rxbb);
+            processCloseReply(connection, session, rxHeader, rxbb, listener);
             break;
         case xns::SPP::SST::DATA:
-            processData(connection, session, rxHeader, rxbb);
+            processData(connection, session, rxHeader, rxbb, listener);
             break;
         case xns::SPP::SST::BULK:
-            processBulk(connection, session, rxHeader, rxbb);
+            processBulk(connection, session, rxHeader, rxbb, listener);
             break;
         default:
             ERROR()
         }
     } else {
-        processNew(session, rxHeader, rxbb);
+        processNew(session, rxHeader, rxbb, listener);
     }
 }
 

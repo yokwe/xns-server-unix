@@ -53,7 +53,7 @@ static RetrieveAddresses::Result RetrieveAddres(CallContext& callContext) {
 
     Context& context = callContext.session.context;
     auto host = xns::Host(context.me);
-    NetworkAddress networkAddress = {context.net, host, xns::Socket::CHS};
+    NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
     NetworkAddressList list{networkAddress};
     RetrieveAddresses::Result result = {list};
 

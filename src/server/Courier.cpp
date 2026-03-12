@@ -36,22 +36,23 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-//#include "SPP.h"
-
 #include "Server.h"
+#include "SPP.h"
 
 namespace server {
 //
 void listenerCOURIER(Session& session, const ByteBuffer& rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::SPP) ERROR()
+    logger.info("XX %s  call SPP::listenerSPP", __func__);
+    SPP::listenerSPP(session, rx);
+}
 
-    xns::SPP&  sppHeader(session.rxSPP);
-    ByteBuffer sppBody;
-
-    rx.read(sppHeader, sppBody);
-    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
-
-    // FIXME
+namespace SPP {
+//
+void listenerCOURIER(Session& session, const ByteBuffer& rx) {
+    (void)session; (void)rx;
+    logger.info("XX %s  called", __func__);
+}
 
 }
 

@@ -11,6 +11,7 @@ target_sources(
 	PUBLIC
     Config.h
     Server.h
+    SPP.h
   PRIVATE
     CHS.cpp
     Clearinghouse3.cpp
@@ -21,6 +22,7 @@ target_sources(
     main.cpp
     RIP.cpp
     Server.cpp
+    SPP.cpp
     Time.cpp
   )
 
