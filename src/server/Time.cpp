@@ -71,7 +71,7 @@ static courier::Time::Response call(Session& session, courier::Time::Request req
     return response;
 }
 
-void listenerTIME(Session& session, ByteBuffer& rx) {
+void listenerTIME(Session& session, const ByteBuffer& rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::PEX) ERROR()
 
     xns::PEX&   pexHeader(session.rxPEX);

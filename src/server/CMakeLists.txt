@@ -13,7 +13,9 @@ target_sources(
     Server.h
   PRIVATE
     CHS.cpp
+    Clearinghouse3.cpp
     Config.cpp
+    Courier.cpp
     Echo.cpp
     Error.cpp
     main.cpp

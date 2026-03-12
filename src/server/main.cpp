@@ -70,12 +70,15 @@ int main(int, char **) {
 	ThreadControl t1("threadReceive",  f1);
 	ThreadControl t2("threadTransmit", f2);
 
-    Server server;
-    server.listen(xns::Socket::RIP,    listenerRIP);
-    server.listen(xns::Socket::ECHO,   listenerECHO);
-    server.listen(xns::Socket::ERROR_, listenerERROR);
-    server.listen(xns::Socket::TIME,   listenerTIME);
-    server.listen(xns::Socket::CHS,    listenerCHS);
+    server::listen(xns::Socket::RIP,     listenerRIP);
+    server::listen(xns::Socket::ECHO,    listenerECHO);
+    server::listen(xns::Socket::ERROR_,  listenerERROR);
+    server::listen(xns::Socket::TIME,    listenerTIME);
+    server::listen(xns::Socket::CHS,     listenerCHS);
+    server::listen(xns::Socket::COURIER, listenerCOURIER);
+
+    // enable service implementation
+    server::Clearinghouse3::enable();
 
     driver.clear();
     t1.start();
@@ -88,7 +91,7 @@ int main(int, char **) {
         if (rx.empty()) continue;
 
         Session session(context, threadTransmit);
-        server.process(session, rx);
+        server::process(session, rx);
 	}
 
     threadReceive.stop();

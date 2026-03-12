@@ -41,7 +41,6 @@
 #include <mutex>
 #include <string>
 #include <map>
-#include <unordered_map>
 #include <utility>
 
 #include "../util/ThreadQueue.h"
@@ -54,10 +53,9 @@
 #include "../xns/IDP.h"
 #include "../xns/Error.h"
 #include "../xns/PEX.h"
+#include "../xns/SPP.h"
 
 #include "../courier/Config.h"
-
-#include "SPP.h"
 
 #include "Config.h"
 
@@ -73,7 +71,6 @@ const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 inline ByteBuffer getByteBuffer() {
     return ByteBuffer(MAX_PACKET_SIZE);
 }
-
 
 struct Routing {
     Network     net;
@@ -178,6 +175,7 @@ struct Session {
 };
 
 // CallContext for service
+namespace SPP { struct Connection; } // forward declaration
 struct CallContext {
     Session&         session;
     SPP::Connection& connection;
@@ -185,38 +183,38 @@ struct CallContext {
     CallContext(Session& session_, SPP::Connection& connection_) : session(session_), connection(connection_) {}
 };
 
+// Clearinghouse3
+namespace Clearinghouse3 {
+//
+void enable();
+void disable();
+}
 
 // create IDP not wellknown socket
 uint16_t allocateSocket();
 void     freeSocket(uint16_t value);
 
+using Listener = std::function<void(Session&, const ByteBuffer&)>;
 
-void listenerRIP  (Session&, ByteBuffer&);
-void listenerECHO (Session&, ByteBuffer&);
-void listenerERROR(Session&, ByteBuffer&);
-void listenerTIME (Session&, ByteBuffer&);
-void listenerCHS  (Session&, ByteBuffer&);
+void listenerRIP     (Session&, const ByteBuffer&); // 1
+void listenerECHO    (Session&, const ByteBuffer&); // 2
+void listenerERROR   (Session&, const ByteBuffer&); // 3
+void listenerCHS     (Session&, const ByteBuffer&);
+void listenerTIME    (Session&, const ByteBuffer&); // 8
+void listenerCOURIER (Session&, const ByteBuffer&); // 5
 
+void listen(uint16_t socket, Listener listener);
+void unlisten(uint16_t socket);
 
-class Server {
-public:
-    using Listener = std::function<void(Session&, ByteBuffer&)>;
+inline void listen(xns::Socket socket, Listener listener) {
+    listen(std::to_underlying(socket), listener);
+}
+inline void unlisten(xns::Socket socket) {
+    unlisten(std::to_underlying(socket));
+}
 
-    void listen(uint16_t socket, Listener listener);
-    void unlisten(uint16_t socket);
+void process(Session& session, ByteBuffer& rx); // for ethernet packet
 
-    void listen(xns::Socket socket, Listener listener) {
-        listen(std::to_underlying(socket), listener);
-    }
-    void unlisten(xns::Socket socket) {
-        unlisten(std::to_underlying(socket));
-    }
-
-    void process(Session& session, ByteBuffer& rx); // for ethernet packet
-
-private:
-    std::unordered_map<uint16_t, Listener> listenerMap;
-};
 
 
 //

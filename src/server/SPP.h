@@ -43,6 +43,8 @@
 #include "../xns/XNS.h"
 #include "../xns/SPP.h"
 
+#include "Server.h"
+
 namespace server::SPP {
 //
 using NetworkAddress = xns::NetworkAddress;
@@ -194,5 +196,29 @@ struct Connections {
     bool        contains(uint32_t key);
     Connection& get(uint32_t key);
 };
+
+void listenerSPP  (server::Session&, ByteBuffer&);
+
+
+struct SPP {
+    using Listener = std::function<void(Session&, ByteBuffer&)>;
+
+    void listen(uint16_t socket, Listener listener);
+    void unlisten(uint16_t socket);
+
+    void listen(xns::Socket socket, Listener listener) {
+        listen(std::to_underlying(socket), listener);
+    }
+    void unlisten(xns::Socket socket) {
+        unlisten(std::to_underlying(socket));
+    }
+
+    void process(Session& session, ByteBuffer& rx);
+
+private:
+    std::unordered_map<uint16_t, Listener> listenerMap;
+};
+
+
 
 }

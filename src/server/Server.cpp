@@ -34,8 +34,10 @@
  //
 
 
+#include <cstdint>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -85,9 +87,10 @@ Context::Context() {
 
 
 //
-// Server
+// Listener
 //
-void Server::listen(uint16_t socket, Listener listener) {
+static std::unordered_map<uint16_t, Listener> listenerMap;
+void listen(uint16_t socket, Listener listener) {
     if (listenerMap.contains(socket)) {
         logger.error("Unexpected socket");
         logger.error("  socket  %d", socket);
@@ -95,7 +98,7 @@ void Server::listen(uint16_t socket, Listener listener) {
     }
     listenerMap[socket] = listener;
 }
-void Server::unlisten(uint16_t value) {
+void unlisten(uint16_t value) {
     auto count = listenerMap.erase(value);
     if (count == 0) {
         logger.error("Unexpected value");
@@ -103,7 +106,7 @@ void Server::unlisten(uint16_t value) {
         ERROR()
     }
 }
-void Server::process(Session& session, ByteBuffer& rx) {
+void process(Session& session, ByteBuffer& rx) {
     // makre reference
     auto& context(session.context);
     auto& ethernetHeader(session.rxEthernet);
@@ -193,7 +196,6 @@ ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx) {
 //
 // Session
 //
-
 void Session::sendEther(const ByteBuffer& bb) {
     // make reference
     xns::Ethernet txEthernet;
