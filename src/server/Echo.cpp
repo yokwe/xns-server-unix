@@ -42,6 +42,7 @@ static const Logger logger(__FILE__);
 #include "../xns/Echo.h"
 
 #include "Server.h"
+#include "Session.h"
 
 namespace server {
 //

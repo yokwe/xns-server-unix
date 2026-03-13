@@ -51,9 +51,6 @@
 #include "../xns/RIP.h"
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
-#include "../xns/Error.h"
-#include "../xns/PEX.h"
-#include "../xns/SPP.h"
 
 #include "../courier/Config.h"
 
@@ -61,6 +58,8 @@
 
 namespace server {
 //
+struct Session;
+
 using Delay   = xns::RIP::Delay;
 using Host    = xns::Host;
 using Network = xns::Network;
@@ -135,44 +134,12 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     }
 };
 
-struct Session {
-    using steady_clock = std::chrono::steady_clock;
-    Context&                 context;
-    ThreadTransmit&          threadTransmit;
-    steady_clock::time_point startTime;
 
-    // received headers
-    xns::Ethernet rxEthernet;
-    xns::IDP      rxIDP;
-    xns::PEX      rxPEX;
-    xns::SPP      rxSPP;
+//
+// Ethernet
+//
+void process(Session& session, ByteBuffer& rx);  // process ethernet packet
 
-    Session(Context& context_, ThreadTransmit& threadTransmit_) :
-        context(context_),
-        threadTransmit(threadTransmit_),
-        startTime(std::chrono::steady_clock::now()) {}
-
-    template<typename T>
-    uint64_t duration() {
-        return std::chrono::duration_cast<T>(steady_clock::now() - startTime).count();
-    }
-    uint64_t durationMilli() {
-        return duration<std::chrono::milliseconds>();
-    }
-
-    void send(const xns::Ethernet& header, const ByteBuffer& body);
-    void send(const xns::IDP&      header, const ByteBuffer& body);
-
-    void send(const xns::SPP&      header, const ByteBuffer& body);
-    void send(const xns::SPP&      header) {
-        send(header, ByteBuffer{});
-    }
-
-    void sendEther(const ByteBuffer& body);
-    void sendIDP  (const ByteBuffer& body);
-    void sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter = 0);
-    void sendPEX(const ByteBuffer& body);
-};
 
 // CallContext for service
 namespace SPP { struct Connection; } // forward declaration
@@ -183,38 +150,50 @@ struct CallContext {
     CallContext(Session& session_, SPP::Connection& connection_) : session(session_), connection(connection_) {}
 };
 
+
+//
 // Clearinghouse3
+//
 namespace Clearinghouse3 {
 //
 void enable();
 void disable();
 }
 
-// create IDP not wellknown socket
+
+//
+// Socket
+//
+
+// allocate and free of user socket -- not wellknown socket
 uint16_t allocateSocket();
 void     freeSocket(uint16_t value);
 
+
+//
+// Socket Listener
+//
 using Listener = std::function<void(Session&, const ByteBuffer&)>;
 
-void listenerRIP     (Session&, const ByteBuffer&); // 1
-void listenerECHO    (Session&, const ByteBuffer&); // 2
-void listenerERROR   (Session&, const ByteBuffer&); // 3
-void listenerCHS     (Session&, const ByteBuffer&);
-void listenerTIME    (Session&, const ByteBuffer&); // 8
-void listenerCOURIER (Session&, const ByteBuffer&); // 5
-
+// Set Listener to socket
 void listen(uint16_t socket, Listener listener);
-void unlisten(uint16_t socket);
-
 inline void listen(xns::Socket socket, Listener listener) {
     listen(std::to_underlying(socket), listener);
 }
+
+// Unset Listener from socket
+void unlisten(uint16_t socket);
 inline void unlisten(xns::Socket socket) {
     unlisten(std::to_underlying(socket));
 }
 
-void process(Session& session, ByteBuffer& rx); // for ethernet packet
-
+// listener for wellknown socket
+void listenerRIP     (Session&, const ByteBuffer&);
+void listenerECHO    (Session&, const ByteBuffer&);
+void listenerERROR   (Session&, const ByteBuffer&);
+void listenerCHS     (Session&, const ByteBuffer&);
+void listenerTIME    (Session&, const ByteBuffer&);
+void listenerCOURIER (Session&, const ByteBuffer&);
 
 
 //

@@ -44,6 +44,7 @@ static const Logger logger(__FILE__);
 #include "../xns/PEX.h"
 
 #include "Server.h"
+#include "Session.h"
 
 namespace server {
 //

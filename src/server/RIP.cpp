@@ -43,6 +43,7 @@ static const Logger logger(__FILE__);
 #include "../xns/RIP.h"
 
 #include "Server.h"
+#include "Session.h"
 
 namespace server {
 //

@@ -110,8 +110,8 @@ public:
     std::string toString() const {
         return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
             systemPacket() ? "S" : "_",
-            sendAck() ? "S" : "_",
-            attention() ? "A" : "_",
+            sendAck()      ? "S" : "_",
+            attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",
             toString(sst), srcID, dstID, seq, ack, alloc);
     }

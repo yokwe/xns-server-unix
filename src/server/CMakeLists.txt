@@ -11,6 +11,7 @@ target_sources(
 	PUBLIC
     Config.h
     Server.h
+    Session.h
     SPP.h
   PRIVATE
     CHS.cpp
@@ -22,6 +23,7 @@ target_sources(
     main.cpp
     RIP.cpp
     Server.cpp
+    Session.cpp
     SPP.cpp
     Time.cpp
   )

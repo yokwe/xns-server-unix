@@ -44,6 +44,7 @@
 #include "../xns/SPP.h"
 
 #include "Server.h"
+#include "Session.h"
 
 namespace server::SPP {
 //

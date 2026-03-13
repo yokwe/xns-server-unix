@@ -44,13 +44,17 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../xns/Error.h"
+
 #include "../service/Services.h"
 
 #include "Server.h"
+#include "Session.h"
 
 namespace server {
 //
 
+// context is used in toString()
 static Context* context = 0;
 
 //
@@ -106,6 +110,8 @@ void unlisten(uint16_t value) {
         ERROR()
     }
 }
+
+
 void process(Session& session, ByteBuffer& rx) {
     // makre reference
     auto& context(session.context);
@@ -152,6 +158,7 @@ void process(Session& session, ByteBuffer& rx) {
     }
 }
 
+
 //
 // Socket
 //
@@ -191,100 +198,6 @@ ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx) {
 ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx) {
     auto tx = service::services.callCourierMessage(callContext, rx);
     return tx;
-}
-
-//
-// Session
-//
-void Session::sendEther(const ByteBuffer& bb) {
-    // make reference
-    xns::Ethernet txEthernet;
-
-    txEthernet.dest   = rxEthernet.source;
-    txEthernet.source = context.me;
-    txEthernet.type   = rxEthernet.type;
-
-    auto tx = getByteBuffer();
-    // write ethernet header
-    tx.write(txEthernet);
-    tx.write(bb);
-
-    // add padding for mininum packet size
-    auto length = tx.byteLimit();
-    for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
-
-    if constexpr (SHOW_RESPONSE_DURATION) {
-        logger.info("Duration  %d", durationMilli());
-    }
-    if constexpr (SHOW_PACKET_ETHERNET) {
-        logger.info("ETH  <<  %s  (%d) %s", toString(txEthernet), bb.byteLimit(), bb.toString());
-    }
-
-    TransmitData transmitData(tx);
-    threadTransmit.push(transmitData);
-}
-
-void Session::sendIDP(const ByteBuffer& txbb) {
-    xns::IDP txHeader;
-
-    txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
-    txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
-    txHeader.control     = 0;
-    txHeader.packetType  = rxIDP.packetType;
-    txHeader.dst.network = rxIDP.src.network;
-    txHeader.dst.host    = rxIDP.src.host;
-    txHeader.dst.socket  = rxIDP.src.socket;
-    txHeader.src.network = context.net;
-    txHeader.src.host    = context.me;
-    txHeader.src.socket  = rxIDP.dst.socket;
-
-    auto tx = getByteBuffer();
-    tx.write(txHeader);
-    tx.write(txbb);
-    // to make even length data, add Garbage Byte if length is odd.
-    if (tx.byteLimit() & 1) tx.put8(0);
-
-    // update checksum
-    // Garbage Byte, which is included in the Checksum, but not in the Length
-    auto checksum = xns::IDP::computeChecksum(tx.data(), 2, tx.byteLimit());
-    tx.rewind();
-    tx.write(checksum);
-
-    txHeader.checksum = checksum;
-    if constexpr (SHOW_PACKET_IDP) logger.info("IDP  <<  %s  (%d) %s", toString(txHeader), txbb.byteLimit(), txbb.toString());
-
-    sendEther(tx);
-}
-
-void Session::sendError(xns::Error::ErrorNumber errorNumber, uint16_t errorParameter) {
-    xns::Error txHeader{errorNumber, errorParameter};
-
-    auto tx = getByteBuffer();
-    tx.write(txHeader, rxIDP);
-
-    if constexpr (SHOW_PACKET_ERROR) logger.info("Error<<  %s  IDP  %s", txHeader.toString(), rxIDP.toString());
-
-    sendIDP(tx);
-}
-
-void Session::sendPEX(const ByteBuffer& txbb) {
-    auto& txHeader = rxPEX;
-
-    auto tx = getByteBuffer();
-    tx.write(txHeader);
-    tx.write(txbb);
-
-    if constexpr (SHOW_PACKET_PEX) logger.info("PEX  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
-
-    sendIDP(tx);
-}
-
-void Session::send(const xns::SPP& header, const ByteBuffer& body) {
-    auto tx = getByteBuffer();
-    tx.write(header, body);
-
-    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  <<  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
-    sendIDP(tx);
 }
 
 

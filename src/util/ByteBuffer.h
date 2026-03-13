@@ -145,6 +145,11 @@ public:
     std::span<uint8_t> toSpan() const {
         return std::span<uint8_t>{myData, myByteLimit};
     }
+    std::vector<uint8_t> toVector() const {
+        std::vector<uint8_t> ret;
+        ret.assign_range(toSpan());
+        return ret;
+    }
 
     std::string toString() const {
         return toHexString(myByteLimit, myData);
