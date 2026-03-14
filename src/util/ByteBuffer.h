@@ -43,6 +43,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "Debug.h"
 #include "Util.h"
@@ -273,6 +274,10 @@ public:
     // putX
     void putByteBuffer(const ByteBuffer& bb) {
         putSpan(bb.toSpan());
+    }
+    void putVector(std::vector<uint8_t>& vector) {
+        std::span<uint8_t> span(vector.begin(), vector.size());
+        putSpan(span);
     }
     void putSpan(const std::span<uint8_t>& span) {
         auto byteSize = span.size();
