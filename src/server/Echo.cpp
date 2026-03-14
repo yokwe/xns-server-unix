@@ -46,7 +46,7 @@ static const Logger logger(__FILE__);
 
 namespace server {
 //
-void listenerECHO(Session& session, const ByteBuffer& rx) {
+void processECHO(Session& session, const ByteBuffer& rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::ECHO) ERROR()
 
     xns::Echo rxHeader;

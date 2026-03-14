@@ -38,55 +38,51 @@
 #include <vector>
 #include <cstdint>
 
+#include "../util/Util.h"
 
-namespace server::stream {
+
+namespace spp {
 //
 using Block = std::vector<uint8_t>;
 
-enum class CompletionCode {
-    normal, endRecord, sstChange, endOfStream, attention, timeout,
+enum class Reason {
+    normal, endOfMessage, sstChange, endOfStream, attention, timeout,
+};
+struct Result {
+    Reason  reason;
+    bool    endOfMessage;
+    uint8_t sst;
 };
 
-struct GetResult {
-    Block          data;
-    CompletionCode why;
-    uint8_t        sst;
-};
+struct NotImplementdException{
+    std::string message;
 
-struct InputOptions {
-    bool terminateOnEndRecrd;
-    bool signalSSTChange;
-    bool signalEndOfStream;
-    bool signalAttention;
-    bool signalTimeout;
-    bool signalEndRecord;
+    NotImplementdException(const std::string& message_) : message(message_) {}
+
+    std::string toString() {
+        return std_sprintf("{NotImplementdException %s}", message);
+    }
 };
 
 class Stream {
 public:
-    virtual InputOptions getOpions() = 0;
-    virtual void         setOptions(InputOptions value) = 0;
+    virtual Result   get(Block& block) = 0;
+    virtual void     put(const Block& block, bool endOfMessage = false, uint8_t sst = 0) = 0;
 
-    virtual uint8_t   getByte() = 0;
-    virtual void      putByte(uint8_t value) = 0;
-    virtual uint16_t  getWord() = 0;
-    virtual void      putWord(uint16_t value) = 0;
-    virtual GetResult get(InputOptions) = 0;
-    virtual void      put(const Block& block, bool endRecord = false) = 0;
+    void put(const Block& block, bool endOfMessage = false) {
+        put(block, endOfMessage, 0);
+    }
 
-    virtual uint8_t getSST() = 0;
-    virtual void    setSST(uint8_t vlaue) = 0;
-   
-    virtual void    sendAttention(uint8_t value) = 0;
-    virtual uint8_t waitAttention() = 0;
+    virtual void     attention(uint8_t value) = 0;
+    virtual int      attention() = 0; // return -1 when no attention
 
-    virtual uint32_t getPosition() = 0;
-    virtual void     setPosition(uint32_t value) = 0;
+    virtual uint8_t  waitAttention() = 0;
 
-    virtual void sendNow(bool endRecord = false) = 0;
+    virtual uint32_t position() = 0;
+    virtual void     position(uint32_t value) = 0;
 
-    virtual uint32_t getTimeout() = 0;           // unit is milliseconds
-    virtual void     setTimeout(uint32_t value) = 0; // unit is milliseconds
+    virtual uint32_t timeout() = 0;               // unit is milliseconds
+    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
 };
 
 }

@@ -1,0 +1,206 @@
+/*******************************************************************************
+ * Copyright (c) 2026, Yasuhiro Hasegawa
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *******************************************************************************/
+
+//
+// Connection.h
+//
+
+#pragma once
+
+#include <cstdint>
+
+#include "../util/Util.h"
+#include "../util/ByteBuffer.h"
+
+#include "Session.h"
+#include "Packet.h"
+
+namespace server {
+//
+
+class Connection {
+public:
+    Session  session;
+    uint16_t srcID;
+    uint16_t dstID;
+
+    uint16_t seq;
+    uint16_t ack;
+    uint16_t alloc;  // alloc == ack
+
+    uint16_t transmitSeq; // use for real transmission
+    uint16_t receiveSeq;  // use for send data to client
+
+    uint32_t timeout; // session maintenance
+
+    PacketQueue rxQueue; // hold received packet
+    PacketQueue txQueue; // hold transmiting packet
+
+
+    Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
+        session(session_), srcID(srcID_), dstID(dstID_),
+        seq(0), ack(0), alloc(0),
+        transmitSeq(0), receiveSeq(0),
+        timeout(0) {}
+    Connection(Session session) : Connection(session, 0, 0) {}
+
+    std::string toString() {
+        return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, transmitSeq, receiveSeq);
+    }
+
+    // from client
+    // NOTE transmitXXX just add packet to txQueue
+    // FIXME needs another thread and server::Session for real transmit
+    // FIXME response to system packet for packet retransmition
+    void transmitSystem(bool sendAck) {
+        Data data;
+        transmit(0, true, sendAck, false, false, data);
+    }
+    void transmitAttention(uint8_t value) {
+        Data data{value};
+        transmit(0, false, false, true, false, data);
+    }
+    void transmitUser(uint8_t sst, bool sendAck, bool endOfMessage, Data& data) {
+        transmit(sst, false, sendAck, false, endOfMessage, data);
+    }
+
+
+    // from network
+    // NOTE receive is just add packet to rxQueue
+    // FIXME needs another thread to send client
+    // FIXME send system packet to ask packet retransmition
+    void receive(const xns::SPP header, const ByteBuffer& body) {
+        if (header.systemPacket()) {
+            receiveSystem(header, body);
+        } else {
+            receiveUser(header, body);
+        }
+    }
+
+private:
+    void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
+
+    void receiveSystem(const xns::SPP header, const ByteBuffer& body) {
+        // seq   -- seq of next data packet
+        // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
+        // alloc -- other side can accept sequence number [ack..alloc]
+
+        // sanity check
+        if (!body.empty()) ERROR()
+
+        // remove acknowledged packet in txQueue
+        {
+            auto rxack = header.ack; // seq before ack is acknowledged
+            for(auto e: txQueue.seqSet()) {
+                if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+            }
+        }
+    }
+    void receiveUser(const xns::SPP header, const ByteBuffer& body) {
+        // seq   -- seq of next data packet
+        // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
+        // alloc -- other side can accept sequence number [ack..alloc]
+
+        // add packet if header.seq is between ack and alloc
+        {
+            auto rxseq = header.seq;
+            if (isBefore(rxseq, ack))   return; // return if rxseq is before ack    -- rxseq < ack
+            if (isBefore(alloc, rxseq)) return; // return if alloc is bofore rxseq  -- alloc < rxseq
+
+            if (rxQueue.contains(rxseq)) return; // return  if rxseq is in rxQueue
+
+            // add to rxQueue
+            rxQueue.alloc(header, body);
+
+            // update ack/alloc
+            for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
+                ack++;
+            }
+            alloc = ack + 4;
+        }
+
+        // remove acknowledged packet in txQueue
+        {
+            auto rxack = header.ack; // seq before ack is acknowledged
+            for(auto e: txQueue.seqSet()) {
+                if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+            }
+        }
+    }
+
+    bool isBefore(uint16_t a, uint16_t b) {
+        if (a < b) {
+            // a = 10  b = 20  => true
+            return true;
+        } else if (a > b) {
+            // a = 10     b = 5  => false
+            // a = 65530  b = 5  => true
+            auto diff = a - b;
+            return 30000 < diff;
+        } else {
+            return false;
+        }
+    }
+
+};
+
+struct Connections {
+    static inline uint32_t getKey(const xns::SPP& rxHeader) {
+        return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
+    }
+    static inline uint32_t getKey(const Connection& connection) {
+        return getKey(connection.srcID, connection.dstID);
+    }
+    static inline uint32_t getKey(uint16_t srcID, uint16_t dstID) {
+        return (srcID << 16) | dstID;
+    }
+
+    std::unordered_map<uint32_t, Connection> map;
+
+    Connection& allocate(Session& session, uint16_t srcID, uint16_t dstID) {
+        auto key = getKey(srcID, dstID);
+        if (contains(key)) ERROR()
+        map.emplace(key, Connection(session, srcID, dstID));
+        return get(key);
+    }
+    void free(uint32_t key) {
+        if (!map.contains(key)) ERROR()
+        map.erase(key);
+    }
+    bool contains(uint32_t key) {
+        return map.contains(key);
+    }
+    Connection& get(uint32_t key) {
+        return map.at(key);
+    }
+
+};
+
+}

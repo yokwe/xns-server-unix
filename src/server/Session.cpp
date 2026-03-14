@@ -36,6 +36,7 @@
  #include "../util/Util.h"
  static const Logger logger(__FILE__);
 
+ #include "Server.h"
  #include "Session.h"
 
  namespace server {

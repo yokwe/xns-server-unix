@@ -55,6 +55,7 @@
 #include "../courier/Config.h"
 
 #include "Config.h"
+#include "Connection.h"
 
 namespace server {
 //
@@ -135,19 +136,13 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
 };
 
 
-//
-// Ethernet
-//
-void process(Session& session, ByteBuffer& rx);  // process ethernet packet
-
-
 // CallContext for service
 namespace SPP { struct Connection; } // forward declaration
 struct CallContext {
-    Session&         session;
-    SPP::Connection& connection;
+    Session&    session;
+    Connection& connection;
 
-    CallContext(Session& session_, SPP::Connection& connection_) : session(session_), connection(connection_) {}
+    CallContext(Session& session_, Connection& connection_) : session(session_), connection(connection_) {}
 };
 
 
@@ -188,12 +183,17 @@ inline void unlisten(xns::Socket socket) {
 }
 
 // listener for wellknown socket
-void listenerRIP     (Session&, const ByteBuffer&);
-void listenerECHO    (Session&, const ByteBuffer&);
-void listenerERROR   (Session&, const ByteBuffer&);
-void listenerCHS     (Session&, const ByteBuffer&);
-void listenerTIME    (Session&, const ByteBuffer&);
-void listenerCOURIER (Session&, const ByteBuffer&);
+void processRIP   (Session&, const ByteBuffer&);
+void processECHO  (Session&, const ByteBuffer&);
+void processERROR (Session&, const ByteBuffer&);
+void listenerCHS  (Session&, const ByteBuffer&);
+void processTIME  (Session&, const ByteBuffer&);
+
+void processSPP_OLD(Session&, const ByteBuffer&);
+void processSPP_NEW(Session&, const ByteBuffer&);
+
+// listener for ethernet
+void processEthernet(Session& session, ByteBuffer& rx);
 
 
 //

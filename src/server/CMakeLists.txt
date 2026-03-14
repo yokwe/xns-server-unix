@@ -10,6 +10,8 @@ target_sources(
 	server
 	PUBLIC
     Config.h
+    Connection.h
+    Packet.h
     Server.h
     Session.h
     SPP.h
@@ -17,7 +19,7 @@ target_sources(
     CHS.cpp
     Clearinghouse3.cpp
     Config.cpp
-    Courier.cpp
+    Connection.cpp
     Echo.cpp
     Error.cpp
     main.cpp

@@ -36,8 +36,6 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "SPP.h"
-
 #include "../service/Clearinghouse3.h"
 #include "../service/Services.h"
 
@@ -71,28 +69,14 @@ static void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::
         courier::SEQUENCE<DomainName, 65535> segment = {
             {myDomain},
         };
-        auto ret = StreamOfDomainName::fromLastSegment(segment);
+        auto result = StreamOfDomainName::fromLastSegment(segment);
 
 
         auto txbb = getByteBuffer();
-        txbb.write(ret);
+        txbb.write(result);
 
-        auto& session = callContext.session;
-        auto& connection = callContext.connection;
-
-        {
-            xns::SPP txHeader;
-            txHeader.sendAck(true);
-            txHeader.endOfMessage(true);
-            txHeader.sst   = xns::SPP::SST::BULK;
-            txHeader.srcID = connection.srcID;
-            txHeader.dstID = connection.dstID;
-            txHeader.seq   = connection.txseq++;
-            txHeader.ack   = ++connection.txack;
-            txHeader.alloc = ++connection.txalloc;
-    
-            session.send(txHeader, txbb);
-        }
+        // FIXME transmit result
+        (void)callContext;
 
     } else {
         logger.error("Not expected");

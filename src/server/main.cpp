@@ -73,15 +73,12 @@ int main(int, char **) {
 	ThreadControl t2("threadTransmit", f2);
 
     // set listener to socket
-    server::listen(xns::Socket::RIP,     listenerRIP);
-    server::listen(xns::Socket::ECHO,    listenerECHO);
-    server::listen(xns::Socket::ERROR_,  listenerERROR);
-    server::listen(xns::Socket::TIME,    listenerTIME);
+    server::listen(xns::Socket::RIP,     processRIP);
+    server::listen(xns::Socket::ECHO,    processECHO);
+    server::listen(xns::Socket::ERROR_,  processERROR);
+    server::listen(xns::Socket::TIME,    processTIME);
     server::listen(xns::Socket::CHS,     listenerCHS);
-    server::listen(xns::Socket::COURIER, listenerCOURIER);
-
-    // set spp listener to socket
-    server::SPP::listen(xns::Socket::COURIER, server::SPP::listenerSPP);
+    server::listen(xns::Socket::COURIER, processSPP_NEW);
 
     // enable service implementation
     server::Clearinghouse3::enable();
@@ -97,7 +94,7 @@ int main(int, char **) {
         if (rx.empty()) continue;
 
         Session session(context, threadTransmit);
-        server::process(session, rx);
+        server::processEthernet(session, rx);
 	}
 
     threadReceive.stop();

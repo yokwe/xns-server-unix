@@ -112,7 +112,7 @@ void unlisten(uint16_t value) {
 }
 
 
-void process(Session& session, ByteBuffer& rx) {
+void processEthernet(Session& session, ByteBuffer& rx) {
     // makre reference
     auto& context(session.context);
     auto& ethernetHeader(session.rxEthernet);

@@ -30,32 +30,40 @@
 
  
  //
- // Courier.cpp
+ // Connection.cpp
  //
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "Server.h"
-#include "Session.h"
+#include "Connection.h"
 
-#include "SPP.h"
-
-namespace server {
+namespace server{
 //
-void listenerCOURIER(Session& session, const ByteBuffer& rx) {
-    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP) ERROR()
-    logger.info("XX %s  call SPP::listenerSPP", __func__);
-    SPP::listenerSPP(session, rx);
-}
+void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
+    if (!system) {
+        if (rxQueue.contains(seq)) ERROR() // detect seq duplicate
+        txQueue.alloc(seq++, sst, system, sendAck, attention, endOfMessage, data);
+    }
 
-namespace SPP {
-//
-void listenerCOURIER(Session& session, const ByteBuffer& rx) {
-    (void)session; (void)rx;
-    logger.info("XX %s  called", __func__);
-}
+    // send packet
+    {
+        xns::SPP txHeader;
+        txHeader.systemPacket(system);
+        txHeader.sendAck(sendAck);
+        txHeader.attention(attention);
+        txHeader.endOfMessage(endOfMessage);
+        txHeader.srcID = srcID;
+        txHeader.dstID = dstID;
+        txHeader.seq   = seq;
+        txHeader.ack   = ack;
+        txHeader.alloc = alloc;
+    
+        ByteBuffer txbb;
+        txbb.putVector(data);
 
+        session.send(txHeader, txbb);
+    }
 }
 
 }

@@ -36,10 +36,10 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "SPP.h"
 
 #include "../service/Services.h"
 
+#include "Connection.h"
 #include "Server.h"
 #include "Session.h"
 
@@ -54,7 +54,7 @@ void listenerCHS(Session& session, const ByteBuffer& rx) {
     rx.read(pexHeader, pexBody);
     if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
 
-    SPP::Connection connection;
+    Connection connection{session};
     CallContext callContext{session, connection};
     auto tx = service::services.callExpeditedMessage(callContext, pexBody);
     if (tx.empty()) return;
