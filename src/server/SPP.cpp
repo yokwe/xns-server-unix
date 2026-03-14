@@ -33,8 +33,6 @@
  // SPP.cpp
  //
 
-#include <utility>
-
 #include "../util/Debug.h"
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -43,14 +41,13 @@ static const Logger logger(__FILE__);
 
 #include "../xns/SPP.h"
 
+#include "Server.h"
 #include "Connection.h"
-#include "SPP.h"
 
 namespace server {
 //
 
 static Connections connections;
-
 
 //
 // processXXX

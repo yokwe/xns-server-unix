@@ -137,7 +137,6 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
 
 
 // CallContext for service
-namespace SPP { struct Connection; } // forward declaration
 struct CallContext {
     Session&    session;
     Connection& connection;

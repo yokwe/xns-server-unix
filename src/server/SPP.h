@@ -37,10 +37,6 @@
 
 #include <cstdint>
 
-#include "../xns/SPP.h"
-
-#include "../server/Server.h"
-
 namespace server {
 //
 inline const constexpr uint64_t GRACE_PERIOD_NEW_SESSION = 10; // unit is second
