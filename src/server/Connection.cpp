@@ -47,7 +47,8 @@ namespace server{
 void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
     if (!system) {
         if (rxQueue.contains(seq)) ERROR() // detect seq duplicate
-        txQueue.alloc(seq++, sst, system, sendAck, attention, endOfMessage, data);
+        txQueue.add(Packet{seq, sst, system, sendAck, attention, endOfMessage, data});
+        seq++;  // INCREMENT seq
     }
 
     // send packet
@@ -82,7 +83,7 @@ void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
     {
         auto rxack = header.ack; // seq before ack is acknowledged
         for(auto e: txQueue.seqSet()) {
-            if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+            if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
         }
     }
 
@@ -105,7 +106,7 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
         if (rxQueue.contains(rxseq)) return; // return  if rxseq is in rxQueue
 
         // add to rxQueue
-        rxQueue.alloc(header, body);
+        rxQueue.add(Packet{header, body});
         logger.info("ACCEPT rxseq  %d", rxseq);
 
         // update ack/alloc
@@ -127,24 +128,9 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     {
         auto rxack = header.ack; // seq before ack is acknowledged
         for(auto e: txQueue.seqSet()) {
-            if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+            if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
         }
     }
-}
-
-
-//
-// Connections
-//
-Connection& Connections::allocate(Session& session, uint16_t srcID, uint16_t dstID) {
-    auto key = getKey(srcID, dstID);
-    if (contains(key)) ERROR()
-    map.emplace(key, Connection(session, srcID, dstID));
-    return get(key);
-}
-void Connections::free(uint32_t key) {
-    if (!map.contains(key)) ERROR()
-    map.erase(key);
 }
 
 }

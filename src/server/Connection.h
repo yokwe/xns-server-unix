@@ -143,9 +143,16 @@ struct Connections {
     }
 
     std::unordered_map<uint32_t, Connection> map;
-
-    Connection& allocate(Session& session, uint16_t srcID, uint16_t dstID);
-    void free(uint32_t key);
+    //                 key
+    void add(Connection& connection) {
+        auto key = getKey(connection);
+        if (contains(key)) ERROR()
+        map.emplace(key, connection);    
+    }
+    void remove(uint32_t key) {
+        if (!map.contains(key)) ERROR()
+        map.erase(key);    
+    }
 
     bool contains(uint32_t key) {
         return map.contains(key);

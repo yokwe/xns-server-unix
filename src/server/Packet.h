@@ -92,7 +92,7 @@ public:
     }
 
     // seq
-    uint16_t seq() {
+    uint16_t seq() const {
         return flags.seq;
     }
     void seq(uint16_t value) {
@@ -100,7 +100,7 @@ public:
     }
 
     // sst
-    uint8_t sst() {
+    uint8_t sst() const {
         return flags.sst;
     }
     void sst(uint8_t value) {
@@ -108,7 +108,7 @@ public:
     }
 
     // system
-    bool system() {
+    bool system() const {
         return flags.system;
     }
     void system(bool value) {
@@ -116,7 +116,7 @@ public:
     }
 
     // sendAck
-    bool sendAck() {
+    bool sendAck() const {
         return flags.sendAck;
     }
     void sendAck(bool value) {
@@ -124,7 +124,7 @@ public:
     }
 
     // attention
-    bool attention() {
+    bool attention() const {
         return flags.attention;
     }
     void attention(bool value) {
@@ -132,7 +132,7 @@ public:
     }
 
     // endOfMessage
-    bool endOfMessage() {
+    bool endOfMessage() const {
         return flags.endOfMessage;
     }
     void endOfMessage(bool value) {
@@ -140,7 +140,7 @@ public:
     }
 
     // waitAck
-    bool waitAck() {
+    bool waitAck() const {
         return flags.waitAck;
     }
     void waitAck(bool value) {
@@ -162,25 +162,17 @@ public:
 class PacketQueue {
     std::vector<Packet> vector;
     std::set<uint16_t>  set;
+    //       seq
 
 public:
-    Packet& alloc(const xns::SPP& header, const ByteBuffer& bb) {
-        // sanity check
-        if (contains(header.seq)) ERROR()
-
-        set.emplace(header.seq);
-        vector.emplace_back(header, bb);
-        return vector.back();
-    }
-    Packet& alloc(uint16_t seq, uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, const Data& data) {
-        // sanity check
-        if (contains(seq)) ERROR()
+    void add(const Packet& packet) {
+        auto seq = packet.seq();
+        if (set.contains(seq)) ERROR()
 
         set.emplace(seq);
-        vector.emplace_back(seq, sst, system, sendAck, attention, endOfMessage, data);
-        return vector.back();
+        vector.emplace_back(packet);
     }
-    void free(uint16_t seq) {
+    void remove(uint16_t seq) {
         auto pred = [=](Packet& packet) { return packet.seq() == seq; };
         auto i = std::remove_if(vector.begin(), vector.end(), pred);
         if (i == vector.end()) ERROR()
@@ -193,7 +185,7 @@ public:
         std::sort(vector.begin(), vector.end(), comp);
     }
 
-    bool contains(uint16_t seq) {
+    bool contains(uint16_t seq) const {
         return set.contains(seq);
     }
 
@@ -204,14 +196,14 @@ public:
         ERROR()
     }
 
-    std::set<uint16_t> seqSet() {
+    std::set<uint16_t> seqSet() const {
         return set;
     }
 
-    bool empty() {
+    bool empty() const {
         return vector.empty();
     }
-    uint32_t size() {
+    uint32_t size() const {
         return vector.size();
     }
     Packet& front() {

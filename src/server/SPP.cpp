@@ -35,6 +35,7 @@
 
 #include "../util/Debug.h"
 #include "../util/Util.h"
+#include <chrono>
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -82,21 +83,33 @@ void processSPP_NEW(Session& session, const ByteBuffer& rx) {
         ERROR()
     }
 
-    auto srcSocket = allocateSocket();
-    if (connections.contains(Connections::getKey(srcSocket, rxHeader.srcID))) ERROR()
-
     // add listener
+    auto srcSocket = allocateSocket();
     listen(srcSocket, processSPP_OLD);
 
     // set socket to txHeader.src.socket to redirect
     // Need this before connection.allocate, because connection.allocate copy session
     session.rxIDP.dst.socket = static_cast<xns::Socket>(srcSocket);
 
-    auto connection = connections.allocate(session, srcSocket, rxHeader.srcID);
-    logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
+    // add new connection
+    {
+        uint16_t dstID = rxHeader.srcID;
+        uint16_t srcID;
+        for(;;) {
+            srcID = (uint16_t)(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
+            auto key = Connections::getKey(srcID, dstID);
+            if (!connections.contains(key)) break;
+            logger.info("XX contains  %04X  %04X", srcID, dstID);
+        }
+    
+        Connection connection{session, srcID, dstID};
+        connections.add(connection);
 
-    // send packet
-    connection.transmitSystem(true);
+        logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
+
+        // send packet
+        connection.transmitSystem(true);    
+    }
 }
 
 
