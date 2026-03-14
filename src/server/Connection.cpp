@@ -40,6 +40,10 @@ static const Logger logger(__FILE__);
 
 namespace server{
 //
+
+//
+// Connection
+//
 void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
     if (!system) {
         if (rxQueue.contains(seq)) ERROR() // detect seq duplicate
@@ -64,6 +68,83 @@ void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention
 
         session.send(txHeader, txbb);
     }
+}
+
+void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
+    // seq   -- seq of next data packet
+    // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
+    // alloc -- other side can accept sequence number [ack..alloc]
+
+    // sanity check
+    if (!body.empty()) ERROR()
+
+    // remove acknowledged packet in txQueue
+    {
+        auto rxack = header.ack; // seq before ack is acknowledged
+        for(auto e: txQueue.seqSet()) {
+            if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+        }
+    }
+
+    if (header.sendAck()) {
+        logger.info("SEND ACK  %d", ack);
+        transmitSystem(false);
+    }
+}
+void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
+    // seq   -- seq of next data packet
+    // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
+    // alloc -- other side can accept sequence number [ack..alloc]
+
+    // add packet if header.seq is between ack and alloc
+    {
+        auto rxseq = header.seq;
+        if (isBefore(rxseq, ack))   return; // return if rxseq is before ack    -- rxseq < ack
+        if (isBefore(alloc, rxseq)) return; // return if alloc is bofore rxseq  -- alloc < rxseq
+
+        if (rxQueue.contains(rxseq)) return; // return  if rxseq is in rxQueue
+
+        // add to rxQueue
+        rxQueue.alloc(header, body);
+        logger.info("ACCEPT rxseq  %d", rxseq);
+
+        // update ack/alloc
+        bool ackModified = false;
+        for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
+            ack++;
+            ackModified = true;
+        }
+        alloc = ack + 4;
+
+        if (ackModified || header.sendAck()) {
+            // send acknledge
+            logger.info("SEND ACK  %d", ack);
+            transmitSystem(false);
+        }
+    }
+
+    // remove acknowledged packet in txQueue
+    {
+        auto rxack = header.ack; // seq before ack is acknowledged
+        for(auto e: txQueue.seqSet()) {
+            if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
+        }
+    }
+}
+
+
+//
+// Connections
+//
+Connection& Connections::allocate(Session& session, uint16_t srcID, uint16_t dstID) {
+    auto key = getKey(srcID, dstID);
+    if (contains(key)) ERROR()
+    map.emplace(key, Connection(session, srcID, dstID));
+    return get(key);
+}
+void Connections::free(uint32_t key) {
+    if (!map.contains(key)) ERROR()
+    map.erase(key);
 }
 
 }

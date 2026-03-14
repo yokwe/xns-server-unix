@@ -65,9 +65,14 @@ public:
 
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
-        session(session_), srcID(srcID_), dstID(dstID_),
-        seq(0), ack(0), alloc(0),
-        transmitSeq(0), receiveSeq(0),
+        session(session_),
+        srcID(srcID_),
+        dstID(dstID_),
+        seq(0),
+        ack(0),
+        alloc(0),
+        transmitSeq(0),
+        receiveSeq(0),
         timeout(0) {}
     Connection(Session session) : Connection(session, 0, 0) {}
 
@@ -107,53 +112,8 @@ public:
 private:
     void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
-    void receiveSystem(const xns::SPP header, const ByteBuffer& body) {
-        // seq   -- seq of next data packet
-        // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
-        // alloc -- other side can accept sequence number [ack..alloc]
-
-        // sanity check
-        if (!body.empty()) ERROR()
-
-        // remove acknowledged packet in txQueue
-        {
-            auto rxack = header.ack; // seq before ack is acknowledged
-            for(auto e: txQueue.seqSet()) {
-                if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
-            }
-        }
-    }
-    void receiveUser(const xns::SPP header, const ByteBuffer& body) {
-        // seq   -- seq of next data packet
-        // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
-        // alloc -- other side can accept sequence number [ack..alloc]
-
-        // add packet if header.seq is between ack and alloc
-        {
-            auto rxseq = header.seq;
-            if (isBefore(rxseq, ack))   return; // return if rxseq is before ack    -- rxseq < ack
-            if (isBefore(alloc, rxseq)) return; // return if alloc is bofore rxseq  -- alloc < rxseq
-
-            if (rxQueue.contains(rxseq)) return; // return  if rxseq is in rxQueue
-
-            // add to rxQueue
-            rxQueue.alloc(header, body);
-
-            // update ack/alloc
-            for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
-                ack++;
-            }
-            alloc = ack + 4;
-        }
-
-        // remove acknowledged packet in txQueue
-        {
-            auto rxack = header.ack; // seq before ack is acknowledged
-            for(auto e: txQueue.seqSet()) {
-                if (isBefore(e, rxack)) txQueue.free(e);  // remove if seq is bofore ack
-            }
-        }
-    }
+    void receiveSystem(const xns::SPP header, const ByteBuffer& body);
+    void receiveUser  (const xns::SPP header, const ByteBuffer& body);
 
     bool isBefore(uint16_t a, uint16_t b) {
         if (a < b) {
@@ -184,16 +144,9 @@ struct Connections {
 
     std::unordered_map<uint32_t, Connection> map;
 
-    Connection& allocate(Session& session, uint16_t srcID, uint16_t dstID) {
-        auto key = getKey(srcID, dstID);
-        if (contains(key)) ERROR()
-        map.emplace(key, Connection(session, srcID, dstID));
-        return get(key);
-    }
-    void free(uint32_t key) {
-        if (!map.contains(key)) ERROR()
-        map.erase(key);
-    }
+    Connection& allocate(Session& session, uint16_t srcID, uint16_t dstID);
+    void free(uint32_t key);
+
     bool contains(uint32_t key) {
         return map.contains(key);
     }

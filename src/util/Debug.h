@@ -38,7 +38,7 @@
 constexpr const int SHOW_PACKET_ECHO     = 1;
 constexpr const int SHOW_PACKET_ERROR    = 1;
 constexpr const int SHOW_PACKET_ETHERNET = 0;
-constexpr const int SHOW_PACKET_IDP      = 1;
+constexpr const int SHOW_PACKET_IDP      = 0;
 constexpr const int SHOW_PACKET_PEX      = 1;
 constexpr const int SHOW_PACKET_RIP      = 1;
 constexpr const int SHOW_PACKET_SPP      = 1;
