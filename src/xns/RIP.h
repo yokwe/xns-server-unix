@@ -48,11 +48,6 @@ namespace xns {
 //
 class RIP {
 public:
-    enum class Delay : uint16_t {
-        ENUM_NAME_VALUE(Delay, INFINITY, 16)
-    };
-    static std::string toString(Delay delay);
-
     class Entry {
     public:
         Network network;
@@ -68,7 +63,7 @@ public:
             bb.write(network, delay);
         }
         std::string toString() const {
-            return std_sprintf("{%s  %s}", xns::toString(network), RIP::toString(delay));
+            return std_sprintf("{%s  %s}", xns::toString(network), ::toString(delay));
         }
     };
 

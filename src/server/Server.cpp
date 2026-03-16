@@ -225,7 +225,7 @@ std::string toString(const xns::Ethernet& value) {
 static std::string toString(const xns::RIP::Entry& value) {
     return std_sprintf("{%s  %s}",
         toStringNetwork(value.network),
-        xns::RIP::toString(value.delay));
+        ::toString(value.delay));
 }
 std::string toString(const xns::RIP& value) {
     std::string string;

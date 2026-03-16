@@ -61,7 +61,7 @@ namespace server {
 //
 struct Session;
 
-using Delay   = xns::RIP::Delay;
+using Delay   = xns::Delay;
 using Host    = xns::Host;
 using Network = xns::Network;
 
@@ -96,7 +96,7 @@ struct Context {
     Context();
 
 private:
-    std::mutex         mutex;
+    std::mutex      mutex;
 };
 
 

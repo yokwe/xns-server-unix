@@ -41,6 +41,8 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
+#undef INFINITY
+
 namespace xns {
 //
 //
@@ -159,5 +161,14 @@ enum class Operation : uint16_t {
     ENUM_NAME_VALUE(Operation, RESPONSE, 2)
 };
 std::string toString(Operation value);
+
+//
+// Delay
+//
+enum class Delay : uint16_t {
+    ENUM_NAME_VALUE(Delay, INFINITY, 16)
+};
+std::string toString(Delay delay);
+
 
 }

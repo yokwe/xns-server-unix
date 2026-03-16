@@ -47,13 +47,6 @@ static const Logger logger(__FILE__);
 
 namespace xns {
 //
-std::string RIP::toString(Delay value) {
-    static std::unordered_map<Delay, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Delay, INFINITY, 16)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
-
 void RIP::read(const ByteBuffer& bb) {
     bb.read(operation);
     for(;;) {
