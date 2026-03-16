@@ -45,8 +45,10 @@ namespace server{
 // Connection
 //
 void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
+    std::lock_guard<std::mutex> lock(mutex);
+
     if (!system) {
-        if (rxQueue.contains(seq)) ERROR() // detect seq duplicate
+        if (txQueue.contains(seq)) ERROR() // detect seq duplicate
         txQueue.add(Packet{seq, sst, system, sendAck, attention, endOfMessage, data});
         seq++;  // INCREMENT seq
     }
@@ -76,6 +78,8 @@ void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
+    std::lock_guard<std::mutex> lock(mutex);
+
     // sanity check
     if (!body.empty()) ERROR()
 
@@ -96,6 +100,8 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
+
+    std::lock_guard<std::mutex> lock(mutex);
 
     // add packet if header.seq is between ack and alloc
     {

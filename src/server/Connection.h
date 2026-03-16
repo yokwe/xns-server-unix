@@ -35,6 +35,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -45,6 +46,9 @@
 namespace server {
 //
 
+//
+// Connection
+//
 class Connection {
 public:
     Session  session;
@@ -63,6 +67,19 @@ public:
     PacketQueue rxQueue; // hold received packet
     PacketQueue txQueue; // hold transmiting packet
 
+    std::mutex mutex;
+
+    Connection(const Connection& that) :
+        session(that.session), srcID(that.srcID), dstID(that.dstID),
+        seq(that.seq), ack(that.ack), alloc(that.alloc),
+        transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
+        timeout(that.timeout), rxQueue(that.rxQueue), txQueue(that.txQueue) {}
+
+    Connection(Connection&& that) :
+        session(that.session), srcID(that.srcID), dstID(that.dstID),
+        seq(that.seq), ack(that.ack), alloc(that.alloc),
+        transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
+        timeout(that.timeout), rxQueue(that.rxQueue), txQueue(that.txQueue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         session(session_),
@@ -96,7 +113,6 @@ public:
         transmit(sst, false, sendAck, false, endOfMessage, data);
     }
 
-
     // from network
     // NOTE receive is just add packet to rxQueue
     // FIXME needs another thread to send client
@@ -128,9 +144,13 @@ private:
             return false;
         }
     }
-
+    
 };
 
+
+//
+// Connections
+//
 struct Connections {
     static inline uint32_t getKey(const xns::SPP& rxHeader) {
         return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
@@ -144,23 +164,30 @@ struct Connections {
 
     std::unordered_map<uint32_t, Connection> map;
     //                 key
+    std::mutex mutex;
+
     void add(Connection& connection) {
         auto key = getKey(connection);
         if (contains(key)) ERROR()
+
+        std::lock_guard<std::mutex> lock(mutex);
         map.emplace(key, connection);    
     }
     void remove(uint32_t key) {
-        if (!map.contains(key)) ERROR()
+        if (!contains(key)) ERROR()
+
+        std::lock_guard<std::mutex> lock(mutex);
         map.erase(key);    
     }
 
     bool contains(uint32_t key) {
+        std::lock_guard<std::mutex> lock(mutex);
         return map.contains(key);
     }
     Connection& get(uint32_t key) {
+        std::lock_guard<std::mutex> lock(mutex);
         return map.at(key);
     }
-
 };
 
 }

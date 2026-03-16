@@ -168,8 +168,7 @@ public:
         if (set.contains(seq)) ERROR()
 
         set.emplace(seq);
-//        vector.emplace_back(packet);
-        vector.push_back(packet);
+        vector.emplace_back(packet);
     }
     void remove(uint16_t seq) {
         auto pred = [=](Packet& packet) { return packet.seq() == seq; };
@@ -178,10 +177,6 @@ public:
 
         set.erase(seq);
         vector.erase(i);
-    }
-    void sort() {
-        auto comp = [](auto& a, auto& b) {return a.seq() - b.seq();};
-        std::sort(vector.begin(), vector.end(), comp);
     }
 
     bool contains(uint16_t seq) const {
