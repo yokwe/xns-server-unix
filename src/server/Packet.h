@@ -36,8 +36,8 @@
 #pragma once
 
 #include <cstdint>
-#include <algorithm>
-#include <utility>
+#include <list>
+#include <set>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -158,8 +158,8 @@ public:
 };
 
 class PacketQueue {
-    std::vector<Packet> vector;
-    std::set<uint16_t>  set;
+    std::list<Packet>  list;
+    std::set<uint16_t> set;
     //       seq
 
 public:
@@ -168,15 +168,14 @@ public:
         if (set.contains(seq)) ERROR()
 
         set.emplace(seq);
-        vector.emplace_back(packet);
+        list.emplace_back(packet);
     }
     void remove(uint16_t seq) {
-        auto pred = [=](Packet& packet) { return packet.seq() == seq; };
-        auto i = std::remove_if(vector.begin(), vector.end(), pred);
-        if (i == vector.end()) ERROR()
+        static auto pred = [=](Packet& packet) { return packet.seq() == seq; };
+        if (!set.contains(seq)) ERROR()
 
         set.erase(seq);
-        vector.erase(i);
+        std::erase_if(list, pred);
     }
 
     bool contains(uint16_t seq) const {
@@ -184,7 +183,7 @@ public:
     }
 
     Packet& get(uint16_t seq) {
-        for(auto& e: vector) {
+        for(auto& e: list) {
             if (e.seq() == seq) return e;
         }
         ERROR()
@@ -195,18 +194,18 @@ public:
     }
 
     bool empty() const {
-        return vector.empty();
+        return set.empty();
     }
     uint32_t size() const {
-        return vector.size();
+        return set.size();
     }
     Packet& front() {
-        if (vector.empty()) ERROR()
-        return vector.front();
+        if (set.empty()) ERROR()
+        return list.front();
     }
     Packet& back() {
-        if (vector.empty()) ERROR()
-        return vector.back();
+        if (set.empty()) ERROR()
+        return list.back();
     }
 };
 

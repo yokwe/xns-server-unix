@@ -35,6 +35,7 @@
 #pragma once
 
 #include <cstdint>
+#include <list>
 #include <mutex>
 
 #include "../util/Util.h"
@@ -144,7 +145,6 @@ private:
             return false;
         }
     }
-    
 };
 
 
@@ -162,31 +162,41 @@ struct Connections {
         return (srcID << 16) | dstID;
     }
 
-    std::unordered_map<uint32_t, Connection> map;
-    //                 key
-    std::mutex mutex;
+    std::list<Connection> list;
+    std::set<uint32_t>    set;
+    std::mutex            mutex;
 
     void add(Connection& connection) {
         auto key = getKey(connection);
         if (contains(key)) ERROR()
 
         std::lock_guard<std::mutex> lock(mutex);
-        map.emplace(key, connection);    
+        set.emplace(getKey(connection));
+        list.emplace_back(connection);
     }
+    
     void remove(uint32_t key) {
-        if (!contains(key)) ERROR()
+        static auto pred = [=](Connection& e){return key == getKey(e);};
 
         std::lock_guard<std::mutex> lock(mutex);
-        map.erase(key);    
+        set.erase(key);
+        auto count = std::erase_if(list, pred);
+        if (count == 0) ERROR()
     }
 
     bool contains(uint32_t key) {
         std::lock_guard<std::mutex> lock(mutex);
-        return map.contains(key);
+        return set.contains(key);
     }
     Connection& get(uint32_t key) {
         std::lock_guard<std::mutex> lock(mutex);
-        return map.at(key);
+        for(auto& e: list) {
+            if (key == getKey(e)) return e;
+        }
+        ERROR()
+    }
+    uint32_t size() {
+        return set.size();
     }
 };
 

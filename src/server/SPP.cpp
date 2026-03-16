@@ -63,7 +63,7 @@ void processSPP_OLD(Session& session, const ByteBuffer& rx) {
     if (!connections.contains(Connections::getKey(rxHeader))) ERROR()
 
     auto& connection = connections.get(Connections::getKey(rxHeader));
-    logger.info("OLD  CONNECTION  %d  %s", connections.map.size(), connection.toString());
+    logger.info("OLD  CONNECTION  %d  %s", connections.size(), connection.toString());
     connection.receive(rxHeader, rxbb);
 }
 
@@ -105,7 +105,7 @@ void processSPP_NEW(Session& session, const ByteBuffer& rx) {
         Connection connection{session, srcID, dstID};
         connections.add(connection);
 
-        logger.info("NEW  CONNECTION  %d  %s", connections.map.size(), connection.toString());
+        logger.info("NEW  CONNECTION  %d  %s", connections.size(), connection.toString());
 
         // send packet
         connection.transmitSystem(true);    
