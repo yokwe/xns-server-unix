@@ -59,6 +59,7 @@ struct Session;
 using Delay   = xns::Delay;
 using Host    = xns::Host;
 using Network = xns::Network;
+using Socket  = xns::Socket;
 
 const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
@@ -138,13 +139,13 @@ using Listener = std::function<void(Session&, const ByteBuffer&)>;
 
 // Set Listener to socket
 void listen(uint16_t socket, Listener listener);
-inline void listen(xns::Socket socket, Listener listener) {
+inline void listen(Socket socket, Listener listener) {
     listen(std::to_underlying(socket), listener);
 }
 
 // Unset Listener from socket
 void unlisten(uint16_t socket);
-inline void unlisten(xns::Socket socket) {
+inline void unlisten(Socket socket) {
     unlisten(std::to_underlying(socket));
 }
 
