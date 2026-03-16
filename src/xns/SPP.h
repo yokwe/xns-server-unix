@@ -64,13 +64,13 @@ public:
     //   bit 1  sent acknowledgement
     //   bit 2  attention
     //   bit 3  end of message
-    const uint8_t BIT_SYSTEM_PACKET  = 0x80;
+    const uint8_t BIT_SYSTEM         = 0x80;
     const uint8_t BIT_SEND_ACK       = 0x40;
     const uint8_t BIT_ATTENTION      = 0x20;
     const uint8_t BIT_END_OF_MESSAGE = 0x10;
     
-    bool systemPacket() const {
-        return control & BIT_SYSTEM_PACKET;
+    bool system() const {
+        return control & BIT_SYSTEM;
     }
     bool sendAck() const {
         return control & BIT_SEND_ACK;
@@ -82,8 +82,8 @@ public:
         return control & BIT_END_OF_MESSAGE;
     }
 
-    void systemPacket(bool newValue) {
-        if (newValue) control = (control & ~BIT_SYSTEM_PACKET) | BIT_SYSTEM_PACKET;
+    void system(bool newValue) {
+        if (newValue) control = (control & ~BIT_SYSTEM) | BIT_SYSTEM;
     }
     void sendAck(bool newValue) {
         if (newValue) control = (control & ~BIT_SEND_ACK) | BIT_SEND_ACK;
@@ -109,7 +109,7 @@ public:
     }
     std::string toString() const {
         return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
-            systemPacket() ? "S" : "_",
+            system() ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",

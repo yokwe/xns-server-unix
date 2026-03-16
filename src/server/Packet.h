@@ -37,6 +37,7 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <utility>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -49,112 +50,113 @@ namespace server {
 using Data = std::vector<uint8_t>;
 
 class Packet {
-    static const uint16_t BIT_END_OF_RECORD = 0x8000;
-    static const uint16_t BIT_ATTENTION     = 0x4000;
+    static const constexpr uint32_t BIT_END_OF_MESSAGE = 0x8000'0000;
+    static const constexpr uint32_t BIT_ATTENTION     = 0x4000'0000;
+    static const constexpr uint32_t BIT_SEND_ACK      = 0x2000'0000;
+    static const constexpr uint32_t BIT_SYSTEM        = 0x1000'0000;
+    static const constexpr uint32_t BIT_WAIT_ACK      = 0x0800'0000;
+    static const constexpr uint32_t BIT_SST           = 0x00FF'0000;
+    static const constexpr uint32_t BIT_SEQ           = 0x0000'FFFF;
 
-    union {
-        uint32_t u;
-        struct {
-            uint32_t seq          : 16;
-            uint32_t sst          :  8;
-            uint32_t system       :  1;
-            uint32_t sendAck      :  1;
-            uint32_t attention    :  1;
-            uint32_t endOfMessage :  1;
-            uint32_t waitAck      :  1;  // hint for retrasmission
-        };
-    } flags;
+    static const constexpr uint32_t SHIFT_SST = 16;
 
 public:
+    uint32_t flags;
     Data     data;
 
-    Packet(const xns::SPP& header, const ByteBuffer& bb) :
-        Packet(
-            header.seq,
-            static_cast<uint16_t>(header.sst),
-            header.systemPacket(),
-            header.sendAck(),
-            header.attention(),
-            header.endOfMessage(),
-            bb.toVector()) {}
-
-    Packet(uint16_t seq, uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, const Data& data_) {
-        flags.u            = 0;
-        flags.seq          = seq;
-        flags.sst          = sst;
-        flags.system       = system;
-        flags.sendAck      = sendAck;
-        flags.attention    = attention;
-        flags.endOfMessage = endOfMessage;
-        flags.waitAck      = !system;
-
+    Packet(const xns::SPP& header, const ByteBuffer& bb) {
+        flags = 0;
+        seq(header.seq);
+        sst(std::to_underlying(header.sst));
+        system(header.system());
+        sendAck(header.sendAck());
+        attention(header.attention());
+        endOfMessage(header.endOfMessage());
+        waitAck(!system());
+        data = bb.toVector();
+    }
+    Packet(uint16_t seq_, uint8_t sst_, bool system_, bool sendAck_, bool attention_, bool endOfMessage_, Data& data_) {
+        flags = 0;
+        seq(seq_);
+        sst(sst_);
+        system(system_);
+        sendAck(sendAck_);
+        attention(attention_);
+        endOfMessage(endOfMessage_);
+        waitAck(!system_);
         data = data_;
     }
+    // Packet(Packet&& that) {
+    //     flags = that.flags;
+    //     data  = std::move(that.data);
+    // }
+    Packet() : flags(0) {}
 
     // seq
     uint16_t seq() const {
-        return flags.seq;
+        return flags & BIT_SEQ;
     }
     void seq(uint16_t value) {
-        flags.seq = value;
+        flags = (flags & ~BIT_SEQ) | value;
     }
 
     // sst
     uint8_t sst() const {
-        return flags.sst;
+        return (flags & BIT_SST) >> SHIFT_SST;
     }
     void sst(uint8_t value) {
-        flags.sst = value;
+        flags = (flags & ~BIT_SST) | (value << SHIFT_SST);
     }
 
     // system
     bool system() const {
-        return flags.system;
+        return flags & BIT_SYSTEM;
     }
     void system(bool value) {
-        flags.system = value ? 1 : 0;
+        flags = (flags & ~BIT_SYSTEM) | (value ? BIT_SYSTEM : 0);
     }
 
     // sendAck
     bool sendAck() const {
-        return flags.sendAck;
+        return flags & BIT_SEND_ACK;
     }
     void sendAck(bool value) {
-        flags.sendAck = value ? 1 : 0;
+        flags = (flags & ~BIT_SEND_ACK) | (value ? BIT_SEND_ACK : 0);
     }
 
     // attention
     bool attention() const {
-        return flags.attention;
+        return flags & BIT_ATTENTION;
     }
     void attention(bool value) {
-        flags.attention = value ? 1 : 0;
+        flags = (flags & ~BIT_ATTENTION) | (value ? BIT_ATTENTION : 0);
     }
 
     // endOfMessage
     bool endOfMessage() const {
-        return flags.endOfMessage;
+        return flags & BIT_END_OF_MESSAGE;
     }
     void endOfMessage(bool value) {
-        flags.endOfMessage = value ? 1 : 0;
+        flags = (flags & ~BIT_END_OF_MESSAGE) | (value ? BIT_END_OF_MESSAGE : 0);
     }
 
     // waitAck
     bool waitAck() const {
-        return flags.waitAck;
+        return flags & BIT_WAIT_ACK;
     }
     void waitAck(bool value) {
-        flags.waitAck = value ? 1 : 0;
+        flags = (flags & ~BIT_WAIT_ACK) | (value ? BIT_WAIT_ACK : 0);
     }
 
     std::string toString() {
-        return std_sprintf("{%04X  %02X  %s%s%s%s  %d}",
+        return std_sprintf("{%04X  %02X  %s%s%s%s%s  %d}",
             seq(),
             sst(),
             system()       ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",
+            waitAck()      ? "W" : "_",
             data.size());
     }
 };
@@ -170,7 +172,8 @@ public:
         if (set.contains(seq)) ERROR()
 
         set.emplace(seq);
-        vector.emplace_back(packet);
+//        vector.emplace_back(packet);
+        vector.push_back(packet);
     }
     void remove(uint16_t seq) {
         auto pred = [=](Packet& packet) { return packet.seq() == seq; };

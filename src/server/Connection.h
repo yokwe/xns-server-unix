@@ -102,7 +102,7 @@ public:
     // FIXME needs another thread to send client
     // FIXME send system packet to ask packet retransmition
     void receive(const xns::SPP header, const ByteBuffer& body) {
-        if (header.systemPacket()) {
+        if (header.system()) {
             receiveSystem(header, body);
         } else {
             receiveUser(header, body);

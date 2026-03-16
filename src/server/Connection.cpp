@@ -54,7 +54,7 @@ void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention
     // send packet
     {
         xns::SPP txHeader;
-        txHeader.systemPacket(system);
+        txHeader.system(system);
         txHeader.sendAck(sendAck);
         txHeader.attention(attention);
         txHeader.endOfMessage(endOfMessage);

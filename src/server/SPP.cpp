@@ -74,7 +74,7 @@ void processSPP_NEW(Session& session, const ByteBuffer& rx) {
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
-    if (!rxHeader.systemPacket()) {
+    if (!rxHeader.system()) {
         logger.error("Unexpected NOT system packet");
         ERROR()
     }
