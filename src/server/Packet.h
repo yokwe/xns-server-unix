@@ -50,18 +50,19 @@ namespace server {
 using Data = std::vector<uint8_t>;
 
 class Packet {
-    static const constexpr uint32_t BIT_END_OF_MESSAGE = 0x8000'0000;
-    static const constexpr uint32_t BIT_ATTENTION     = 0x4000'0000;
-    static const constexpr uint32_t BIT_SEND_ACK      = 0x2000'0000;
-    static const constexpr uint32_t BIT_SYSTEM        = 0x1000'0000;
-    static const constexpr uint32_t BIT_WAIT_ACK      = 0x0800'0000;
-    static const constexpr uint32_t BIT_SST           = 0x00FF'0000;
-    static const constexpr uint32_t BIT_SEQ           = 0x0000'FFFF;
+    static const constexpr uint32_t BIT_SYSTEM         = 0x80'00'0000;
+    static const constexpr uint32_t BIT_SEND_ACK       = 0x40'00'0000;
+    static const constexpr uint32_t BIT_ATTENTION      = 0x20'00'0000;
+    static const constexpr uint32_t BIT_END_OF_MESSAGE = 0x10'00'0000;
+    static const constexpr uint32_t BIT_WAIT_ACK       = 0x08'00'0000;
+    static const constexpr uint32_t BIT_SST            = 0x00'FF'0000;
+    static const constexpr uint32_t BIT_SEQ            = 0x00'00'FFFF;
 
     static const constexpr uint32_t SHIFT_SST = 16;
 
-public:
     uint32_t flags;
+
+public:
     Data     data;
 
     Packet(const xns::SPP& header, const ByteBuffer& bb) {
@@ -86,11 +87,6 @@ public:
         waitAck(!system_);
         data = data_;
     }
-    // Packet(Packet&& that) {
-    //     flags = that.flags;
-    //     data  = std::move(that.data);
-    // }
-    Packet() : flags(0) {}
 
     // seq
     uint16_t seq() const {
@@ -148,7 +144,7 @@ public:
         flags = (flags & ~BIT_WAIT_ACK) | (value ? BIT_WAIT_ACK : 0);
     }
 
-    std::string toString() {
+    std::string toString() const {
         return std_sprintf("{%04X  %02X  %s%s%s%s%s  %d}",
             seq(),
             sst(),
