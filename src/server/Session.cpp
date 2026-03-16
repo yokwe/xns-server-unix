@@ -38,6 +38,7 @@
 
  #include "Server.h"
  #include "Session.h"
+ #include "Context.h"
 
  namespace server {
 //

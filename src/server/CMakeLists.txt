@@ -11,6 +11,7 @@ target_sources(
 	PUBLIC
     Config.h
     Connection.h
+    Context.h
     Packet.h
     Server.h
     Session.h

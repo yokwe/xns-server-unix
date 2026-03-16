@@ -35,14 +35,14 @@
 
 #pragma once
 
+#include <chrono>
+
 #include "../xns/Ethernet.h"
 #include "../xns/PEX.h"
 #include "../xns/IDP.h"
 #include "../xns/SPP.h"
 #include "../xns/Error.h"
 
-
-#include <chrono>
 
 namespace server {
 //

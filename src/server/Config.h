@@ -67,10 +67,10 @@ struct Config {
         uint16_t dstEnd;
     };
 
-    Server                  server;
-    std::vector<Net>        net;
-    std::vector<Host>       host;
-    Time                    time;
+    Server            server;
+    std::vector<Net>  net;
+    std::vector<Host> host;
+    Time              time;
 
     static Config getInstance(const std::string& path);
     static Config getInstance() {

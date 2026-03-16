@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2026, Yasuhiro Hasegawa
+ * Copyright (c) 2025, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,61 +28,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // RIP.cpp
+ // Context.h
  //
 
- 
-#include "../util/Debug.h"
-#include "../util/Util.h"
-static const Logger logger(__FILE__);
+#pragma once
 
-#include "../util/ByteBuffer.h"
+#include <map>
 
-#include "../xns/RIP.h"
+#include "../util/net.h"
 
-#include "Server.h"
-#include "Session.h"
-#include "Context.h"
+#include "../xns/XNS.h"
 
-namespace server {
+#include "Config.h"
+
+namespace server{
 //
-void processRIP(Session& session, const ByteBuffer& rx) {
-    if (session.rxIDP.packetType != xns::IDP::PacketType::RIP) ERROR()
 
-    // make reference
-    auto& context = session.context;
+struct Context {
+    using Network = xns::Network;
+    using Delay   = xns::Delay;
 
-    xns::RIP rxHeader;
-    rx.read(rxHeader);
-    auto rxbb = rx.rangeRemains();
-    if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+    struct Routing {
+        Network     net;
+        Delay       delay;
+        std::string name;
+    };
+    
+    using RoutingMap     = std::map<Network, Routing>;
+    using NetworkNameMap = std::map<uint32_t, std::string>;
+    using HostNameMap    = std::map<uint64_t, std::string>;
 
-    // sanity check
-    if (!rxbb.empty()) ERROR();
+    Config          config;
+    net::Driver*    driver;
+    // delieved values
+    uint64_t        me;
+    Network         net;
+    RoutingMap      routingMap;
+    NetworkNameMap  networkNameMap;
+    HostNameMap     hostNameMap;
 
-    if (rxHeader.operation == xns::Operation::REQUEST) {
-        xns::RIP txHeader{xns::Operation::RESPONSE};
-        for(const auto& e: rxHeader.entryList) {
-            if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
-                for(const auto& [key, value] : context.routingMap) {
-                    txHeader.entryList.emplace_back(value.net, value.delay);
-                }
-            } else {
-                if (context.routingMap.contains(e.network)) {
-                    const auto& entry = context.routingMap[e.network];
-                    txHeader.entryList.emplace_back(entry.net, entry.delay);
-                }
-            }
-        }
-
-        auto tx = getByteBuffer();
-        tx.write(txHeader);
-        if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", toString(txHeader));
-
-        session.sendIDP(tx);
-    }
-}
+    Context();
+};
 
 }

@@ -38,9 +38,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
-#include <mutex>
 #include <string>
-#include <map>
 #include <utility>
 
 #include "../util/ThreadQueue.h"
@@ -52,9 +50,6 @@
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
 
-#include "../courier/Config.h"
-
-#include "Config.h"
 #include "Connection.h"
 
 namespace server {
@@ -71,34 +66,6 @@ const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 inline ByteBuffer getByteBuffer() {
     return ByteBuffer(MAX_PACKET_SIZE);
 }
-
-struct Routing {
-    Network     net;
-    Delay       delay;
-    std::string name;
-};
-
-struct Context {
-    using RoutingMap     = std::map<Network, Routing>;
-    using NetworkNameMap = std::map<uint32_t, std::string>;
-    using HostNameMap    = std::map<uint64_t, std::string>;
-
-    Config          config;
-    courier::Config courier;
-    net::Driver*    driver;
-    // delieved values
-    uint64_t        me;
-    Network         net;
-    RoutingMap      routingMap;
-    NetworkNameMap  networkNameMap;
-    HostNameMap     hostNameMap;
-
-    Context();
-
-private:
-    std::mutex      mutex;
-};
-
 
 struct TransmitData {
     ByteBuffer tx;

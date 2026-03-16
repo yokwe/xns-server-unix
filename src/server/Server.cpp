@@ -50,6 +50,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 #include "Session.h"
+#include "Context.h"
 
 namespace server {
 //
@@ -61,7 +62,6 @@ static Context* context = 0;
 // Context
 //
 Context::Context() {
-    courier = courier::Config::getInstance();
     config = Config::getInstance();
     auto device = net::getDevice(config.server.interface);
     driver = net::getDriver(device);

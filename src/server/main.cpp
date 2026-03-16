@@ -41,6 +41,7 @@ static const Logger logger(__FILE__);
 
 #include "Server.h"
 #include "Session.h"
+#include "Context.h"
 
 int main(int, char **) {
     using namespace server;
