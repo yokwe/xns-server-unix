@@ -42,6 +42,7 @@ static const Logger logger(__FILE__);
 #include "Server.h"
 #include "Session.h"
 #include "Context.h"
+#include "SPP.h"
 
 int main(int, char **) {
     using namespace server;
@@ -82,6 +83,8 @@ int main(int, char **) {
 
     // enable service implementation
     server::Clearinghouse3::enable();
+
+    server::startSPP();
 
     driver.clear();
     t1.start();

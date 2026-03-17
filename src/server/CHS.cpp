@@ -54,7 +54,7 @@ void listenerCHS(Session& session, const ByteBuffer& rx) {
     rx.read(pexHeader, pexBody);
     if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
 
-    Connection connection{session};
+    Connection connection{session, 0, 0};
     CallContext callContext{session, connection};
     auto tx = service::services.callExpeditedMessage(callContext, pexBody);
     if (tx.empty()) return;

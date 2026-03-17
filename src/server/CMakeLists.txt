@@ -24,6 +24,7 @@ target_sources(
     Echo.cpp
     Error.cpp
     main.cpp
+    Packet.cpp
     RIP.cpp
     Server.cpp
     Session.cpp

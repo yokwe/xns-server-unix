@@ -34,7 +34,11 @@
  //
 
 #include "../util/Util.h"
+#include <chrono>
+#include <thread>
 static const Logger logger(__FILE__);
+
+#include "../util/ThreadControl.h"
 
 #include "Connection.h"
 
@@ -48,8 +52,10 @@ void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention
     if (!system) {
         std::lock_guard<std::mutex> lock(mutex);
         if (txQueue.contains(seq)) ERROR() // detect seq duplicate
+        // add to txQueue for retransmit
         txQueue.add(Packet{seq, sst, system, sendAck, attention, endOfMessage, data});
-        seq++;  // INCREMENT seq
+        // NOTE increment seq
+        seq++;
     }
 
     // send packet
@@ -135,6 +141,39 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
         auto rxack = header.ack; // seq before ack is acknowledged
         for(auto e: txQueue.seqSet()) {
             if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
+        }
+    }
+}
+
+void Connection::retransmit() {
+    std::lock_guard<std::mutex> lock(mutex);
+    txQueue.retransmit(*this);
+}
+
+
+//
+// Connections
+//
+
+void Connections::start() {
+    std::function<void()> function = std::bind(&Connections::run, this);
+    threadControl.set("Connection", function);
+    threadControl.start();
+}
+
+void Connections::run() {
+    auto ONE_SECOND = std::chrono::seconds(1);
+    auto now = std::chrono::steady_clock::now();
+
+    for(;;) {
+        now += ONE_SECOND;
+        std::this_thread::sleep_until(now);
+
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            for(auto& e: list) {
+                e.retransmit();
+            }    
         }
     }
 }

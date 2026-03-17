@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,22 +28,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
+//
+// Packet.cpp
+//
 
- //
- // SPP.h
- //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <cstdint>
+
+#include "Connection.h"
+#include "Packet.h"
 
 namespace server {
 //
-inline const constexpr uint64_t GRACE_PERIOD_NEW_SESSION = 10; // unit is second
-inline const constexpr uint64_t GRACE_PERIOD_EXPIRATION  = 60; // unit is second
+void PacketQueue::retransmit(Connection& connection) {
+    auto now = std::chrono::steady_clock::now();
+    for(auto& e: list) {
+        if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
+            // retransmit packet
+            connection.transmitUser(e.sst(), e.sendAck(), e.endOfMessage(), e.data);
+            logger.info("RETRANSMIT  %04X  %04X  %s", connection.srcID, connection.dstID, e.toString());
 
-inline const constexpr uint32_t MAX_DATA_LENGTH = 534;  // maximum length of SPP body
-
-void startSPP();
-
+            // update timestmp
+            e.timestamp += RETRANSMIT_INTERVAL;
+        }
+    }
+}
 }

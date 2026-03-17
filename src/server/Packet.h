@@ -35,9 +35,11 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <list>
 #include <set>
+#include <utility>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -46,6 +48,7 @@
 
 namespace server {
 //
+class Connection;
 
 using Data = std::vector<uint8_t>;
 
@@ -54,37 +57,33 @@ class Packet {
     static const constexpr uint32_t BIT_SEND_ACK       = 0x40'00'0000;
     static const constexpr uint32_t BIT_ATTENTION      = 0x20'00'0000;
     static const constexpr uint32_t BIT_END_OF_MESSAGE = 0x10'00'0000;
-    static const constexpr uint32_t BIT_WAIT_ACK       = 0x08'00'0000;
     static const constexpr uint32_t BIT_SST            = 0x00'FF'0000;
     static const constexpr uint32_t BIT_SEQ            = 0x00'00'FFFF;
 
     static const constexpr uint32_t SHIFT_SST = 16;
 
+    void setFlags(uint16_t seq, uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage) {
+        flags = (sst << SHIFT_SST) | seq;
+        if (system)       flags |= BIT_SYSTEM;
+        if (sendAck)      flags |= BIT_SEND_ACK;
+        if (attention)    flags |= BIT_ATTENTION;
+        if (endOfMessage) flags |= BIT_END_OF_MESSAGE;
+    }
+
     uint32_t flags;
 
 public:
+    std::chrono::steady_clock::time_point timestamp;
     Data     data;
 
     Packet(const xns::SPP& header, const ByteBuffer& bb) {
-        flags = 0;
-        seq(header.seq);
-        sst(std::to_underlying(header.sst));
-        system(header.system());
-        sendAck(header.sendAck());
-        attention(header.attention());
-        endOfMessage(header.endOfMessage());
-        waitAck(!system());
+        timestamp = std::chrono::steady_clock::now();
+        setFlags(header.seq, std::to_underlying(header.sst), header.system(), header.sendAck(), header.attention(), header.endOfMessage());
         data = bb.toVector();
     }
-    Packet(uint16_t seq_, uint8_t sst_, bool system_, bool sendAck_, bool attention_, bool endOfMessage_, Data& data_) {
-        flags = 0;
-        seq(seq_);
-        sst(sst_);
-        system(system_);
-        sendAck(sendAck_);
-        attention(attention_);
-        endOfMessage(endOfMessage_);
-        waitAck(!system_);
+    Packet(uint16_t seq, uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data_) {
+        timestamp = std::chrono::steady_clock::now();
+        setFlags(seq, sst, system, sendAck, attention, endOfMessage);
         data = data_;
     }
 
@@ -136,23 +135,14 @@ public:
         flags = (flags & ~BIT_END_OF_MESSAGE) | (value ? BIT_END_OF_MESSAGE : 0);
     }
 
-    // waitAck
-    bool waitAck() const {
-        return flags & BIT_WAIT_ACK;
-    }
-    void waitAck(bool value) {
-        flags = (flags & ~BIT_WAIT_ACK) | (value ? BIT_WAIT_ACK : 0);
-    }
-
     std::string toString() const {
-        return std_sprintf("{%04X  %02X  %s%s%s%s%s  %d}",
+        return std_sprintf("{%04X  %02X  %s%s%s%s  %d}",
             seq(),
             sst(),
             system()       ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",
-            waitAck()      ? "W" : "_",
             data.size());
     }
 };
@@ -162,6 +152,7 @@ class PacketQueue {
     std::set<uint16_t> set;
     //       seq
 
+    inline static auto RETRANSMIT_INTERVAL = std::chrono::seconds(5);
 public:
     void add(const Packet& packet) {
         auto seq = packet.seq();
@@ -207,6 +198,8 @@ public:
         if (set.empty()) ERROR()
         return list.back();
     }
+
+    void retransmit(Connection& connection);
 };
 
 }

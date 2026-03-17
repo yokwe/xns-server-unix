@@ -40,6 +40,7 @@
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
+#include "../util/ThreadControl.h"
 
 #include "Session.h"
 #include "Packet.h"
@@ -63,8 +64,6 @@ public:
     uint16_t transmitSeq; // use for real transmission
     uint16_t receiveSeq;  // use for send data to client
 
-    uint32_t timeout; // session maintenance
-
     PacketQueue rxQueue; // hold received packet
     PacketQueue txQueue; // hold transmiting packet
 
@@ -74,34 +73,24 @@ public:
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
-        timeout(that.timeout), rxQueue(that.rxQueue), txQueue(that.txQueue) {}
+        rxQueue(that.rxQueue), txQueue(that.txQueue) {}
 
     Connection(Connection&& that) :
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
-        timeout(that.timeout), rxQueue(that.rxQueue), txQueue(that.txQueue) {}
+        rxQueue(that.rxQueue), txQueue(that.txQueue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
-        session(session_),
-        srcID(srcID_),
-        dstID(dstID_),
-        seq(0),
-        ack(0),
-        alloc(0),
-        transmitSeq(0),
-        receiveSeq(0),
-        timeout(0) {}
-    Connection(Session session) : Connection(session, 0, 0) {}
+        session(session_), srcID(srcID_), dstID(dstID_),
+        seq(0), ack(0), alloc(0),
+        transmitSeq(0), receiveSeq(0) {}
 
     std::string toString() {
         return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, transmitSeq, receiveSeq);
     }
 
     // from client
-    // NOTE transmitXXX just add packet to txQueue
-    // FIXME needs another thread and server::Session for real transmit
-    // FIXME response to system packet for packet retransmition
     void transmitSystem(bool sendAck) {
         Data data;
         transmit(0, true, sendAck, false, false, data);
@@ -115,9 +104,6 @@ public:
     }
 
     // from network
-    // NOTE receive is just add packet to rxQueue
-    // FIXME needs another thread to send client
-    // FIXME send system packet to ask packet retransmition
     void receive(const xns::SPP header, const ByteBuffer& body) {
         if (header.system()) {
             receiveSystem(header, body);
@@ -125,6 +111,8 @@ public:
             receiveUser(header, body);
         }
     }
+
+    void retransmit();
 
 private:
     void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
@@ -162,6 +150,10 @@ struct Connections {
         return (srcID << 16) | dstID;
     }
 
+    ThreadControl threadControl;
+    void start();
+    void run();
+
     std::list<Connection> list;
     std::set<uint32_t>    set;
     std::mutex            mutex;
@@ -196,6 +188,7 @@ struct Connections {
         ERROR()
     }
     uint32_t size() {
+        std::lock_guard<std::mutex> lock(mutex);
         return set.size();
     }
 };

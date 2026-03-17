@@ -50,6 +50,10 @@ namespace server {
 
 static Connections connections;
 
+void startSPP() {
+    connections.start();
+}
+
 //
 // processXXX
 //
