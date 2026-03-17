@@ -54,7 +54,7 @@ public:
 	ThreadControl() {}
 	ThreadControl(const char* name_, std::function<void()> function_) : name(name_), function(function_) {}
 
-	void set(const char* name_, std::function<void()> function_) {
+	void set(const std::string& name_, std::function<void()> function_) {
 		name     = name_;
 		function = function_;
 	}
