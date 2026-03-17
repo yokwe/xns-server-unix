@@ -39,6 +39,7 @@
 #include <condition_variable>
 #include <string>
 #include <functional>
+#include <algorithm>
 
 #include "../util/Util.h"
 
@@ -51,6 +52,14 @@ class SimpleQueue {
 public:
     SimpleQueue(const std::string& name_) : name(name_) {}
 
+    // push data
+    void push(T& data) {
+        std::unique_lock<std::mutex> lock(mutex);
+        list.push_front(data);
+        cv.notify_one();
+    }
+
+    // pop returns data if available
     // pop return true when data has value
     bool pop(T& data, std::chrono::milliseconds duration = Util::ONE_SECOND) {
         std::unique_lock<std::mutex> lock(mutex);
@@ -83,11 +92,8 @@ public:
         std::unique_lock<std::mutex> lock(mutex);
         std::erase_if(list, pred);
     }
-
-    // Using push() and pop(), you can use ThreadQueueProducer withou thread
-    void push(T& data) {
+    uint32_t count_if(Predicate pred) {
         std::unique_lock<std::mutex> lock(mutex);
-        list.push_front(data);
-        cv.notify_one();
+        return std::count_if(list, pred);
     }
 };
