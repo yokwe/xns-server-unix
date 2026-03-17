@@ -35,7 +35,7 @@
 #pragma once
 
 #include <chrono>
-#include <deque>
+#include <list>
 #include <functional>
 #include <mutex>
 
@@ -49,11 +49,11 @@ class ThreadQueueProcessor {
     std::string             name;
     std::mutex              mutex;
     std::condition_variable cv;
-    std::deque<T>           queue;
+    std::list<T>            list;
     static inline bool      stopThread;
 public:
-    ThreadQueueProcessor(const char* name_) : name(name_) {}
-    ThreadQueueProcessor() {}
+    ThreadQueueProcessor(const std::string& name_) : name(name_) {}
+    virtual ~ThreadQueueProcessor() = default;
 
     virtual void process(const T& data) = 0;
 
@@ -62,36 +62,37 @@ public:
     }
     void push(const T& data) {
         std::unique_lock<std::mutex> lock(mutex);
-        queue.push_front(data);
+        list.push_front(data);
         cv.notify_one();
     }
     void clear() {
         std::unique_lock<std::mutex> lock(mutex);
-        queue.clear();
+        list.clear();
     }
     using Predicate = std::function<bool(const T&)>;
     void erase_if(Predicate pred) {
-        std::erase_if(queue, pred);
+        std::unique_lock<std::mutex> lock(mutex);
+        std::erase_if(list, pred);
     }
 
     void run() {
         logger.info("ThreadQueue start %s", name);
         stopThread = false;
-        queue.clear();
+        list.clear();
 
         {
             std::unique_lock<std::mutex> lock(mutex);
             for(;;) {
                 if (stopThread) goto exit;
-                while(queue.empty()) {
+                while(list.empty()) {
                     cv.wait_for(lock, Util::ONE_SECOND);
                     if (stopThread) goto exit;
                 }
-                while(!queue.empty()) {
+                while(!list.empty()) {
                     if (stopThread) goto exit;
-                    T data = queue.back();
+                    T data = list.back();
                     process(data);
-                    queue.pop_back();
+                    list.pop_back();
                 }
             }
         }
@@ -105,11 +106,12 @@ class ThreadQueueProducer {
     std::string               name;
     std::mutex                mutex;
     std::condition_variable   cv;
-    std::deque<T>             queue;
+    std::list<T>              list;
     static inline bool        stopThread;
 public:
-    ThreadQueueProducer(const char* name_) : name(name_) {}
-    ThreadQueueProducer() {}
+    ThreadQueueProducer(const std::string& name_) : name(name_) {}
+
+    virtual ~ThreadQueueProducer() = default;
 
     // produce return true when data has value
     virtual bool produce(T& data, std::chrono::milliseconds timeout) = 0;
@@ -120,36 +122,37 @@ public:
     // pop return true when data has value
     bool pop(T& data, std::chrono::milliseconds duration = Util::ONE_SECOND) {
         std::unique_lock<std::mutex> lock(mutex);
-        if (queue.empty()) {
+        if (list.empty()) {
             cv.wait_for(lock, duration);
         }
         bool hasData = false;
-        if (!queue.empty()) {
-            data = queue.back();
-            queue.pop_back();
+        if (!list.empty()) {
+            data = list.back();
+            list.pop_back();
             hasData = true;
         }
         return hasData;
     }
     void clear() {
         std::unique_lock<std::mutex> lock(mutex);
-        queue.clear();
+        list.clear();
     }
     using Predicate = std::function<bool(const T&)>;
     void erase_if(Predicate pred) {
-        std::erase_if(queue, pred);
+        std::unique_lock<std::mutex> lock(mutex);
+        std::erase_if(list, pred);
     }
 
     void run() {
         logger.info("ThreadQueue start %s", name);
         stopThread = false;
-        queue.clear();
+        list.clear();
 
         for(;;) {
             if (stopThread) goto exit;
             T data;
             if (produce(data, Util::ONE_SECOND)) {
-                queue.push_front(data);
+                list.push_front(data);
                 cv.notify_one();
             }
         }
