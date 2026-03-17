@@ -83,20 +83,16 @@ public:
     }
 
     void system(bool newValue) {
-        if (newValue) control = (control & ~BIT_SYSTEM) | BIT_SYSTEM;
+        control = (control & ~BIT_SYSTEM)         | (newValue ? BIT_SYSTEM : 0);
     }
     void sendAck(bool newValue) {
-        if (newValue) control = (control & ~BIT_SEND_ACK) | BIT_SEND_ACK;
+        control = (control & ~BIT_SEND_ACK)       | (newValue ? BIT_SEND_ACK : 0);
     }
     void attention(bool newValue) {
-        if (newValue) control = (control & ~BIT_ATTENTION) | BIT_ATTENTION;
+        control = (control & ~BIT_ATTENTION)      | (newValue ? BIT_ATTENTION : 0);
     }
     void endOfMessage(bool newValue) {
-        if (newValue) control = (control & ~BIT_END_OF_MESSAGE) | BIT_END_OF_MESSAGE;
-    }
-
-    bool newConnection() {
-        return seq == 0 && dstID == 0;
+        control = (control & ~BIT_END_OF_MESSAGE) | (newValue ? BIT_END_OF_MESSAGE : 0);
     }
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
@@ -109,7 +105,7 @@ public:
     }
     std::string toString() const {
         return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
-            system() ? "S" : "_",
+            system()       ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",
