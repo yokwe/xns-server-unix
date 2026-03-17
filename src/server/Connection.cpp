@@ -36,6 +36,7 @@
 #include "../util/Util.h"
 #include <chrono>
 #include <thread>
+#include <vector>
 static const Logger logger(__FILE__);
 
 #include "../util/ThreadControl.h"
@@ -87,15 +88,10 @@ void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
     if (!body.empty()) ERROR()
 
     // remove acknowledged packet in txQueue
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        auto rxack = header.ack; // seq before ack is acknowledged
-        for(auto e: txQueue.seqSet()) {
-            if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
-        }
-    }
+    removeAcknowledged(header.ack);
 
-    if (header.sendAck()) {
+    bool sendAck = header.sendAck();
+    if (sendAck) {
         logger.info("SEND ACK  %d", ack);
         transmitSystem(false);
     }
@@ -105,49 +101,45 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
-    // add packet if header.seq is between ack and alloc
-    {
-        auto rxseq = header.seq;
-        if (isBefore(rxseq, ack))   return; // return if rxseq is before ack    -- rxseq < ack
-        if (isBefore(alloc, rxseq)) return; // return if alloc is bofore rxseq  -- alloc < rxseq
-
-        bool ackModified = false;
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            if (rxQueue.contains(rxseq)) return; // return  if rxseq is in rxQueue
-
-            // add to rxQueue
-            rxQueue.add(Packet{header, body});
-            logger.info("ACCEPT rxseq  %d", rxseq);
+    // remove acknowledged packet in txQueue
+    removeAcknowledged(header.ack);
     
-            // update ack/alloc
-            for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
-                ack++;
-                ackModified = true;
-            }
-            alloc = ack + 4;    
-        }
+    // add packet to rxQueue if header.seq is in [ack .. alloc]
+    bool sendAck = header.sendAck();
+    auto rxseq = header.seq;
+    if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !rxQueue.contains(rxseq)) {
+        std::lock_guard<std::mutex> lock(mutex);
+        // add to rxQueue
+        rxQueue.add(Packet{header, body});
+        logger.info("ACCEPT rxseq  %d", rxseq);
 
-        if (ackModified || header.sendAck()) {
-            // send acknledge
-            logger.info("SEND ACK  %d", ack);
-            transmitSystem(false);
+        // update ack/alloc
+        for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
+            ack++;
+            sendAck = true;
         }
+        alloc = ack + 4;    
     }
 
-    // remove acknowledged packet in txQueue
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        auto rxack = header.ack; // seq before ack is acknowledged
-        for(auto e: txQueue.seqSet()) {
-            if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
-        }
+    if (sendAck) {
+        // send acknledge
+        logger.info("SEND ACK  %d", ack);
+        transmitSystem(false);
     }
 }
 
 void Connection::retransmit() {
     std::lock_guard<std::mutex> lock(mutex);
     txQueue.retransmit(*this);
+}
+
+void Connection::removeAcknowledged(uint16_t rxack) {
+    if (txQueue.empty()) return;
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto e: txQueue.seqSet()) {
+        if (isBefore(e, rxack)) txQueue.remove(e);  // remove if seq is bofore ack
+    }
 }
 
 

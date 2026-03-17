@@ -114,6 +114,8 @@ public:
 
     void retransmit();
 
+    void removeAcknowledged(uint16_t seq);
+    
 private:
     void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
