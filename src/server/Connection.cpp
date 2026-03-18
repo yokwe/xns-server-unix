@@ -36,6 +36,7 @@
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -105,6 +106,33 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
+    if (header.sst == xns::SPP::SST::CLOSE) {
+        // FIXME stop retransmit
+        // FIXME change state to CLOSE
+        logger.info("SST CLOSE");
+        Data data;
+        auto sst = std::to_underlying(xns::SPP::SST::CLOSE);
+        retransmit(sst, false, false, false, false, data);
+        seq++;
+        return;
+    }
+    if (header.sst == xns::SPP::SST::CLOSE_REPLY) {
+        // FIXME connection is closed
+        // FIXME remove this connection from connections
+        // FIXME unlisten this socket
+        logger.info("SST CLOSE_REPLY");
+        Data data;
+        auto sst = std::to_underlying(xns::SPP::SST::CLOSE_REPLY);
+        retransmit(sst, false, false, false, false, data);
+        seq++;
+        return;
+    }
+    if (header.sst == xns::SPP::SST::BULK) {
+        // FIXME
+        logger.info("SST BULK");
+        return;
+    }
+
     // remove acknowledged packet in txQueue
     removeAcknowledged(header.ack);
     
@@ -168,8 +196,8 @@ void Connection::retransmit() {
     for(auto& e: txQueue) {
         if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
             // retransmit packet
-            retransmit(e.sst(), e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.data);
-            logger.info("RETRANSMIT  %04X  %04X  %s", srcID, dstID, e.toString());
+            // retransmit(e.sst(), e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.data);
+            // logger.info("RETRANSMIT  %04X  %04X  %s", srcID, dstID, e.toString());
 
             // update timestmp
             e.timestamp += RETRANSMIT_INTERVAL;
