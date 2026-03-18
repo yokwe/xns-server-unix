@@ -41,6 +41,7 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 #include "../util/ThreadControl.h"
+#include "../util/SimpleQueue.h"
 
 #include "Session.h"
 #include "Packet.h"
@@ -53,6 +54,8 @@ namespace server {
 //
 class Connection {
 public:
+    static const constexpr int NO_ATTENTION = -1;
+
     Session  session;
     uint16_t srcID;
     uint16_t dstID;
@@ -61,33 +64,38 @@ public:
     uint16_t ack;
     uint16_t alloc;  // alloc == ack
 
-    uint16_t transmitSeq; // use for real transmission
-    uint16_t receiveSeq;  // use for send data to client
-
     PacketQueue rxQueue; // hold received packet
     PacketQueue txQueue; // hold transmiting packet
+
+    uint16_t            clientSeq;
+    SimpleQueue<Packet> clientQueue;
+
+    int attentionValue;
 
     std::mutex mutex;
 
     Connection(const Connection& that) :
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
-        transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
-        rxQueue(that.rxQueue), txQueue(that.txQueue) {}
+        rxQueue(that.rxQueue), txQueue(that.txQueue),
+        clientSeq(0), clientQueue(that.clientQueue),
+        attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
-        transmitSeq(that.transmitSeq), receiveSeq(that.receiveSeq),
-        rxQueue(that.rxQueue), txQueue(that.txQueue) {}
+        rxQueue(that.rxQueue), txQueue(that.txQueue),
+        clientSeq(that.clientSeq), clientQueue(that.clientQueue),
+        attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         session(session_), srcID(srcID_), dstID(dstID_),
         seq(0), ack(0), alloc(0),
-        transmitSeq(0), receiveSeq(0) {}
+        clientSeq(0), clientQueue(std_sprintf("Connection %04X  %04X", srcID, dstID)),
+        attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, transmitSeq, receiveSeq);
+        return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, clientSeq, clientQueue.size());
     }
 
     // from client
@@ -100,6 +108,10 @@ public:
         transmit(0, false, false, true, false, data);
     }
     void transmitUser(uint8_t sst, bool sendAck, bool endOfMessage, Data& data) {
+        transmit(sst, false, sendAck, false, endOfMessage, data);
+    }
+    void transmitUser(uint8_t sst, bool sendAck, bool endOfMessage, ByteBuffer& bb) {
+        auto data = bb.toVector();
         transmit(sst, false, sendAck, false, endOfMessage, data);
     }
 
@@ -115,7 +127,9 @@ public:
     void retransmit();
 
     void removeAcknowledged(uint16_t seq);
-    
+
+    int attention();
+
 private:
     void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
@@ -192,6 +206,20 @@ struct Connections {
     uint32_t size() {
         std::lock_guard<std::mutex> lock(mutex);
         return set.size();
+    }
+
+    // iterator support
+    auto begin() {
+        return list.begin();
+    }
+    auto end() {
+        return list.end();
+    }
+    auto cbegin() {
+        return list.cbegin();
+    }
+    auto cend() {
+        return list.cend();
     }
 };
 

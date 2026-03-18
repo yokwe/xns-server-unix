@@ -38,48 +38,36 @@
 #include <vector>
 #include <cstdint>
 
-#include "../util/Util.h"
 
-
-namespace spp {
+namespace stream {
 //
-using Block = std::vector<uint8_t>;
-
 enum class Reason {
-    normal, endOfMessage, sstChange, endOfStream, attention, timeout,
+    normal, timeout, endOfStream,
 };
 struct Result {
     Reason  reason;
-    bool    endOfMessage;
     uint8_t sst;
+    bool    endOfMessage;
+
+    Result(Reason reason_, uint8_t sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
+    Result() : Result(Reason::normal, 0, false) {}
 };
 
-struct NotImplementdException{
-    std::string message;
-
-    NotImplementdException(const std::string& message_) : message(message_) {}
-
-    std::string toString() {
-        return std_sprintf("{NotImplementdException %s}", message);
-    }
-};
+using Data = std::vector<uint8_t>;
 
 class Stream {
 public:
-    virtual Result   get(Block& block) = 0;
-    virtual void     put(const Block& block, bool endOfMessage = false, uint8_t sst = 0) = 0;
+    static const constexpr int NO_ATTENTION = -1;
 
-    void put(const Block& block, bool endOfMessage = false) {
-        put(block, endOfMessage, 0);
+    virtual Result   get(Data& data) = 0;
+    virtual void     put(Data& data, bool endOfMessage = false, uint8_t sst = 0) = 0;
+
+    void put(Data& data, uint8_t sst = 0, bool endOfMessage = false) {
+        put(data, endOfMessage, sst);
     }
 
     virtual void     attention(uint8_t value) = 0;
     virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint8_t  waitAttention() = 0;
-
-    virtual uint32_t position() = 0;
-    virtual void     position(uint32_t value) = 0;
 
     virtual uint32_t timeout() = 0;               // unit is milliseconds
     virtual void     timeout(uint32_t value) = 0; // unit is milliseconds

@@ -40,6 +40,7 @@
 #include <list>
 #include <set>
 #include <utility>
+#include <algorithm>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -86,6 +87,18 @@ public:
         setFlags(seq, sst, system, sendAck, attention, endOfMessage);
         data = data_;
     }
+    
+    Packet() {
+        timestamp = std::chrono::steady_clock::now();
+        flags = 0;
+    }
+
+    // Copy
+    Packet(const Packet&  that)             = default;
+    Packet& operator = (const Packet& that) = default;
+    // Move
+    Packet(Packet&&  that)             = default;
+    Packet& operator = (Packet&& that) = default;
 
     // seq
     uint16_t seq() const {
@@ -197,6 +210,25 @@ public:
     Packet& back() {
         if (set.empty()) ERROR()
         return list.back();
+    }
+
+    // iterator support
+    auto begin() {
+        return list.begin();
+    }
+    auto end() {
+        return list.end();
+    }
+    auto cbegin() {
+        return list.cbegin();
+    }
+    auto cend() {
+        return list.cend();
+    }
+
+    using Predicate = std::function<bool(const Packet&)>;
+    uint32_t count_if(Predicate pred) {
+        return std::count_if(list.begin(), list.end(), pred);
     }
 
     void retransmit(Connection& connection);

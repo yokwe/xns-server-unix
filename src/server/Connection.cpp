@@ -33,10 +33,10 @@
  // Connection.cpp
  //
 
-#include "../util/Util.h"
 #include <chrono>
 #include <thread>
-#include <vector>
+
+#include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ThreadControl.h"
@@ -113,6 +113,14 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
         rxQueue.add(Packet{header, body});
         logger.info("ACCEPT rxseq  %d", rxseq);
 
+        // update attentionValue
+        if (header.attention()) {
+            if (body.byteRemains() != 1) ERROR()
+            body.mark();
+            attentionValue = body.get8();
+            body.reset();
+        }
+
         // update ack/alloc
         for(auto seqSet = rxQueue.seqSet(); seqSet.contains(ack);) {
             ack++;
@@ -121,12 +129,34 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
         alloc = ack + 4;    
     }
 
+    if (rxQueue.contains(clientSeq)) {
+        std::lock_guard<std::mutex> lock(mutex);
+        for (;;) {
+            // send data to client
+            auto& queue = rxQueue.get(clientSeq);
+            logger.info("clientQueue  %04X", clientSeq);
+            clientQueue.push(queue);
+            clientSeq++;
+            if (rxQueue.contains(clientSeq)) continue;
+            break;
+        }
+    }
+
     if (sendAck) {
         // send acknledge
         logger.info("SEND ACK  %d", ack);
         transmitSystem(false);
     }
 }
+
+int Connection::attention() {
+    auto ret = attentionValue;
+    if (0 <= attentionValue) {
+        attentionValue = NO_ATTENTION;
+    }
+    return ret;
+}
+
 
 void Connection::retransmit() {
     std::lock_guard<std::mutex> lock(mutex);
