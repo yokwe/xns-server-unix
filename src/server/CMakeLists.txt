@@ -11,9 +11,10 @@ target_sources(
 	PUBLIC
     Config.h
     Connection.h
+    ConnectionClient.h
+    ConnectionClientCourier.h
     ConnectionStream.h
     Context.h
-    CourierConnection.h
     Packet.h
     Server.h
     Session.h
@@ -23,8 +24,8 @@ target_sources(
     Clearinghouse3.cpp
     Config.cpp
     Connection.cpp
+    ConnectionClientCourier.cpp
     ConnectionStream.cpp
-    CourierConnection.cpp
     Echo.cpp
     Error.cpp
     main.cpp

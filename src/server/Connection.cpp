@@ -34,6 +34,7 @@
  //
 
 #include <chrono>
+#include <functional>
 #include <thread>
 
 #include "../util/Util.h"
@@ -41,6 +42,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ThreadControl.h"
 
+#include "Server.h"
 #include "Connection.h"
 
 namespace server{
@@ -72,7 +74,7 @@ void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention
         txHeader.ack   = ack;
         txHeader.alloc = alloc;
     
-        ByteBuffer txbb;
+        ByteBuffer txbb = getByteBuffer();
         txbb.putVector(data);
 
         session.send(txHeader, txbb);
@@ -172,6 +174,12 @@ void Connection::removeAcknowledged(uint16_t rxack) {
     }
 }
 
+void Connection::set(std::shared_ptr<ConnectionClient> client_) {
+    client = client_;
+    
+    ThreadControl::Function function = std::bind(&ConnectionClient::run, client);
+    clientThread.set("ClientThread", function);
+}
 
 //
 // Connections

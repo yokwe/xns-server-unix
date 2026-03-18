@@ -33,17 +33,21 @@
  // SPP.cpp
  //
 
-#include "../util/Debug.h"
-#include "../util/Util.h"
 #include <chrono>
+#include <utility>
+
+#include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../util/Debug.h"
 #include "../util/ByteBuffer.h"
 
 #include "../xns/SPP.h"
 
 #include "Server.h"
 #include "Connection.h"
+#include "ConnectionClient.h"
+#include "ConnectionClientCourier.h"
 
 namespace server {
 //
@@ -87,33 +91,53 @@ void processSPP_NEW(Session& session, const ByteBuffer& rx) {
         ERROR()
     }
 
-    // add listener
-    auto srcSocket = allocateSocket();
-    listen(srcSocket, processSPP_OLD);
+    // copy dst.socket to dstSocket
+    auto dstSocket = session.rxIDP.dst.socket;
 
-    // set socket to txHeader.src.socket to redirect
-    // Need this before connection.allocate, because connection.allocate copy session
+    // allocate new socket
+    auto srcSocket = allocateSocket();
+
+    // set dst.socket to redirect socket
+    // Constructor of Connectin copy session
     session.rxIDP.dst.socket = static_cast<xns::Socket>(srcSocket);
 
+    // start listening new socket
+    listen(srcSocket, processSPP_OLD);
+
     // add new connection
-    {
-        uint16_t dstID = rxHeader.srcID;
-        uint16_t srcID;
-        for(;;) {
-            srcID = (uint16_t)(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
-            auto key = Connections::getKey(srcID, dstID);
-            if (!connections.contains(key)) break;
-            logger.info("XX contains  %04X  %04X", srcID, dstID);
-        }
-    
-        Connection connection{session, srcID, dstID};
-        connections.add(connection);
-
-        logger.info("NEW  CONNECTION  %d  %s", connections.size(), connection.toString());
-
-        // send packet
-        connection.transmitSystem(true);    
+    uint16_t dstID = rxHeader.srcID;
+    uint16_t srcID;
+    for(;;) {
+        srcID = (uint16_t)(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
+        auto key = Connections::getKey(srcID, dstID);
+        if (!connections.contains(key)) break;
+        logger.info("XX contains  %04X  %04X", srcID, dstID);
     }
+
+    {
+        Connection conn{session, srcID, dstID};
+        connections.add(conn);    
+    }
+    // get reference of connection from connections
+    auto& connection = connections.get(Connections::getKey(srcID, dstID));
+    {
+        std::shared_ptr<ConnectionClient> client = 0;
+        if (dstSocket == Socket::COURIER) {
+            client = std::make_shared<ConnectionClientCourier>(connection);
+        } else {
+            logger.info("socket  %d", std::to_underlying(dstSocket));
+            ERROR()
+        }
+        // set client to connection
+        connection.set(client);
+        // start client thread
+        connection.clientThread.start();
+    }
+
+    logger.info("NEW  CONNECTION  %d  %s", connections.size(), connection.toString());
+
+    // send packet
+    connection.transmitSystem(true);
 }
 
 

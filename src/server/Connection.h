@@ -45,6 +45,7 @@
 
 #include "Session.h"
 #include "Packet.h"
+#include "ConnectionClient.h"
 
 namespace server {
 //
@@ -69,6 +70,9 @@ public:
 
     uint16_t            clientSeq;
     SimpleQueue<Packet> clientQueue;
+    ThreadControl       clientThread;
+
+    std::shared_ptr<ConnectionClient> client;
 
     int attentionValue;
 
@@ -78,25 +82,27 @@ public:
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         rxQueue(that.rxQueue), txQueue(that.txQueue),
-        clientSeq(0), clientQueue(that.clientQueue),
+        clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
         session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         rxQueue(that.rxQueue), txQueue(that.txQueue),
-        clientSeq(that.clientSeq), clientQueue(that.clientQueue),
+        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         session(session_), srcID(srcID_), dstID(dstID_),
         seq(0), ack(0), alloc(0),
-        clientSeq(0), clientQueue(std_sprintf("Connection %04X  %04X", srcID, dstID)),
+        clientSeq(0), clientQueue(std_sprintf("Connection %04X  %04X", srcID, dstID)), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
         return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, clientSeq, clientQueue.size());
     }
+
+    void set(std::shared_ptr<ConnectionClient> client);
 
     // from client
     void transmitSystem(bool sendAck) {
@@ -179,7 +185,7 @@ struct Connections {
         if (contains(key)) ERROR()
 
         std::lock_guard<std::mutex> lock(mutex);
-        set.emplace(getKey(connection));
+        set.emplace(key);
         list.emplace_back(connection);
     }
     
