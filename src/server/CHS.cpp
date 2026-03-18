@@ -55,11 +55,10 @@ void listenerCHS(Session& session, const ByteBuffer& rx) {
     if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
 
     Connection connection{session, 0, 0};
-    CallContext callContext{session, connection};
-    auto tx = service::services.callExpeditedMessage(callContext, pexBody);
+    auto tx = service::services.callExpeditedMessage(connection, pexBody);
     if (tx.empty()) return;
 
-    session.sendPEX(tx);
+    connection.session.sendPEX(tx);
 }
 
 }

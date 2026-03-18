@@ -50,7 +50,6 @@
 #include "../xns/Ethernet.h"
 #include "../xns/IDP.h"
 
-#include "Connection.h"
 
 namespace server {
 //
@@ -101,15 +100,6 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
         data.rx.flip();
         return ret;
     }
-};
-
-
-// CallContext for service
-struct CallContext {
-    Session&    session;
-    Connection& connection;
-
-    CallContext(Session& session_, Connection& connection_) : session(session_), connection(connection_) {}
 };
 
 

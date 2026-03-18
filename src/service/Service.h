@@ -46,7 +46,7 @@
 
 // forward declaration
 namespace server {
-struct CallContext;
+class Connection;
 }
 
 namespace service {
@@ -186,7 +186,7 @@ struct ProcedureBase {
     const std::string name;
 
     virtual bool empty() const = 0;
-    virtual ByteBuffer call(server::CallContext& callContext, const ByteBuffer& bb) const = 0; // called from network input
+    virtual ByteBuffer call(server::Connection& connection, const ByteBuffer& bb) const = 0; // called from network input
 
     ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
 
@@ -212,16 +212,16 @@ public:
         return !function;
     }
 
-    ByteBuffer call(server::CallContext& callContext, const ByteBuffer& rx) const override {
+    ByteBuffer call(server::Connection& connection, const ByteBuffer& rx) const override {
         ByteBuffer tx = getByteBuffer();
         if constexpr (std::is_void_v<A>) {
             if (rx.remains() != 0) {
                 throw InvalidArgumentReject{};
             }
             if constexpr (std::is_void_v<R>) {
-                function(callContext);
+                function(connection);
             } else {
-                R result = function(callContext);
+                R result = function(connection);
                 tx.write(result);
             }
         } else {
@@ -231,9 +231,9 @@ public:
                     throw InvalidArgumentReject{};
                 }
                 if constexpr (std::is_void_v<R>) {
-                    function(callContext, argument);
+                    function(connection, argument);
                 } else {
-                    R result = function(callContext, argument);
+                    R result = function(connection, argument);
                     tx.write(result);
                 }
             } catch (ByteBufferException e) {
@@ -288,8 +288,8 @@ struct ServicesBase {
         return 0;
     }
 
-    ByteBuffer callCourierMessage  (server::CallContext& callContext, const ByteBuffer& rx);
-    ByteBuffer callExpeditedMessage(server::CallContext& callContext, const ByteBuffer& rx);
+    ByteBuffer callCourierMessage  (server::Connection& connection, const ByteBuffer& rx);
+    ByteBuffer callExpeditedMessage(server::Connection& connection, const ByteBuffer& rx);
 
 protected:
     std::vector<ServiceBase*> serviceList;

@@ -191,12 +191,12 @@ void freeSocket(uint16_t value) {
 }
 
 
-ByteBuffer callExpeditedMessage(CallContext& callContext, ByteBuffer& rx) {
-    auto tx = service::services.callExpeditedMessage(callContext, rx);
+ByteBuffer callExpeditedMessage(Connection& conection, ByteBuffer& rx) {
+    auto tx = service::services.callExpeditedMessage(conection, rx);
     return tx;
 }
-ByteBuffer callCourierMessage(CallContext& callContext, ByteBuffer& rx) {
-    auto tx = service::services.callCourierMessage(callContext, rx);
+ByteBuffer callCourierMessage(Connection& conection, ByteBuffer& rx) {
+    auto tx = service::services.callCourierMessage(conection, rx);
     return tx;
 }
 

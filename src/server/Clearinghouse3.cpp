@@ -42,15 +42,16 @@ static const Logger logger(__FILE__);
 #include "Server.h"
 #include "Session.h"
 #include "Context.h"
+#include "Connection.h"
 
 namespace server::Clearinghouse3 {
 //
 using namespace courier::Clearinghouse3;
 
-static RetrieveAddresses::Result RetrieveAddres(CallContext& callContext) {
+static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
     logger.info("%s", __func__);
 
-    Context& context = callContext.session.context;
+    Context& context = connection.session.context;
     auto host = xns::Host(context.me);
     NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
     NetworkAddressList list{networkAddress};
@@ -61,7 +62,7 @@ static RetrieveAddresses::Result RetrieveAddres(CallContext& callContext) {
     return result;
 }
 
-static void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::ListDomainServed::Argument argument) {
+static void ListDomainServed(Connection& connection, courier::Clearinghouse3::ListDomainServed::Argument argument) {
     logger.info("%s  argument %s", __func__, argument.toString());
     if (argument.domains.key == courier::BulkData1::Descriptor::Key::immediate) {
         // return data as bulk data
@@ -76,7 +77,7 @@ static void ListDomainServed(CallContext& callContext, courier::Clearinghouse3::
         txbb.write(result);
 
         // FIXME transmit result
-        (void)callContext;
+        (void)connection;
 
     } else {
         logger.error("Not expected");

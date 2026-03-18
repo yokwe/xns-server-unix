@@ -47,13 +47,13 @@
 // forward declaration
 namespace server {
 //
-struct CallContext;
+class Connection;
 }
 
 namespace courier {
 //
 
-using CallContext = server::CallContext;
+using Connection = server::Connection;
 
 //
 // STRING
