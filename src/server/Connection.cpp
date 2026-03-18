@@ -161,7 +161,7 @@ int Connection::attention() {
 
 
 void Connection::retransmit() {
-    std::lock_guard<std::mutex> lock(mutex);
+//    std::lock_guard<std::mutex> lock(mutex); // comment out for dead lock
     txQueue.retransmit(*this);
 }
 
