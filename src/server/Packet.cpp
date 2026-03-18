@@ -36,23 +36,6 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-
-#include "Connection.h"
-#include "Packet.h"
-
 namespace server {
 //
-void PacketQueue::retransmit(Connection& connection) {
-    auto now = std::chrono::steady_clock::now();
-    for(auto& e: list) {
-        if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
-            // retransmit packet
-            connection.transmitUser(e.sst(), e.sendAck(), e.endOfMessage(), e.data);
-            logger.info("RETRANSMIT  %04X  %04X  %s", connection.srcID, connection.dstID, e.toString());
-
-            // update timestmp
-            e.timestamp += RETRANSMIT_INTERVAL;
-        }
-    }
-}
 }

@@ -230,8 +230,6 @@ public:
     uint32_t count_if(Predicate pred) {
         return std::count_if(list.begin(), list.end(), pred);
     }
-
-    void retransmit(Connection& connection);
 };
 
 }
