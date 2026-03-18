@@ -43,18 +43,20 @@
 class ThreadControl {
 	static std::map<std::thread::id, std::string> map;
 public:
+	using Function = std::function<void()>;
+
 	static std::string getName(const std::thread::id& id) {
 		return map.contains(id) ? map[id] : "???";
 	}
 
-	std::string           name;
-	std::function<void()> function;
-	std::thread           thread;
+	std::string name;
+	Function    function;
+	std::thread thread;
 
 	ThreadControl() {}
-	ThreadControl(const char* name_, std::function<void()> function_) : name(name_), function(function_) {}
+	ThreadControl(const char* name_, Function function_) : name(name_), function(function_) {}
 
-	void set(const std::string& name_, std::function<void()> function_) {
+	void set(const std::string& name_, Function function_) {
 		name     = name_;
 		function = function_;
 	}
