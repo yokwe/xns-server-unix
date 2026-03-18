@@ -46,11 +46,14 @@
 template<typename T>
 class SimpleQueue {
     std::string               name;
+    std::list<T>              list;
     std::mutex                mutex;
     std::condition_variable   cv;
-    std::list<T>              list;
 public:
     SimpleQueue(const std::string& name_) : name(name_) {}
+
+    SimpleQueue(const SimpleQueue<T>& that)  : name(that.name), list(that.list), mutex(), cv() {}
+    SimpleQueue(const SimpleQueue<T>&& that) : name(that.name), list(that.list), mutex(), cv() {}
 
     // push data
     void push(T& data) {
@@ -90,10 +93,10 @@ public:
     using Predicate = std::function<bool(const T&)>;
     void erase_if(Predicate pred) {
         std::unique_lock<std::mutex> lock(mutex);
-        std::erase_if(list, pred);
+        std::erase_if(list.begin(), list.end(), pred);
     }
     uint32_t count_if(Predicate pred) {
         std::unique_lock<std::mutex> lock(mutex);
-        return std::count_if(list, pred);
+        return std::count_if(list.cbegin(), list.cend(), pred);
     }
 };
