@@ -52,33 +52,35 @@ namespace server{
 // Connection
 //
 void Connection::transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
+    // send packet
+    retransmit(sst, system, sendAck, attention, endOfMessage, data);
+
+    // put packet in txQueue for retransmit
     if (!system) {
         std::lock_guard<std::mutex> lock(mutex);
-        if (txQueue.contains(seq)) ERROR() // detect seq duplicate
         // add to txQueue for retransmit
         txQueue.add(Packet{seq, sst, system, sendAck, attention, endOfMessage, data});
         // NOTE increment seq
         seq++;
     }
+}
+void Connection::retransmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data) {
+    xns::SPP txHeader;
+    txHeader.system(system);
+    txHeader.sendAck(sendAck);
+    txHeader.attention(attention);
+    txHeader.endOfMessage(endOfMessage);
+    txHeader.sst   = static_cast<xns::SPP::SST>(sst);
+    txHeader.srcID = srcID;
+    txHeader.dstID = dstID;
+    txHeader.seq   = seq;
+    txHeader.ack   = ack;
+    txHeader.alloc = alloc;
 
-    // send packet
-    {
-        xns::SPP txHeader;
-        txHeader.system(system);
-        txHeader.sendAck(sendAck);
-        txHeader.attention(attention);
-        txHeader.endOfMessage(endOfMessage);
-        txHeader.srcID = srcID;
-        txHeader.dstID = dstID;
-        txHeader.seq   = seq;
-        txHeader.ack   = ack;
-        txHeader.alloc = alloc;
-    
-        ByteBuffer txbb = getByteBuffer();
-        txbb.putVector(data);
+    ByteBuffer txbb = getByteBuffer();
+    txbb.putVector(data);
 
-        session.send(txHeader, txbb);
-    }
+    session.send(txHeader, txbb);
 }
 
 void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
@@ -161,8 +163,18 @@ int Connection::attention() {
 
 
 void Connection::retransmit() {
-//    std::lock_guard<std::mutex> lock(mutex); // comment out for dead lock
-    txQueue.retransmit(*this);
+    std::lock_guard<std::mutex> lock(mutex);
+    auto now = std::chrono::steady_clock::now();
+    for(auto& e: txQueue) {
+        if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
+            // retransmit packet
+            retransmit(e.sst(), e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.data);
+            logger.info("RETRANSMIT  %04X  %04X  %s", srcID, dstID, e.toString());
+
+            // update timestmp
+            e.timestamp += RETRANSMIT_INTERVAL;
+        }
+    }
 }
 
 void Connection::removeAcknowledged(uint16_t rxack) {

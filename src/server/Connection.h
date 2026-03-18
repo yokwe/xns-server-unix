@@ -56,6 +56,7 @@ namespace server {
 class Connection {
 public:
     static const constexpr int NO_ATTENTION = -1;
+    static const constexpr auto RETRANSMIT_INTERVAL = std::chrono::seconds(5);
 
     Session  session;
     uint16_t srcID;
@@ -137,7 +138,8 @@ public:
     int attention();
 
 private:
-    void transmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
+    void transmit  (uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
+    void retransmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
     void receiveSystem(const xns::SPP header, const ByteBuffer& body);
     void receiveUser  (const xns::SPP header, const ByteBuffer& body);

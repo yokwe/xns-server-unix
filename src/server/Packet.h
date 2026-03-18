@@ -164,8 +164,6 @@ class PacketQueue {
     std::list<Packet>  list;
     std::set<uint16_t> set;
     //       seq
-
-    inline static auto RETRANSMIT_INTERVAL = std::chrono::seconds(5);
 public:
     void add(const Packet& packet) {
         auto seq = packet.seq();
