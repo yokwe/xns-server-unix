@@ -76,7 +76,7 @@ public class CompilerProcedure extends CompilerPair {
 
 		// special handling when arugmentList is empty
 		{
-			var argumentType = argumentList.isEmpty() ? "CallContext&"     : "CallContext&, Argument";
+			var argumentType = argumentList.isEmpty() ? "Connection&"     : "Connection&, Argument";
 			var resultType   = resultList.isEmpty()   ? "void" : "Result";
 			out.println("using Function = std::function<%s(%s)>;", resultType, argumentType);
 		}
