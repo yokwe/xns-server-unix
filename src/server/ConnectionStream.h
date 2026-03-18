@@ -36,13 +36,18 @@
 
 #include <cstdint>
 
-#include "Connection.h"
+#include "../util/ByteBuffer.h"
+
 #include "Stream.h"
 
 namespace server {
 //
 using Reason = stream::Reason;
 using Result = stream::Result;
+using Data   = stream::Data;
+
+// forward declaration
+class Connection;
 
 class ConnectionStream : public stream::Stream {
     Connection& connection;
