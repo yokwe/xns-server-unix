@@ -18,6 +18,7 @@ target_sources(
     Packet.h
     Server.h
     Session.h
+    SocketManager.h
     SPP.h
   PRIVATE
     AUTH.cpp
@@ -34,6 +35,7 @@ target_sources(
     RIP.cpp
     Server.cpp
     Session.cpp
+    SocketManager.cpp
     SPP.cpp
     Time.cpp
   )
