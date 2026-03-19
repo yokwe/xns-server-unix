@@ -92,6 +92,7 @@ public:
     int attentionValue;
 
     std::mutex mutex;
+    std::mutex mutexReceive;
 
     Connection(const Connection& that) :
         state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
@@ -137,7 +138,9 @@ public:
     }
 
     // from network
-    void receive(const xns::SPP header, const ByteBuffer& body) {
+    void receive(const xns::SPP& header, const ByteBuffer& body) {
+        std::lock_guard<std::mutex>lock(mutexReceive);
+        
         if (header.system()) {
             receiveSystem(header, body);
         } else {
@@ -159,8 +162,8 @@ private:
     void transmit   (uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
     void transmitRaw(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
-    void receiveSystem(const xns::SPP header, const ByteBuffer& body);
-    void receiveUser  (const xns::SPP header, const ByteBuffer& body);
+    void receiveSystem(const xns::SPP& header, const ByteBuffer& body);
+    void receiveUser  (const xns::SPP& header, const ByteBuffer& body);
 
     bool isBefore(uint16_t a, uint16_t b) {
         if (a < b) {

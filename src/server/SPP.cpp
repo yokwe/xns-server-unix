@@ -73,22 +73,24 @@ void processSPP_OLD(Session& session, const ByteBuffer& rx) {
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    if (!connections.contains(Connections::getKey(rxHeader))) ERROR()
+    auto key = Connections::getKey(rxHeader);
+    if (!connections.contains(key)) ERROR()
 
-    auto& connection = connections.get(Connections::getKey(rxHeader));
+    auto& connection = connections.get(key);
     logger.info("OLD   CONNECTION  %d  %s", connections.size(), connection.toString());
     connection.receive(rxHeader, rxbb);
 
     if (connection.closed()) {
         logger.info("CLOSE CONNECTION  %d  %s", connections.size(), connection.toString());
+        
+        // remove connection from connections
+        connections.remove(key);
 
         // stop listening socket
         unlisten(session.rxIDP.dst.socket);
+        
         // remove connection
         connection.clientThread.join();
-
-        // remove connection from connections
-        connections.remove(Connections::getKey(connection));
     }
 }
 

@@ -30,22 +30,19 @@
 
  
  //
- // CHS.cpp
+ // AUTH.cpp
  //
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 
-#include "../service/Services.h"
-
-#include "Connection.h"
 #include "Server.h"
 #include "Session.h"
 
 namespace server {
 //
-void listenerCHS(Session& session, const ByteBuffer& rx) {
+void listenerAUTH(Session& session, const ByteBuffer& rx) {
     if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
         processERROR(session, rx);
         return;
@@ -58,11 +55,7 @@ void listenerCHS(Session& session, const ByteBuffer& rx) {
     rx.read(pexHeader, pexBody);
     if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
 
-    Connection connection{session, 0, 0};
-    auto tx = service::services.callCourier(connection, pexBody);
-    if (tx.empty()) return;
-
-    connection.session.sendPEX(tx);
+    // FIXME
 }
 
 }

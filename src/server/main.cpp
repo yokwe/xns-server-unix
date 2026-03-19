@@ -34,6 +34,7 @@
  //
 
 #include "../util/Util.h"
+#include <csignal>
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -54,6 +55,7 @@ int main(int, char **) {
 	setSignalHandler(SIGHUP);
 	setSignalHandler(SIGSEGV);
 	setSignalHandler(SIGTRAP);
+	setSignalHandler(SIGABRT);
 
     server::Context context{};
 

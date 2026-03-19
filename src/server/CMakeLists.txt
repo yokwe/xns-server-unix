@@ -20,6 +20,7 @@ target_sources(
     Session.h
     SPP.h
   PRIVATE
+    AUTH.cpp
     CHS.cpp
     Clearinghouse3.cpp
     Config.cpp

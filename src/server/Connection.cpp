@@ -88,17 +88,23 @@ void Connection::transmitRaw(uint8_t sst, bool system, bool sendAck, bool attent
     session.send(txHeader, txbb);
 }
 
-void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
+void Connection::receiveSystem(const xns::SPP& header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
     // sanity check
-    if (!body.empty()) ERROR()
-    if (header.sst != SST::DATA) ERROR()
+    if (!body.empty()) {
+        logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+        ERROR()
+    }
+    if (header.sst != SST::DATA) {
+        logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+        ERROR()
+    }
 
     // change state
-    state = State::OPEN;
+    if (state == State::NEW) state = State::OPEN;
 
     // remove acknowledged packet in txQueue
     removeAcknowledged(header.ack);
@@ -108,17 +114,22 @@ void Connection::receiveSystem(const xns::SPP header, const ByteBuffer& body) {
         transmitSystem(false);
     }
 }
-void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
+void Connection::receiveUser(const xns::SPP& header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
+    logger.info("%s  sst  %s  state  %s", __func__, ::toString(header.sst), toString(state));
 
     // remove acknowledged packet in txQueue
     removeAcknowledged(header.ack);
     
     if (header.sst == SST::CLOSE) {
         // sanity check
-        if (state != State::OPEN) ERROR()
+        if (state != State::OPEN) {
+            logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+            logger.error("connection  %s", toString());
+            ERROR()
+        }
 
         // FIXME stop retransmit
         // FIXME change state to CLOSE
@@ -133,7 +144,11 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     }
     if (header.sst == SST::CLOSE_REPLY) {
         // sanity check
-        if (state != State::CLOSE) ERROR()
+        if (state != State::CLOSE) {
+            logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+            logger.error("connection  %s", toString());
+            ERROR()
+        }
 
         // FIXME connection is closed
         // FIXME remove this connection from connections
@@ -150,7 +165,10 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
     }
     if (header.sst == SST::BULK) {
         // sanity check
-        if (state != State::OPEN) ERROR()
+        if (state != State::OPEN) {
+            logger.error("connection  %s", toString());
+            ERROR()
+        }
 
         // FIXME
         logger.info("SST BULK");
@@ -159,7 +177,10 @@ void Connection::receiveUser(const xns::SPP header, const ByteBuffer& body) {
 
     if (header.sst == SST::DATA) {
         // sanity check
-        if (state != State::OPEN) ERROR()
+        if (state != State::OPEN) {
+            logger.error("connection  %s", toString());
+            ERROR()
+        }
 
         logger.info("SST DATA");
         // add packet to rxQueue if header.seq is in [ack .. alloc]
