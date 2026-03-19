@@ -47,17 +47,20 @@ ConnectionStream::ConnectionStream(Connection& connection_) : connection(connect
 }
 
 Result   ConnectionStream::get(Data& data) {
+    if (connection.closed()) {
+        return Result(Reason::endOfStream, false, 0);
+    }
+
     Packet packet;
     auto timeoutDuration = std::chrono::milliseconds(timeoutValue);
     auto hasData = connection.clientQueue.pop(packet, timeoutDuration);
 
     Reason reason;
-    // FIXME how to check end of stream
     if (hasData) {
         data = packet.data;
         reason = Reason::normal;
     } else {
-        reason = Reason::timeout;
+        reason = connection.closed() ? Reason::endOfStream : Reason::timeout;
     }
 
     return Result(reason, packet.endOfMessage(), packet.sst());

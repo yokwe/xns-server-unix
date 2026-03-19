@@ -191,6 +191,11 @@ public:
         ERROR()
     }
 
+    void clear() {
+        set.clear();
+        list.clear();
+    }
+
     std::set<uint16_t> seqSet() const {
         return set;
     }

@@ -71,8 +71,20 @@ void processSPP_OLD(Session& session, const ByteBuffer& rx) {
     if (!connections.contains(Connections::getKey(rxHeader))) ERROR()
 
     auto& connection = connections.get(Connections::getKey(rxHeader));
-    logger.info("OLD  CONNECTION  %d  %s", connections.size(), connection.toString());
+    logger.info("OLD   CONNECTION  %d  %s", connections.size(), connection.toString());
     connection.receive(rxHeader, rxbb);
+
+    if (connection.closed()) {
+        logger.info("CLOSE CONNECTION  %d  %s", connections.size(), connection.toString());
+
+        // stop listening socket
+        unlisten(session.rxIDP.dst.socket);
+        // remove connection
+        connection.clientThread.join();
+
+        // remove connection from connections
+        connections.remove(Connections::getKey(connection));
+    }
 }
 
 void processSPP_NEW(Session& session, const ByteBuffer& rx) {
@@ -134,7 +146,7 @@ void processSPP_NEW(Session& session, const ByteBuffer& rx) {
         connection.clientThread.start();
     }
 
-    logger.info("NEW  CONNECTION  %d  %s", connections.size(), connection.toString());
+    logger.info("NEW   CONNECTION  %d  %s", connections.size(), connection.toString());
 
     // send packet
     connection.transmitSystem(true);

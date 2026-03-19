@@ -58,6 +58,20 @@ public:
     static const constexpr int NO_ATTENTION = -1;
     static const constexpr auto RETRANSMIT_INTERVAL = std::chrono::seconds(5);
 
+    enum class State {
+        NEW, OPEN, CLOSE, CLOSE_REPLY,
+    };
+    std::string toString(State value) {
+        static std::unordered_map<State, std::string, ScopedEnumHash> map = {
+            {State::NEW,         "NEW"},
+            {State::OPEN,        "OPEN"},
+            {State::CLOSE,       "CLOSE"},
+            {State::CLOSE_REPLY, "CLOSE_REPLY"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    }
+
+    State    state;
     Session  session;
     uint16_t srcID;
     uint16_t dstID;
@@ -80,27 +94,27 @@ public:
     std::mutex mutex;
 
     Connection(const Connection& that) :
-        session(that.session), srcID(that.srcID), dstID(that.dstID),
+        state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         rxQueue(that.rxQueue), txQueue(that.txQueue),
         clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
-        session(that.session), srcID(that.srcID), dstID(that.dstID),
+        state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         rxQueue(that.rxQueue), txQueue(that.txQueue),
         clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
-        session(session_), srcID(srcID_), dstID(dstID_),
+        state(State::NEW), session(session_), srcID(srcID_), dstID(dstID_),
         seq(0), ack(0), alloc(0),
         clientSeq(0), clientQueue(std_sprintf("Connection %04X  %04X", srcID, dstID)), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%04X  %04X  %d  %d  %d  %d  %d}", srcID, dstID, seq, ack, alloc, clientSeq, clientQueue.size());
+        return std_sprintf("{%s  %04X  %04X  %d  %d  %d  %d  %d}", toString(state), srcID, dstID, seq, ack, alloc, clientSeq, clientQueue.size());
     }
 
     void set(std::shared_ptr<ConnectionClient> client);
@@ -137,9 +151,13 @@ public:
 
     int attention();
 
+    bool closed() {
+        return state == State::CLOSE_REPLY;
+    }
+
 private:
-    void transmit  (uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
-    void retransmit(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
+    void transmit   (uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
+    void transmitRaw(uint8_t sst, bool system, bool sendAck, bool attention, bool endOfMessage, Data& data);
 
     void receiveSystem(const xns::SPP header, const ByteBuffer& body);
     void receiveUser  (const xns::SPP header, const ByteBuffer& body);
