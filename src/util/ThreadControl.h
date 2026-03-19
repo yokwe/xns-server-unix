@@ -56,6 +56,16 @@ public:
 	ThreadControl() {}
 	ThreadControl(const char* name_, Function function_) : name(name_), function(function_) {}
 
+	ThreadControl(ThreadControl&& that) : name(that.name), function(that.function) {
+		thread = std::move(that.thread);
+	}
+	ThreadControl& operator =(ThreadControl&& that) {
+		name     = that.name;
+		function = that.function;
+		thread   = std::move(that.thread);
+		return *this;
+	}
+
 	void set(const std::string& name_, Function function_) {
 		name     = name_;
 		function = function_;
