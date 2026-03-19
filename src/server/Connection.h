@@ -111,7 +111,7 @@ public:
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         state(State::NEW), session(session_), srcID(srcID_), dstID(dstID_),
         seq(0), ack(0), alloc(0),
-        clientSeq(0), clientQueue(std_sprintf("Connection %04X  %04X", srcID, dstID)), client(0),
+        clientSeq(0), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {

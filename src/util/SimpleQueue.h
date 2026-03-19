@@ -37,7 +37,6 @@
 #include <list>
 #include <mutex>
 #include <condition_variable>
-#include <string>
 #include <functional>
 #include <algorithm>
 
@@ -45,15 +44,14 @@
 
 template<typename T>
 class SimpleQueue {
-    std::string               name;
     std::list<T>              list;
     std::mutex                mutex;
     std::condition_variable   cv;
 public:
-    SimpleQueue(const std::string& name_) : name(name_) {}
+    SimpleQueue() {}
 
-    SimpleQueue(const SimpleQueue<T>& that)  : name(that.name), list(that.list), mutex(), cv() {}
-    SimpleQueue(const SimpleQueue<T>&& that) : name(that.name), list(that.list), mutex(), cv() {}
+    SimpleQueue(const SimpleQueue<T>& that)  : list(that.list), mutex(), cv() {}
+    SimpleQueue(SimpleQueue<T>&& that)       : list(that.list), mutex(), cv() {}
 
     // push data
     void push(T& data) {
