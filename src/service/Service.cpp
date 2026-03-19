@@ -44,6 +44,18 @@ static const Logger logger(__FILE__);
 namespace service {
 //
 
+bool ServicesBase::hasProtocolRange(const ByteBuffer& rx) {
+    rx.mark();
+
+    courier::Courier3::ProtocolRange protocolRange;
+    rx.read(protocolRange);
+
+    bool ret = protocolRange.lowest == courier::Courier3::SupportingProtol && protocolRange.highest == courier::Courier3::SupportingProtol;
+    rx.reset();
+
+    return ret;
+}
+
 ByteBuffer ServicesBase::callExpeditedMessage(server::Connection& connection, const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;

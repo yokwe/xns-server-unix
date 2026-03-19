@@ -46,8 +46,6 @@ static const Logger logger(__FILE__);
 
 #include "../xns/Error.h"
 
-#include "../service/Services.h"
-
 #include "Server.h"
 #include "Session.h"
 #include "Context.h"
@@ -188,16 +186,6 @@ void freeSocket(uint16_t value) {
         logger.error("  value  %d", value);
         ERROR()
     }
-}
-
-
-ByteBuffer callExpeditedMessage(Connection& conection, ByteBuffer& rx) {
-    auto tx = service::services.callExpeditedMessage(conection, rx);
-    return tx;
-}
-ByteBuffer callCourierMessage(Connection& conection, ByteBuffer& rx) {
-    auto tx = service::services.callCourierMessage(conection, rx);
-    return tx;
 }
 
 

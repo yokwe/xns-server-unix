@@ -43,6 +43,7 @@ static const Logger logger(__FILE__);
 #include "Session.h"
 #include "Context.h"
 #include "Connection.h"
+#include "ConnectionStream.h"
 
 namespace server::Clearinghouse3 {
 //
@@ -64,25 +65,19 @@ static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
 
 static void ListDomainServed(Connection& connection, courier::Clearinghouse3::ListDomainServed::Argument argument) {
     logger.info("%s  argument %s", __func__, argument.toString());
-    if (argument.domains.key == courier::BulkData1::Descriptor::Key::immediate) {
-        // return data as bulk data
-        DomainName myDomain{"FXIS", "Fuji Xerox"};
-        courier::SEQUENCE<DomainName, 65535> segment = {
-            {myDomain},
-        };
-        auto result = StreamOfDomainName::fromLastSegment(segment);
+    if (argument.domains.key != courier::BulkData1::Descriptor::Key::immediate) ERROR()
 
+    // transmit SreamOfDomainName to BULK
+    courier::SEQUENCE<DomainName, 65535> segment = {
+        {DomainName{"FXIS", "Fuji Xerox"}},
+    };
+    auto result = StreamOfDomainName::fromLastSegment(segment);
 
-        auto txbb = getByteBuffer();
-        txbb.write(result);
+    auto txbb = getByteBuffer();
+    txbb.write(result);
+    Data data = txbb.toVector();
 
-        // FIXME transmit result
-        (void)connection;
-
-    } else {
-        logger.error("Not expected");
-        ERROR()
-    }
+    connection.transmitUser(ConnectionStream::BULK, false, true, data);    
 }
 
 static service::Clearinghouse3::FunctionTable functionTable {

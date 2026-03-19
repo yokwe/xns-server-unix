@@ -288,8 +288,17 @@ struct ServicesBase {
         return 0;
     }
 
+    bool hasProtocolRange(const ByteBuffer& rx);
     ByteBuffer callCourierMessage  (server::Connection& connection, const ByteBuffer& rx);
     ByteBuffer callExpeditedMessage(server::Connection& connection, const ByteBuffer& rx);
+
+    ByteBuffer callCourier(server::Connection& connection, const ByteBuffer& rx) {
+        if (hasProtocolRange(rx)) {
+            return callExpeditedMessage(connection, rx);
+        } else {
+            return callCourierMessage(connection, rx);
+        }    
+    }
 
 protected:
     std::vector<ServiceBase*> serviceList;
