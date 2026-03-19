@@ -74,7 +74,11 @@ static courier::Time::Response call(Session& session, courier::Time::Request req
 }
 
 void processTIME(Session& session, const ByteBuffer& rx) {
-    if (session.rxIDP.packetType != xns::IDP::PacketType::PEX) ERROR()
+    if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
+        processERROR(session, rx);
+        return;
+    }
+    if (session.rxIDP.packetType != xns::IDP::PacketType::PEX)    ERROR()
 
     xns::PEX&   pexHeader(session.rxPEX);
     ByteBuffer pexBody;

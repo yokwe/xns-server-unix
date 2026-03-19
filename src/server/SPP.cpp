@@ -62,7 +62,12 @@ void startSPP() {
 // processXXX
 //
 void processSPP_OLD(Session& session, const ByteBuffer& rx) {
-    (void)session;
+    if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
+        processERROR(session, rx);
+        return;
+    }
+    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
+
     xns::SPP   rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
@@ -88,6 +93,12 @@ void processSPP_OLD(Session& session, const ByteBuffer& rx) {
 }
 
 void processSPP_NEW(Session& session, const ByteBuffer& rx) {
+    if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
+        processERROR(session, rx);
+        return;
+    }
+    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
+
     xns::SPP   rxHeader;
     ByteBuffer rxbb;
     rx.read(rxHeader, rxbb);
