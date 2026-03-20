@@ -47,7 +47,7 @@ void Session::sendEther(const ByteBuffer& bb) {
     xns::Ethernet txEthernet;
 
     txEthernet.dest   = rxEthernet.source;
-    txEthernet.source = context.me;
+    txEthernet.source = context->me;
     txEthernet.type   = rxEthernet.type;
 
     auto tx = getByteBuffer();
@@ -67,7 +67,7 @@ void Session::sendEther(const ByteBuffer& bb) {
     }
 
     TransmitData transmitData(tx);
-    threadTransmit.push(transmitData);
+    threadTransmit->push(transmitData);
 }
 
 void Session::sendIDP(const ByteBuffer& txbb) {
@@ -80,8 +80,8 @@ void Session::sendIDP(const ByteBuffer& txbb) {
     txHeader.dst.network = rxIDP.src.network;
     txHeader.dst.host    = rxIDP.src.host;
     txHeader.dst.socket  = rxIDP.src.socket;
-    txHeader.src.network = context.net;
-    txHeader.src.host    = context.me;
+    txHeader.src.network = context->net;
+    txHeader.src.host    = context->me;
     txHeader.src.socket  = rxIDP.dst.socket;
 
     auto tx = getByteBuffer();

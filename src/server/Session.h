@@ -51,8 +51,8 @@ struct ThreadTransmit;
 
 struct Session {
     using steady_clock = std::chrono::steady_clock;
-    Context&        context;
-    ThreadTransmit& threadTransmit;
+    Context*        context;
+    ThreadTransmit* threadTransmit;
     uint64_t        startTime; // milli seconds
 
     // received headers
@@ -61,18 +61,24 @@ struct Session {
     xns::PEX      rxPEX;
     xns::SPP      rxSPP;
 
-    Session(Context& context_, ThreadTransmit& threadTransmit_) :
+    Session() : Session(0, 0) {}
+    Session(Context* context_, ThreadTransmit* threadTransmit_) :
         context(context_),
         threadTransmit(threadTransmit_),
-        startTime(milliTime()) {}
+        startTime(microTime()) {}
+    
+    Session(const Session&)             = default;
+    Session& operator =(const Session&) = default;
 
     static uint64_t milliTime() {
         return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
+    static uint64_t microTime() {
+        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
 
-    template<typename T>
     uint64_t duration() {
-        return milliTime() - startTime;
+        return microTime() - startTime;
     }
 
     void send(const xns::Ethernet& header, const ByteBuffer& body);

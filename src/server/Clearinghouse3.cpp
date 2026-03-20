@@ -52,7 +52,7 @@ using namespace courier::Clearinghouse3;
 static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
     logger.info("%s", __func__);
 
-    Context& context = connection.session.context;
+    Context& context = *connection.session.context;
     auto host = xns::Host(context.me);
     NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
     NetworkAddressList list{networkAddress};
