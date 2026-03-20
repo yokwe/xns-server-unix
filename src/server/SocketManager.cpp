@@ -112,12 +112,23 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
 
     auto socket = session.rxIDP.dst.socket;
     if (contains(socket)) {
-        logger.info("Known socket    %s", ::toString(socket));
         auto& listener = get(socket);
         listener.accept(session, rx);
 //        listener.process(session, rx);  // for debug
     } else {
-        logger.warn("Unknown socket  %s", ::toString(socket));
+        logger.warn("Unknown socket  %s", toString(socket));
+    }
+}
+
+Socket SocketManager::newSocket() {
+    auto ret = static_cast<Socket>(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
+    for(;;) {
+        if (ret <= xns::MAX_WELLKNOWN_SOCKET) {
+            ret = ret + static_cast<uint16_t>(xns::MAX_WELLKNOWN_SOCKET);
+            continue;
+        }
+        if (!contains(ret)) return ret;
+        ret = ret + 13;
     }
 }
 
