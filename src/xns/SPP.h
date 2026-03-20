@@ -64,10 +64,10 @@ public:
     //   bit 1  sent acknowledgement
     //   bit 2  attention
     //   bit 3  end of message
-    const uint8_t BIT_SYSTEM         = 0x80;
-    const uint8_t BIT_SEND_ACK       = 0x40;
-    const uint8_t BIT_ATTENTION      = 0x20;
-    const uint8_t BIT_END_OF_MESSAGE = 0x10;
+    static const constexpr uint8_t BIT_SYSTEM         = 0x80;
+    static const constexpr uint8_t BIT_SEND_ACK       = 0x40;
+    static const constexpr uint8_t BIT_ATTENTION      = 0x20;
+    static const constexpr uint8_t BIT_END_OF_MESSAGE = 0x10;
     
     bool system() const {
         return control & BIT_SYSTEM;
