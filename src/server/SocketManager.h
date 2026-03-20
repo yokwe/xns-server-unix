@@ -120,6 +120,7 @@ public:
     void run();
 };
 
+
 class SocketManager {
     using Socket       = xns::Socket;
     using LISTENER_MAP = std::unordered_map<Socket, SocketListener*>;
@@ -132,6 +133,8 @@ public:
     SocketListener& get     (Socket socket);
     void            remove  (Socket socket);
     bool            contains(Socket socket);
+
+    Socket          newSocket();
 
     template<typename T>
     void put() {

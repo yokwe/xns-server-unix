@@ -37,9 +37,7 @@
 
 #include <chrono>
 #include <cstdint>
-#include <functional>
 #include <string>
-#include <utility>
 
 #include "../util/ThreadQueue.h"
 #include "../util/net.h"
@@ -76,9 +74,7 @@ struct ThreadTransmit : public thread_queue::ThreadQueueProcessor<TransmitData> 
 
     ThreadTransmit(net::Driver& driver_) : thread_queue::ThreadQueueProcessor<TransmitData>("ThreadTransmit"), driver(driver_) {}
 
-    void process(const TransmitData& data) override {
-        driver.transmit(data.tx.toSpan());
-    }
+    void process(const TransmitData& data) override;
 };
 
 struct ReceiveData {
@@ -91,15 +87,7 @@ struct ThreadReceive : public thread_queue::ThreadQueueProducer<ReceiveData> {
     ThreadReceive(net::Driver& driver_) : thread_queue::ThreadQueueProducer<ReceiveData>("ThreadReceive"), driver(driver_) {}
 
     // produce return true when data has value
-    bool produce(ReceiveData& data, std::chrono::milliseconds timeout) override{
-        net::Driver::data_type span;
-        int ret = driver.receive(span, timeout);
-        data.rx.clear();
-        // copy data from span to bb
-        data.rx.putSpan(span);
-        data.rx.flip();
-        return ret;
-    }
+    bool produce(ReceiveData& data, std::chrono::milliseconds timeout) override;
 };
 
 
@@ -111,15 +99,6 @@ namespace Clearinghouse3 {
 void enable();
 void disable();
 }
-
-
-//
-// Socket
-//
-
-// allocate and free of user socket -- not wellknown socket
-uint16_t allocateSocket();
-void     freeSocket(uint16_t value);
 
 
 //

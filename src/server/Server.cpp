@@ -35,16 +35,10 @@
 
 
 #include <cstdint>
-#include <mutex>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
-
-#include "../xns/Error.h"
 
 #include "Server.h"
 #include "Session.h"
@@ -52,6 +46,28 @@ static const Logger logger(__FILE__);
 
 namespace server {
 //
+
+
+//
+// ThreadTransmit
+//
+void ThreadTransmit::process(const TransmitData& data) {
+    driver.transmit(data.tx.toSpan());
+}
+
+//
+// ThreadReceive
+//
+bool ThreadReceive::produce(ReceiveData& data, std::chrono::milliseconds timeout) {
+    net::Driver::data_type span;
+    int ret = driver.receive(span, timeout);
+    data.rx.clear();
+    // copy data from span to bb
+    data.rx.putSpan(span);
+    data.rx.flip();
+    return ret;
+}
+
 
 // context is used in toString()
 static Context* context = 0;
@@ -85,38 +101,6 @@ Context::Context() {
     }
     // set static uglobal variable context
     context = this;
-}
-
-
-//
-// Socket
-//
-static std::mutex socketSetMutex;
-static std::unordered_set<uint16_t> socketSet;
-uint16_t allocateSocket() {
-    std::lock_guard<std::mutex> lock{socketSetMutex};
-
-    uint16_t newSocket = std::chrono::system_clock::now().time_since_epoch().count() >> 10;
-    for(;;) {
-        if (newSocket < xns::MAX_WELLKNOWN_SOCKET) {
-            newSocket += xns::MAX_WELLKNOWN_SOCKET;
-        }
-        if (!socketSet.contains(newSocket)) break;
-        newSocket++;
-    }
-    socketSet.emplace(newSocket);
-
-    return newSocket;
-}
-void freeSocket(uint16_t value) {
-    std::lock_guard<std::mutex> lock{socketSetMutex};
-
-    auto count = socketSet.erase(value);
-    if (count == 0) {
-        logger.error("Unexpected value");
-        logger.error("  value  %d", value);
-        ERROR()
-    }
 }
 
 
