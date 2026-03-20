@@ -18,6 +18,7 @@ target_sources(
     Packet.h
     Server.h
     Session.h
+    SocketEcho.h
     SocketError.h
     SocketManager.h
     SocketRIP.h
@@ -38,6 +39,7 @@ target_sources(
 #    RIP.cpp
     Server.cpp
     Session.cpp
+    SocketEcho.cpp
     SocketError.cpp
     SocketManager.cpp
     SocketRIP.cpp

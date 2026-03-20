@@ -47,6 +47,7 @@ static const Logger logger(__FILE__);
 #include "SocketError.h"
 #include "SocketTime.h"
 #include "SocketRIP.h"
+#include "SocketEcho.h"
 
 int main(int, char **) {
     using namespace server;
@@ -83,6 +84,7 @@ int main(int, char **) {
     socketManager.put<server::SocketError>();
     socketManager.put<server::SocketTime>();
     socketManager.put<server::SocketRIP>();
+    socketManager.put<server::SocketEcho>();
 
     // enable service implementation
 //    server::Clearinghouse3::enable();
