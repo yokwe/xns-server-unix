@@ -30,7 +30,7 @@
 
  
  //
- // SocketError.cpp
+ // SocketRIP.cpp
  //
 
 #include "../util/Util.h"
@@ -38,31 +38,50 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
-#include "../xns/Error.h"
+#include "../xns/RIP.h"
 
 #include "Server.h"
 #include "Session.h"
+#include "Context.h"
 
-#include "SocketError.h"
+#include "SocketRIP.h"
 
 namespace server {
 //
+void SocketRIP::process(Session& session, ByteBuffer&rx) {
+    if (session.rxIDP.packetType != xns::IDP::PacketType::RIP)    ERROR()
 
-void SocketError::process(Session& session, ByteBuffer&rx) {
-    if (session.rxIDP.packetType != xns::IDP::PacketType::ERROR_) ERROR()
+    // make reference
+    auto& context = *session.context;
 
-    xns::Error rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if constexpr (SHOW_PACKET_ERROR) {
-        if (15 <= rxbb.limit()) {
-            xns::IDP  idp;
-            ByteBuffer bb;
-            rxbb.read(idp, bb);
-            logger.info("Error>>  %s  IDP  %s  (%d) %s", rxHeader.toString(), ::toString(idp), bb.byteLimit(), bb.toString());
-        } else {
-            logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+    xns::RIP rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+    if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", server::toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+
+    // sanity check
+    if (!rxbb.empty()) ERROR();
+
+    if (rxHeader.operation == xns::Operation::REQUEST) {
+        xns::RIP txHeader{xns::Operation::RESPONSE};
+        for(const auto& e: rxHeader.entryList) {
+            if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
+                for(const auto& [key, value] : context.routingMap) {
+                    txHeader.entryList.emplace_back(value.net, value.delay);
+                }
+            } else {
+                if (context.routingMap.contains(e.network)) {
+                    const auto& entry = context.routingMap[e.network];
+                    txHeader.entryList.emplace_back(entry.net, entry.delay);
+                }
+            }
         }
+
+        auto tx = getByteBuffer();
+        tx.write(txHeader);
+        if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", server::toString(txHeader));
+
+        session.sendIDP(tx);
     }
 }
 

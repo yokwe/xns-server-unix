@@ -57,7 +57,7 @@ void processERROR(Session& session, const ByteBuffer& rx) {
             xns::IDP  idp;
             ByteBuffer bb;
             rxbb.read(idp, bb);
-            logger.info("Error>>  %s  IDP  %s  (%d) %s", rxHeader.toString(), idp.toString(), bb.byteLimit(), bb.toString());
+            logger.info("Error>>  %s  IDP  %s  (%d) %s", rxHeader.toString(), server::toString(idp), bb.byteLimit(), bb.toString());
         } else {
             logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
         }

@@ -20,6 +20,7 @@ target_sources(
     Session.h
     SocketError.h
     SocketManager.h
+    SocketRIP.h
     SocketTime.h
 #    SPP.h
   PRIVATE
@@ -39,6 +40,7 @@ target_sources(
     Session.cpp
     SocketError.cpp
     SocketManager.cpp
+    SocketRIP.cpp
     SocketTime.cpp
 #    SPP.cpp
 #    Time.cpp

@@ -46,6 +46,7 @@ static const Logger logger(__FILE__);
 #include "SocketManager.h"
 #include "SocketError.h"
 #include "SocketTime.h"
+#include "SocketRIP.h"
 
 int main(int, char **) {
     using namespace server;
@@ -81,6 +82,7 @@ int main(int, char **) {
     SocketManager socketManager;
     socketManager.put<server::SocketError>();
     socketManager.put<server::SocketTime>();
+    socketManager.put<server::SocketRIP>();
 
     // enable service implementation
 //    server::Clearinghouse3::enable();
@@ -114,11 +116,11 @@ int main(int, char **) {
         }
         if (!myPacket) continue;
     
-        if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(session.rxEthernet), ethenetBody.byteLimit(), ethenetBody.toString());
+        if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", server::toString(session.rxEthernet), ethenetBody.byteLimit(), ethenetBody.toString());
     
         ethenetBody.read(session.rxIDP);
         auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
+        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", server::toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
     
         // sanity check
         if (session.rxIDP.checksum != xns::IDP::Checksum::NOCHECK) {

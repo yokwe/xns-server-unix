@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2026, Yasuhiro Hasegawa
+ * Copyright (c) 2025, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,42 +28,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
- 
+
  //
- // SocketError.cpp
+ // SockeRIP.h
  //
 
-#include "../util/Util.h"
-static const Logger logger(__FILE__);
+#pragma once
 
-#include "../util/ByteBuffer.h"
-
-#include "../xns/Error.h"
-
-#include "Server.h"
-#include "Session.h"
-
-#include "SocketError.h"
+#include "SocketManager.h"
 
 namespace server {
 //
 
-void SocketError::process(Session& session, ByteBuffer&rx) {
-    if (session.rxIDP.packetType != xns::IDP::PacketType::ERROR_) ERROR()
+struct SocketRIP: public SocketListener {
+    static const constexpr auto SOCKET = xns::Socket::RIP;
+    static const constexpr auto NAME = "SocketRIP";
+    static const constexpr auto WAIT_INTERVAL = std::chrono::milliseconds(500);
+    static const constexpr auto IDLE_INTERVAL = std::chrono::milliseconds(5'000);
 
-    xns::Error rxHeader;
-    ByteBuffer rxbb;
-    rx.read(rxHeader, rxbb);
-    if constexpr (SHOW_PACKET_ERROR) {
-        if (15 <= rxbb.limit()) {
-            xns::IDP  idp;
-            ByteBuffer bb;
-            rxbb.read(idp, bb);
-            logger.info("Error>>  %s  IDP  %s  (%d) %s", rxHeader.toString(), ::toString(idp), bb.byteLimit(), bb.toString());
-        } else {
-            logger.info("Error>>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
-        }
-    }
-}
+    SocketRIP() : SocketListener(NAME, WAIT_INTERVAL, IDLE_INTERVAL) {}
+    void process(Session& session, ByteBuffer&rx);
+    void idle() {}
+};
 
 }
