@@ -43,7 +43,9 @@ static const Logger logger(__FILE__);
 #include "Server.h"
 #include "Session.h"
 #include "Context.h"
-#include "SPP.h"
+#include "SocketManager.h"
+#include "SocketError.h"
+#include "SocketTime.h"
 
 int main(int, char **) {
     using namespace server;
@@ -75,18 +77,15 @@ int main(int, char **) {
 	ThreadControl t1("threadReceive",  f1);
 	ThreadControl t2("threadTransmit", f2);
 
-    // set listener to socket
-    server::listen(xns::Socket::RIP,     processRIP);
-    server::listen(xns::Socket::ECHO,    processECHO);
-    server::listen(xns::Socket::ERROR_,  processERROR);
-    server::listen(xns::Socket::TIME,    processTIME);
-    server::listen(xns::Socket::CHS,     listenerCHS);
-    server::listen(xns::Socket::COURIER, processSPP_NEW);
+    // set socket listener
+    SocketManager socketManager;
+    socketManager.put<server::SocketError>();
+    socketManager.put<server::SocketTime>();
 
     // enable service implementation
-    server::Clearinghouse3::enable();
+//    server::Clearinghouse3::enable();
 
-    server::startSPP();
+//    server::startSPP();
 
     driver.clear();
     t1.start();
@@ -98,8 +97,46 @@ int main(int, char **) {
         auto& rx = receiveData.rx;
         if (rx.empty()) continue;
 
-        Session session(context, threadTransmit);
-        server::processEthernet(session, rx);
+        Session session(&context, &threadTransmit);
+        
+        auto ethenetBody = getByteBuffer();
+        rx.read(session.rxEthernet, ethenetBody);
+    
+        bool myPacket = false;
+        if (session.rxEthernet.type == xns::Ethernet::Type::XNS) {
+            if (session.rxEthernet.source == context.me) {
+                // NOT myPacket
+            } else {
+                if (session.rxEthernet.dest.isBroadcas() || session.rxEthernet.dest == context.me) {
+                    myPacket = true;
+                }
+            }
+        }
+        if (!myPacket) continue;
+    
+        if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", toString(session.rxEthernet), ethenetBody.byteLimit(), ethenetBody.toString());
+    
+        ethenetBody.read(session.rxIDP);
+        auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
+        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
+    
+        // sanity check
+        if (session.rxIDP.checksum != xns::IDP::Checksum::NOCHECK) {
+            auto checksum = xns::IDP::computeChecksum(ethenetBody.data(), 2, session.rxIDP.length);
+            if (session.rxIDP.checksum != checksum) {
+                logger.warn("checksum error  %s  %s", xns::IDP::toString(session.rxIDP.checksum), xns::IDP::toString(checksum));
+                // FIXME send Error packet
+                session.sendError(xns::Error::ErrorNumber::BAD_CHECKSUM);
+                continue;
+            }
+        }
+    
+        auto socket = session.rxIDP.dst.socket;
+        if (socketManager.contains(socket)) {
+            socketManager.process(session, idpBody);
+        } else {
+            logger.warn("Unknown socket  %s", ::toString(socket));
+        }
 	}
 
     threadReceive.stop();

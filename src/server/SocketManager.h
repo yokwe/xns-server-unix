@@ -48,12 +48,26 @@
 
 #include "../xns/XNS.h"
 
+#include "Server.h"
+#include "Session.h"
+
 namespace server {
 //
+struct SocketData {
+    Session   session;
+    ByteBuffer rx;
+
+    SocketData() {}
+    SocketData(const Session& session_, const ByteBuffer& rx_) : session(session_), rx(rx_) {}
+
+    // SocketData(const SocketData&) = default;
+    // SocketData& operator =(const SocketData&) = default;
+};
+
 class SocketListener {
-    using Function = std::function<void(ByteBuffer&)>;
+    using Function     = std::function<void(ByteBuffer&)>;
     using milliseconds = std::chrono::milliseconds;
-    using Queue = SimpleQueue<ByteBuffer>;
+    using Queue        = SimpleQueue<SocketData>;
 
     static const constexpr auto WAIT_INTERVAL = std::chrono::milliseconds(500);
     static const constexpr auto IDLE_INTERVAL = std::chrono::milliseconds(5'000);
@@ -66,9 +80,6 @@ class SocketListener {
     milliseconds  idleInterval;
 
     ThreadControl threadControl;
-
-    virtual void process(ByteBuffer&) = 0;
-    virtual void idle()               = 0;
 
 public:
     SocketListener(const std::string& name_, milliseconds waitInterval_ = WAIT_INTERVAL, milliseconds idleInterval_ = IDLE_INTERVAL) :
@@ -85,7 +96,16 @@ public:
     
     virtual ~SocketListener() = default;
 
-    void accept(ByteBuffer& data) {
+    virtual void process(Session&, ByteBuffer& rx) = 0; // rx is idp body
+    virtual void idle()                            = 0;
+
+    void accept(Session& session, ByteBuffer& rx) { // rx is idp body
+        SocketData data;
+        data.session = session;
+        // copy rx to data.rx
+        data.rx = ByteBuffer(rx.byteLimit());
+        data.rx.write(rx);
+        data.rx.flip();
         queue.push(data);
     }
 
@@ -113,6 +133,11 @@ public:
     void            remove  (Socket socket);
     bool            contains(Socket socket);
 
+    template<typename T>
+    void put() {
+        put(T::SOCKET, new T);
+    }
+
     void put(uint16_t socket, SocketListener* socketListener) {
         put(static_cast<Socket>(socket), socketListener);
     }
@@ -125,6 +150,8 @@ public:
     bool contains(uint16_t socket) {
         return contains(static_cast<Socket>(socket));
     }
+
+    void process(Session&, ByteBuffer& rx); // rx is idp body
 };
 
 }

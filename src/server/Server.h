@@ -123,37 +123,6 @@ void     freeSocket(uint16_t value);
 
 
 //
-// Socket Listener
-//
-using Listener = std::function<void(Session&, const ByteBuffer&)>;
-
-// Set Listener to socket
-void listen(uint16_t socket, Listener listener);
-inline void listen(Socket socket, Listener listener) {
-    listen(std::to_underlying(socket), listener);
-}
-
-// Unset Listener from socket
-void unlisten(uint16_t socket);
-inline void unlisten(Socket socket) {
-    unlisten(std::to_underlying(socket));
-}
-
-// listener for wellknown socket
-void processRIP   (Session&, const ByteBuffer&);
-void processECHO  (Session&, const ByteBuffer&);
-void processERROR (Session&, const ByteBuffer&);
-void listenerCHS  (Session&, const ByteBuffer&);
-void processTIME  (Session&, const ByteBuffer&);
-
-void processSPP_OLD(Session&, const ByteBuffer&);
-void processSPP_NEW(Session&, const ByteBuffer&);
-
-// listener for ethernet
-void processEthernet(Session& session, ByteBuffer& rx);
-
-
-//
 // toString()
 //
 

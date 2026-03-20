@@ -38,6 +38,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
+#include "SocketError.h"
 #include "SocketManager.h"
 
 namespace server {
@@ -46,13 +47,13 @@ namespace server {
 void SocketListener::run() {
     logger.info("SocketListener  START  %s", name);
     auto lastIdle = std::chrono::steady_clock::now();
-    ByteBuffer data;
-    
+    SocketData socketData;
+
     for(;;) {
         if (stopThread) break;
-        if (queue.pop(data, waitInterval)) {
+        if (queue.pop(socketData, waitInterval)) {
             // process data
-            process(data);
+            process(socketData.session, socketData.rx);
         } else {
             // do idle task like retransmit
             auto now = std::chrono::steady_clock::now();
@@ -75,6 +76,7 @@ void SocketManager::put(Socket socket, SocketListener* socketListener) {
         ERROR()
     } else {
         map[socket] = socketListener;
+        map[socket]->start(); // start thread
     }
 }
 SocketListener& SocketManager::get(Socket socket) {
@@ -97,6 +99,26 @@ void SocketManager::remove(Socket socket) {
 bool SocketManager::contains(Socket socket) {
     std::lock_guard<std::mutex> locck(mutex);
     return map.contains(socket);
+}
+
+static SocketError socketError;
+
+void SocketManager::process(Session& session, ByteBuffer& rx) {
+    // special for Error packet
+    if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
+        socketError.process(session, rx);
+        return;
+    }
+
+    auto socket = session.rxIDP.dst.socket;
+    if (contains(socket)) {
+        logger.info("Known socket    %s", ::toString(socket));
+        auto& listener = get(socket);
+        listener.accept(session, rx);
+//        listener.process(session, rx);  // for debug
+    } else {
+        logger.warn("Unknown socket  %s", ::toString(socket));
+    }
 }
 
 }
