@@ -96,6 +96,8 @@ public:
     }
 
     SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
+    SPP(uint8_t control_, SST sst_, uint16_t srcID_, uint16_t dstID_, uint16_t seq_, uint16_t ack_, uint16_t alloc_) :
+        control(control_), sst(sst_), srcID(srcID_), dstID(dstID_), seq(seq_), ack(ack_), alloc(alloc_) {}
 
     void read(const ByteBuffer& bb) {
         bb.read(control, sst, srcID, dstID, seq, ack, alloc);
