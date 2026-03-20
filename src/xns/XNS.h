@@ -127,7 +127,7 @@ enum class Socket : uint16_t {
 };
 std::string toString(Socket value);
 
-inline const constexpr uint16_t MAX_WELLKNOWN_SOCKET = 3000;
+inline const constexpr Socket MAX_WELLKNOWN_SOCKET = static_cast<Socket>(2047);
 
 //
 // NetworkAddress
@@ -170,5 +170,11 @@ enum class Delay : uint16_t {
 };
 std::string toString(Delay delay);
 
+}
 
+//
+// convenience operator
+//
+inline xns::Socket operator +(const xns::Socket a, const uint16_t b) {
+    return static_cast<xns::Socket>(static_cast<uint16_t>(a) + b);
 }
