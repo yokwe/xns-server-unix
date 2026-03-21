@@ -82,8 +82,8 @@ public:
     uint16_t ack;
     uint16_t alloc;  // alloc == ack
 
-    PacketQueue rxQueue{4};  // hold received packet
-    PacketQueue txQueue{10}; // hold transmiting packet
+    PacketQueue receiveQueue{4};     // hold received packet
+    PacketQueue retransmitQueue{10}; // hold retransmit packet
 
     uint16_t            clientSeq;
     SimpleQueue<Packet> clientQueue;
@@ -93,20 +93,17 @@ public:
 
     int attentionValue;
 
-    std::mutex mutex;
-    std::mutex mutexReceive;
-
     Connection(const Connection& that) :
         state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
-        rxQueue(that.rxQueue), txQueue(that.txQueue),
+        receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
         state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
-        rxQueue(that.rxQueue), txQueue(that.txQueue),
+        receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
@@ -125,30 +122,22 @@ public:
     // from client
     void transmitSystem(bool sendAck) {
         Data data;
-        transmit(true, sendAck, false, false, SST::DATA, data);
+        transmitAndQueue(true, sendAck, false, false, SST::DATA, data);
     }
     void transmitAttention(uint8_t value) {
         Data data{value};
-        transmit(false, false, true, false, SST::DATA, data);
+        transmitAndQueue(false, false, true, false, SST::DATA, data);
     }
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
-        transmit(false, sendAck, false, endOfMessage, sst, data);
+        transmitAndQueue(false, sendAck, false, endOfMessage, sst, data);
     }
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, ByteBuffer& bb) {
         auto data = bb.toVector();
-        transmit(false, sendAck, false, endOfMessage, sst, data);
+        transmitAndQueue(false, sendAck, false, endOfMessage, sst, data);
     }
 
     // from network
-    void receive(const xns::SPP& header, const ByteBuffer& body) {
-        std::lock_guard<std::mutex>lock(mutexReceive);
-        
-        if (header.system()) {
-            receiveSystem(header, body);
-        } else {
-            receiveUser(header, body);
-        }
-    }
+    void receive(const xns::SPP& header, const ByteBuffer& body);
 
     void retransmit();
 
@@ -161,11 +150,13 @@ public:
     }
 
 private:
-    void transmit   (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
-    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void transmitAndQueue (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void transmit         (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
 
-    void receiveSystem(const xns::SPP& header, const ByteBuffer& body);
-    void receiveUser  (const xns::SPP& header, const ByteBuffer& body);
+    void receiveSystem    (const xns::SPP& header, const ByteBuffer& body);
+    void receiveDataBulk  (const xns::SPP& header, const ByteBuffer& body);
+    void receiveClose     (const xns::SPP& header, const ByteBuffer& body);
+    void receiveCloseReply(const xns::SPP& header, const ByteBuffer& body);
 
 };
 
@@ -225,20 +216,6 @@ struct Connections {
         std::lock_guard<std::mutex> lock(mutex);
         return set.size();
     }
-
-    // // iterator support
-    // auto begin() {
-    //     return list.begin();
-    // }
-    // auto end() {
-    //     return list.end();
-    // }
-    // auto cbegin() {
-    //     return list.cbegin();
-    // }
-    // auto cend() {
-    //     return list.cend();
-    // }
 };
 
 }

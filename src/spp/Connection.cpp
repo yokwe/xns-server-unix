@@ -58,20 +58,21 @@ using SST = xns::SPP::SST;
 //
 // Connection
 //
-void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-    // send packet
-    transmitRaw(system, sendAck, attention, endOfMessage, sst, data);
 
-    // put packet in txQueue for retransmit
-    if (!system) {
-        std::lock_guard<std::mutex> lock(mutex);
-        // add to txQueue for retransmit
-        txQueue.add(Packet{system, sendAck, attention, endOfMessage, sst, seq, data});
+//
+// transmitXXX
+//
+void Connection::transmitAndQueue(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+    if (system) {
+        transmit(system, sendAck, attention, endOfMessage, sst, data);
+    } else {
+        transmit(system, sendAck, attention, endOfMessage, sst, data);
+        retransmitQueue.add(Packet{system, sendAck, attention, endOfMessage, sst, seq, data});
         // NOTE increment seq
         seq++;
     }
 }
-void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
     xns::SPP txHeader;
     txHeader.system(system);
     txHeader.sendAck(sendAck);
@@ -90,144 +91,131 @@ void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool end
     session.send(txHeader, txbb);
 }
 
+
+//
+// receiveXXX
+//
+void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
+    auto sst = header.sst;
+
+    logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+
+    removeAcknowledged(header.ack);
+
+    if (header.system()) {
+        receiveSystem(header, body);
+    } else if (sst == SST::CLOSE) {
+        receiveClose(header, body);
+    } else if (sst == SST::CLOSE_REPLY) {
+        receiveCloseReply(header, body);
+    } else if (sst == SST::DATA || sst == SST::BULK) {
+        receiveDataBulk(header, body);
+    } else {
+        ERROR()
+    }
+}
+void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body) {
+    // sanity check
+    if (state != State::OPEN) {
+        logger.error("connection  %s", toString());
+        ERROR()
+    }
+
+    logger.info("SST %s", xns::SPP::toString(header.sst));
+
+    bool sendAck = header.sendAck();
+    auto rxseq = header.seq;
+    
+    // add packet to rxQueue if header.seq is in [ack .. alloc]
+    if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !receiveQueue.contains(rxseq)) {
+        // add to rxQueue
+        receiveQueue.add(Packet{header, body});
+        logger.info("ACCEPT rxseq  %d", rxseq);
+
+        // update attentionValue
+        if (header.attention()) {
+            if (body.byteRemains() != 1) ERROR()
+            body.mark();
+            attentionValue = body.get8();
+            body.reset();
+        }
+
+        // update ack/alloc
+        while(receiveQueue.contains(ack)) {
+            ack++;
+            sendAck = true;
+        }
+        alloc = ack + 4;    
+    }
+
+    // move packet from rxQeueu to clientQueue in order of clientSeq
+    for (;;) {
+        if (!receiveQueue.contains(clientSeq)) break;
+        auto& packet = receiveQueue.get(clientSeq);
+        logger.info("clientQueue  %04X", clientSeq);
+        clientQueue.push(packet);
+        receiveQueue.remove(clientSeq);
+        clientSeq++;
+    }
+
+    if (sendAck) {
+        // send acknledge
+        logger.info("SEND ACK  %d", ack);
+        transmitSystem(false);
+    }
+}
+void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
+    (void)header;
+    // sanity check
+    if (state != State::OPEN) {
+        logger.error("connection  %s", toString());
+        ERROR()
+    }
+    if (!body.empty()) ERROR()
+
+    logger.info("SST CLOSE");
+    state = State::CLOSE;
+    retransmitQueue.clear();
+
+    Data data;
+    transmitAndQueue(false, false, false, false, SST::CLOSE, data);
+    return;
+}
+void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& body) {
+    (void)header;
+    // sanity check
+    if (state != State::CLOSE) {
+        logger.error("connection  %s", toString());
+        ERROR()
+    }
+    if (!body.empty()) ERROR()
+
+    logger.info("SST CLOSE_REPLY");
+    state = State::CLOSE_REPLY;
+    retransmitQueue.clear();
+
+    Data data;
+    transmit(false, false, false, false, SST::CLOSE_REPLY, data);
+    seq++;
+}
 void Connection::receiveSystem(const xns::SPP& header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
     // sanity check
-    if (!body.empty()) {
-        logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
-        ERROR()
-    }
+    if (!body.empty()) ERROR()
     if (header.sst != SST::DATA) {
-        logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
+        logger.error("connection  %s", toString());
         ERROR()
     }
 
     // change state
     if (state == State::NEW) state = State::OPEN;
 
-    // remove acknowledged packet in txQueue
-    removeAcknowledged(header.ack);
-
     if (header.sendAck()) {
         logger.info("SEND ACK  %d", ack);
         transmitSystem(false);
-    }
-}
-void Connection::receiveUser(const xns::SPP& header, const ByteBuffer& body) {
-    // seq   -- seq of next data packet
-    // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
-    // alloc -- other side can accept sequence number [ack..alloc]
-    logger.info("%s  sst  %s  state  %s", __func__, ::toString(header.sst), toString(state));
-
-    // remove acknowledged packet in txQueue
-    removeAcknowledged(header.ack);
-    
-    if (header.sst == SST::CLOSE) {
-        // sanity check
-        if (state != State::OPEN) {
-            logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
-            logger.error("connection  %s", toString());
-            ERROR()
-        }
-
-        // FIXME stop retransmit
-        // FIXME change state to CLOSE
-        logger.info("SST CLOSE");
-        state = State::CLOSE;
-        txQueue.clear();
-
-        Data data;
-        transmit(false, false, false, false, SST::CLOSE, data);
-        return;
-    }
-    if (header.sst == SST::CLOSE_REPLY) {
-        // sanity check
-        if (state != State::CLOSE) {
-            logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
-            logger.error("connection  %s", toString());
-            ERROR()
-        }
-
-        // FIXME connection is closed
-        // FIXME remove this connection from connections
-        // FIXME unlisten this socket
-        logger.info("SST CLOSE_REPLY");
-        state = State::CLOSE_REPLY;
-        txQueue.clear();
-
-        Data data;
-        transmitRaw(false, false, false, false, SST::CLOSE_REPLY, data);
-        seq++;
-        return;
-    }
-    if (header.sst == SST::BULK) {
-        // sanity check
-        if (state != State::OPEN) {
-            logger.error("connection  %s", toString());
-            ERROR()
-        }
-
-        // FIXME
-        logger.info("SST BULK");
-        return;
-    }
-
-    if (header.sst == SST::DATA) {
-        // sanity check
-        if (state != State::OPEN) {
-            logger.error("connection  %s", toString());
-            ERROR()
-        }
-
-        logger.info("SST DATA");
-        // add packet to rxQueue if header.seq is in [ack .. alloc]
-        bool sendAck = header.sendAck();
-        auto rxseq = header.seq;
-        if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !rxQueue.contains(rxseq)) {
-            std::lock_guard<std::mutex> lock(mutex);
-            // add to rxQueue
-            rxQueue.add(Packet{header, body});
-            logger.info("ACCEPT rxseq  %d", rxseq);
-    
-            // update attentionValue
-            if (header.attention()) {
-                if (body.byteRemains() != 1) ERROR()
-                body.mark();
-                attentionValue = body.get8();
-                body.reset();
-            }
-    
-            // update ack/alloc
-            while(rxQueue.contains(ack)) {
-                ack++;
-                sendAck = true;
-            }
-            alloc = ack + 4;    
-        }
-    
-        if (rxQueue.contains(clientSeq)) {
-            std::lock_guard<std::mutex> lock(mutex);
-            for (;;) {
-                // send data to client
-                auto& queue = rxQueue.get(clientSeq);
-                logger.info("clientQueue  %04X", clientSeq);
-                clientQueue.push(queue);
-                clientSeq++;
-                if (rxQueue.contains(clientSeq)) continue;
-                break;
-            }
-        }
-    
-        if (sendAck) {
-            // send acknledge
-            logger.info("SEND ACK  %d", ack);
-            transmitSystem(false);
-        }
-
-        return;
     }
 }
 
@@ -245,14 +233,14 @@ void Connection::retransmit() {
     PacketQueue::MapFunction function = [&](Packet& e) {
         if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
             // retransmit packet
-            transmitRaw(e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.sst, e.data);
+            transmit(e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.sst, e.data);
             logger.info("RETRANSMIT  %04X  %04X  %s", srcID, dstID, e.toString());
 
             // update timestmp
             e.timestamp += RETRANSMIT_INTERVAL;
         }
     };
-    txQueue.map(function);
+    retransmitQueue.map(function);
 }
 
 void Connection::removeAcknowledged(uint16_t ack) {
@@ -260,7 +248,7 @@ void Connection::removeAcknowledged(uint16_t ack) {
         return isBefore(e.seq, ack); // remove if seq is bofore ack
     };
 
-    txQueue.mapDelete(function);
+    retransmitQueue.mapDelete(function);
 }
 
 
