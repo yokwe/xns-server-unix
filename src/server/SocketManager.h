@@ -36,6 +36,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <chrono>
@@ -123,13 +124,13 @@ public:
 
 class SocketManager {
     using Socket       = xns::Socket;
-    using LISTENER_MAP = std::unordered_map<Socket, SocketListener*>;
+    using LISTENER_MAP = std::unordered_map<Socket, std::unique_ptr<SocketListener>>;
 
     LISTENER_MAP map;
     std::mutex   mutex;
 
 public:
-    void            put     (Socket socket, SocketListener* socketListener);
+    void            put     (Socket socket, std::unique_ptr<SocketListener> socketListener);
     SocketListener& get     (Socket socket);
     void            remove  (Socket socket);
     bool            contains(Socket socket);
@@ -139,6 +140,10 @@ public:
     template<typename T>
     void put() {
         put(T::SOCKET, new T);
+    }
+
+    void put(Socket socket, SocketListener* socketListener) {
+        put(socket, std::unique_ptr<SocketListener>(socketListener));
     }
 
     void put(uint16_t socket, SocketListener* socketListener) {

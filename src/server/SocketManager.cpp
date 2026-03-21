@@ -70,12 +70,12 @@ void SocketListener::run() {
 //
 // SocketManager
 //
-void SocketManager::put(Socket socket, SocketListener* socketListener) {
+void SocketManager::put(Socket socket, std::unique_ptr<SocketListener> socketListener) {
     std::lock_guard<std::mutex> locck(mutex);
     if (map.contains(socket)) {
         ERROR()
     } else {
-        map[socket] = socketListener;
+        map[socket] = std::move(socketListener);
         map[socket]->start(); // start thread
     }
 }
@@ -90,8 +90,8 @@ SocketListener& SocketManager::get(Socket socket) {
 void SocketManager::remove(Socket socket) {
     std::lock_guard<std::mutex> locck(mutex);
     if (map.contains(socket)) {
-        delete map[socket];
-        map.erase(socket);
+        map[socket]->stop();  // stop thread
+        map.erase(socket); // remove entry in map
     } else {
         ERROR()
     }
