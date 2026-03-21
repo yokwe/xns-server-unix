@@ -30,69 +30,39 @@
 
  
  //
- // Clearinghouse3.cpp
+ // SocketTime.cpp
  //
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
-#include "../service/Clearinghouse3.h"
+#include "../util/ByteBuffer.h"
+
 #include "../service/Services.h"
 
 #include "Server.h"
 #include "Session.h"
-#include "Context.h"
 #include "Connection.h"
-#include "ConnectionStream.h"
 
-namespace server::Clearinghouse3 {
+#include "SocketCHS.h"
+
+namespace server {
 //
-using namespace courier::Clearinghouse3;
 
-static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
-    logger.info("%s", __func__);
+void SocketCHS::process(Session& session, ByteBuffer&rx) {
+    if (session.rxIDP.packetType != xns::IDP::PacketType::PEX)    ERROR()
 
-    Context& context = *connection.session.context;
-    auto host = xns::Host(context.me);
-    NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
-    NetworkAddressList list{networkAddress};
-    RetrieveAddresses::Result result = {list};
+    ByteBuffer pexBody;
+    rx.read(session.rxPEX, pexBody);
+    if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", session.rxPEX.toString(), pexBody.byteLimit(), pexBody.toString());
 
-    logger.info("%s  %s", __func__, list.toString());
+    Connection connection(session, 0, 0); // define dummy connection
+    auto tx = service::services.callCourier(connection, pexBody);
+    if (tx.empty()) return;
 
-    return result;
-}
-
-static void ListDomainServed(Connection& connection, courier::Clearinghouse3::ListDomainServed::Argument argument) {
-    (void)connection;
-    logger.info("%s  argument %s", __func__, argument.toString());
-    if (argument.domains.key != courier::BulkData1::Descriptor::Key::immediate) ERROR()
-
-    // // transmit SreamOfDomainName to BULK
-    // courier::SEQUENCE<DomainName, 65535> segment = {
-    //     {DomainName{"FXIS", "Fuji Xerox"}},
-    // };
-    // auto result = StreamOfDomainName::fromLastSegment(segment);
-
-    // auto txbb = getByteBuffer();
-    // txbb.write(result);
-    // Data data = txbb.toVector();
-
-    // connection.transmitUser(ConnectionStream::BULK, false, true, data);    
-}
-
-static service::Clearinghouse3::FunctionTable functionTable {
-    RetrieveAddres,
-    ListDomainServed,
-};
-
-void enable() {
-    logger.info("init");
-    service::services.clearinghouse3.set(functionTable);
-}
-void disable() {
-    service::Clearinghouse3::FunctionTable emptyTable;
-    service::services.clearinghouse3.set(emptyTable);
+    
+    logger.info("duration  %d", session.duration());
+    session.sendPEX(tx);
 }
 
 }

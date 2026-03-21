@@ -18,6 +18,7 @@ target_sources(
     Packet.h
     Server.h
     Session.h
+    SocketCHS.h
     SocketEcho.h
     SocketError.h
     SocketManager.h
@@ -27,7 +28,7 @@ target_sources(
   PRIVATE
 #    AUTH.cpp
 #    CHS.cpp
-#    Clearinghouse3.cpp
+    Clearinghouse3.cpp
     Config.cpp
 #    Connection.cpp
 #    ConnectionClientCourier.cpp
@@ -39,6 +40,7 @@ target_sources(
 #    RIP.cpp
     Server.cpp
     Session.cpp
+    SocketCHS.cpp
     SocketEcho.cpp
     SocketError.cpp
     SocketManager.cpp
