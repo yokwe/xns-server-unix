@@ -51,6 +51,23 @@ public:
     };
     static std::string toString(SST value);
 
+    // function for seq comparison
+    // return true when a is before b
+    static inline bool isBefore(uint16_t a, uint16_t b) {
+        if (a < b) {
+            // a = 10  b = 20  => true
+            return true;
+        } else if (a > b) {
+            // a = 10     b = 5  => false
+            // a = 65530  b = 5  => true
+            auto diff = a - b;
+            return 30000 < diff;
+        } else {
+            return false;
+        }
+    }
+
+
     uint8_t  control; // Control Bit
     SST      sst;     // Sub System Type
     uint16_t srcID;   // connection id of source
@@ -59,15 +76,25 @@ public:
     uint16_t ack;     // sequence number of the next expected packet  OR  sequence number before this number was acknowledged
     uint16_t alloc;   // sequence number
 
-    // format of control
-    //   bit 0  system packet
-    //   bit 1  sent acknowledgement
-    //   bit 2  attention
-    //   bit 3  end of message
-    static const constexpr uint8_t BIT_SYSTEM         = 0x80;
-    static const constexpr uint8_t BIT_SEND_ACK       = 0x40;
-    static const constexpr uint8_t BIT_ATTENTION      = 0x20;
-    static const constexpr uint8_t BIT_END_OF_MESSAGE = 0x10;
+    SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
+    SPP(uint8_t control_, SST sst_, uint16_t srcID_, uint16_t dstID_, uint16_t seq_, uint16_t ack_, uint16_t alloc_) :
+        control(control_), sst(sst_), srcID(srcID_), dstID(dstID_), seq(seq_), ack(ack_), alloc(alloc_) {}
+
+    void read(const ByteBuffer& bb) {
+        bb.read(control, sst, srcID, dstID, seq, ack, alloc);
+    }
+    void write(ByteBuffer& bb) const {
+        bb.write(control, sst, srcID, dstID, seq, ack, alloc);
+    }
+    std::string toString() const {
+        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
+            system()       ? "S" : "_",
+            sendAck()      ? "S" : "_",
+            attention()    ? "A" : "_",
+            endOfMessage() ? "E" : "_",
+            toString(sst), srcID, dstID, seq, ack, alloc);
+    }
+
     
     bool system() const {
         return control & BIT_SYSTEM;
@@ -95,24 +122,16 @@ public:
         control = (control & ~BIT_END_OF_MESSAGE) | (newValue ? BIT_END_OF_MESSAGE : 0);
     }
 
-    SPP() : control(0), sst(SST::DATA), srcID(0), dstID(0), seq(0), ack(0), alloc(0) {}
-    SPP(uint8_t control_, SST sst_, uint16_t srcID_, uint16_t dstID_, uint16_t seq_, uint16_t ack_, uint16_t alloc_) :
-        control(control_), sst(sst_), srcID(srcID_), dstID(dstID_), seq(seq_), ack(ack_), alloc(alloc_) {}
-
-    void read(const ByteBuffer& bb) {
-        bb.read(control, sst, srcID, dstID, seq, ack, alloc);
-    }
-    void write(ByteBuffer& bb) const {
-        bb.write(control, sst, srcID, dstID, seq, ack, alloc);
-    }
-    std::string toString() const {
-        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
-            system()       ? "S" : "_",
-            sendAck()      ? "S" : "_",
-            attention()    ? "A" : "_",
-            endOfMessage() ? "E" : "_",
-            toString(sst), srcID, dstID, seq, ack, alloc);
-    }
+private:
+    // format of control
+    //   bit 0  system packet
+    //   bit 1  sent acknowledgement
+    //   bit 2  attention
+    //   bit 3  end of message
+    static const constexpr uint8_t BIT_SYSTEM         = 0x80;
+    static const constexpr uint8_t BIT_SEND_ACK       = 0x40;
+    static const constexpr uint8_t BIT_ATTENTION      = 0x20;
+    static const constexpr uint8_t BIT_END_OF_MESSAGE = 0x10;
 };
 
 }
