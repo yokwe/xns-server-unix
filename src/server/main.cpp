@@ -33,8 +33,9 @@
  // main.cpp
  //
 
-#include "../util/Util.h"
 #include <csignal>
+
+#include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -48,7 +49,6 @@ static const Logger logger(__FILE__);
 #include "SocketTime.h"
 #include "SocketRIP.h"
 #include "SocketEcho.h"
-#include "SocketCHS.h"
 
 int main(int, char **) {
     using namespace server;
@@ -86,10 +86,9 @@ int main(int, char **) {
     socketManager.put<server::SocketTime>();
     socketManager.put<server::SocketRIP>();
     socketManager.put<server::SocketEcho>();
-    socketManager.put<server::SocketCHS>();
 
     // enable service implementation
-    server::Clearinghouse3::enable();
+//    server::Clearinghouse3::enable();
 
 //    server::startSPP();
 
