@@ -82,10 +82,10 @@ int main(int, char **) {
 
     // set socket listener
     SocketManager socketManager;
-    socketManager.put<server::SocketError>();
-    socketManager.put<server::SocketTime>();
-    socketManager.put<server::SocketRIP>();
-    socketManager.put<server::SocketEcho>();
+    socketManager.add<server::SocketError>();
+    socketManager.add<server::SocketTime>();
+    socketManager.add<server::SocketRIP>();
+    socketManager.add<server::SocketEcho>();
 
     // enable service implementation
 //    server::Clearinghouse3::enable();
@@ -136,12 +136,7 @@ int main(int, char **) {
             }
         }
     
-        auto socket = session.rxIDP.dst.socket;
-        if (socketManager.contains(socket)) {
-            socketManager.process(session, idpBody);
-        } else {
-            logger.warn("Unknown socket  %s", ::toString(socket));
-        }
+        socketManager.process(session, idpBody);
 	}
 
     threadReceive.stop();

@@ -35,17 +35,12 @@
 
 #pragma once
 
-#include <functional>
-#include <memory>
 #include <mutex>
 #include <string>
-#include <chrono>
 #include <unordered_map>
 
 
 #include "../util/ByteBuffer.h"
-#include "../util/SimpleQueue.h"
-#include "../util/ThreadControl.h"
 
 #include "../xns/XNS.h"
 
@@ -54,112 +49,34 @@
 
 namespace server {
 //
-struct SocketData {
-    Session   session;
-    ByteBuffer rx;
-
-    SocketData() {}
-    SocketData(const Session& session_, const ByteBuffer& rx_) : session(session_), rx(rx_) {}
-
-    // SocketData(const SocketData&) = default;
-    // SocketData& operator =(const SocketData&) = default;
-};
-
-class SocketListener {
-    using Function     = std::function<void(ByteBuffer&)>;
-    using milliseconds = std::chrono::milliseconds;
-    using Queue        = SimpleQueue<SocketData>;
-
-    static const constexpr auto WAIT_INTERVAL = std::chrono::milliseconds(500);
-    static const constexpr auto IDLE_INTERVAL = std::chrono::milliseconds(5'000);
-
-    std::string   name;
-    Queue         queue;
-    bool          stopThread;
-
-    milliseconds  waitInterval;
-    milliseconds  idleInterval;
-
-    ThreadControl threadControl;
-
-public:
-    SocketListener(const std::string& name_, milliseconds waitInterval_ = WAIT_INTERVAL, milliseconds idleInterval_ = IDLE_INTERVAL) :
-        name(name_), queue(), stopThread(false),
-        waitInterval(waitInterval_), idleInterval(idleInterval_) {
-        auto function = std::bind(&SocketListener::run, this);
-        threadControl.set(name, function);
-    }
-
-    SocketListener(SocketListener&& that) :
-        name(that.name), queue(std::move(that.queue)), stopThread(that.stopThread),
-        waitInterval(that.waitInterval), idleInterval(that.idleInterval),
-        threadControl(std::move(that.threadControl)) {}
-    
-    virtual ~SocketListener() = default;
-
-    virtual void process(Session&, ByteBuffer& rx) = 0; // rx is idp body
-    virtual void idle()                            = 0;
-
-    void accept(Session& session, ByteBuffer& rx) { // rx is idp body
-        SocketData data;
-        data.session = session;
-        // copy rx to data.rx
-        data.rx = ByteBuffer(rx.byteLimit());
-        data.rx.write(rx);
-        data.rx.flip();
-        queue.push(data);
-    }
-
-    void start() {
-        threadControl.start();
-    }
-    void stop() {
-        stopThread = true;
-        threadControl.join();
-    }
-
-    void run();
-};
-
-
 class SocketManager {
+public:
+    class Listener {
+    public:
+        virtual ~Listener() = default;
+        virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
+        virtual const std::string& name() = 0;
+    };
+
+    template<typename T>
+    void add() {
+        add(T::SOCKET, new T);
+    }
+
+    void add     (Socket socket, Listener* listener);
+    void remove  (Socket socket);
+    bool contains(Socket socket);
+
+    void process(Session& session, ByteBuffer& rx); // rx is idp body
+
+    Socket newSocket();
+
+private:
     using Socket       = xns::Socket;
-    using LISTENER_MAP = std::unordered_map<Socket, std::unique_ptr<SocketListener>>;
+    using LISTENER_MAP = std::unordered_map<Socket, Listener*>;
 
     LISTENER_MAP map;
     std::mutex   mutex;
-
-public:
-    void            put     (Socket socket, std::unique_ptr<SocketListener> socketListener);
-    SocketListener& get     (Socket socket);
-    void            remove  (Socket socket);
-    bool            contains(Socket socket);
-
-    Socket          newSocket();
-
-    template<typename T>
-    void put() {
-        put(T::SOCKET, new T);
-    }
-
-    void put(Socket socket, SocketListener* socketListener) {
-        put(socket, std::unique_ptr<SocketListener>(socketListener));
-    }
-
-    void put(uint16_t socket, SocketListener* socketListener) {
-        put(static_cast<Socket>(socket), socketListener);
-    }
-    SocketListener& get(uint16_t socket) {
-        return get(static_cast<Socket>(socket));
-    }
-    void remove(uint16_t socket) {
-        remove(static_cast<Socket>(socket));
-    }
-    bool contains(uint16_t socket) {
-        return contains(static_cast<Socket>(socket));
-    }
-
-    void process(Session&, ByteBuffer& rx); // rx is idp body
 };
 
 }

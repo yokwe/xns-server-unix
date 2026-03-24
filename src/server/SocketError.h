@@ -41,15 +41,14 @@
 namespace server {
 //
 
-struct SocketError: public SocketListener {
+struct SocketError: public SocketManager::Listener {
     static const constexpr auto SOCKET = xns::Socket::ERROR_;
-    static const constexpr auto NAME = "SocketError";
-    static const constexpr auto WAIT_INTERVAL = std::chrono::milliseconds(500);
-    static const constexpr auto IDLE_INTERVAL = std::chrono::milliseconds(5'000);
-
-    SocketError() : SocketListener(NAME, WAIT_INTERVAL, IDLE_INTERVAL) {}
-    void process(Session& session, ByteBuffer&rx);
-    void idle() {}
+    static const constexpr std::string NAME = "SocketError";
+    
+    void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
+    const std::string& name() override {
+        return NAME;
+    }
 };
 
 }

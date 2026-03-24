@@ -75,7 +75,8 @@ static courier::Time::Response call(Session& session, courier::Time::Request req
     return response;
 }
 
-void SocketTime::process(Session& session, ByteBuffer&rx) {
+void SocketTime::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
     if (session.rxIDP.packetType != xns::IDP::PacketType::PEX)    ERROR()
 
     ByteBuffer pexBody;
@@ -95,7 +96,6 @@ void SocketTime::process(Session& session, ByteBuffer&rx) {
     auto tx = getByteBuffer();
     tx.write(txTime);
     
-    logger.info("duration  %d", session.duration());
     session.sendPEX(tx);
 }
 

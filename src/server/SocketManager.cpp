@@ -44,79 +44,55 @@ static const Logger logger(__FILE__);
 namespace server {
 //
 
-void SocketListener::run() {
-    logger.info("SocketListener  START  %s", name);
-    auto lastIdle = std::chrono::steady_clock::now();
-    SocketData socketData;
-
-    for(;;) {
-        if (stopThread) break;
-        if (queue.pop(socketData, waitInterval)) {
-            // process data
-            process(socketData.session, socketData.rx);
-        } else {
-            // do idle task like retransmit
-            auto now = std::chrono::steady_clock::now();
-            if (now < (lastIdle + idleInterval)) {
-                idle();
-                lastIdle = now;
-            }
-        }
-    }
-    logger.info("SocketListener  STOP  %s", name);
-}
-
-
-//
-// SocketManager
-//
-void SocketManager::put(Socket socket, std::unique_ptr<SocketListener> socketListener) {
+void SocketManager::add(Socket socket, Listener* listener) {
     std::lock_guard<std::mutex> locck(mutex);
     if (map.contains(socket)) {
         ERROR()
     } else {
-        map[socket] = std::move(socketListener);
-        map[socket]->start(); // start thread
-    }
-}
-SocketListener& SocketManager::get(Socket socket) {
-    std::lock_guard<std::mutex> locck(mutex);
-    if (map.contains(socket)) {
-        return *map[socket];
-    } else {
-        ERROR()
+        map[socket] = listener;
+        logger.info("add  %-8s  %s", toString(socket), listener->name());
     }
 }
 void SocketManager::remove(Socket socket) {
     std::lock_guard<std::mutex> locck(mutex);
     if (map.contains(socket)) {
-        map[socket]->stop();  // stop thread
-        map.erase(socket); // remove entry in map
+        auto* listener = map[socket];
+        logger.info("remove   %s  %s", toString(socket), listener->name());
+        delete listener;
+        map.erase(socket); // remove from map
     } else {
         ERROR()
     }
 }
+
 bool SocketManager::contains(Socket socket) {
     std::lock_guard<std::mutex> locck(mutex);
     return map.contains(socket);
 }
 
-static SocketError socketError;
-
 void SocketManager::process(Session& session, ByteBuffer& rx) {
+    std::lock_guard<std::mutex> locck(mutex);
+
     // special for Error packet
     if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
-        socketError.process(session, rx);
+        static SocketError socketError;
+        bool stopped = false;
+        socketError.process(session, rx, stopped);
         return;
     }
 
     auto socket = session.rxIDP.dst.socket;
-    if (contains(socket)) {
-        auto& listener = get(socket);
-        listener.accept(session, rx);
-//        listener.process(session, rx);  // for debug
+    if (map.contains(socket)) {
+        auto* listener = map[socket];
+        bool stopped = false;
+        listener->process(session, rx, stopped);
+        if (stopped) {
+            logger.info("stopped  %s  %s", toString(socket), listener->name());
+            delete listener;
+            map.erase(socket);
+        }
     } else {
-        logger.warn("Unknown socket  %s", toString(socket));
+        logger.warn("unknown  %s", toString(socket));
     }
 }
 
@@ -127,7 +103,7 @@ Socket SocketManager::newSocket() {
             ret = ret + static_cast<uint16_t>(xns::MAX_WELLKNOWN_SOCKET);
             continue;
         }
-        if (!contains(ret)) return ret;
+        if (!map.contains(ret)) return ret;
         ret = ret + 13;
     }
 }

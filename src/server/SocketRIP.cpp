@@ -48,7 +48,8 @@ static const Logger logger(__FILE__);
 
 namespace server {
 //
-void SocketRIP::process(Session& session, ByteBuffer&rx) {
+void SocketRIP::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
     if (session.rxIDP.packetType != xns::IDP::PacketType::RIP)    ERROR()
 
     // make reference
