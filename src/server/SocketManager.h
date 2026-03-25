@@ -52,10 +52,17 @@ namespace server {
 class SocketManager {
 public:
     class Listener {
+    protected:
+        SocketManager* socketManager;
+
     public:
         virtual ~Listener() = default;
         virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
         virtual const std::string& name() = 0;
+
+        void set(SocketManager* socketManager_) {
+            socketManager = socketManager_;
+        }
     };
 
     template<typename T>
@@ -66,6 +73,8 @@ public:
     void add     (Socket socket, Listener* listener);
     void remove  (Socket socket);
     bool contains(Socket socket);
+
+    Listener* get(Socket socket);
 
     void process(Session& session, ByteBuffer& rx); // rx is idp body
 

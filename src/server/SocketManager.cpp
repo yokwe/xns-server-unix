@@ -38,6 +38,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
+#include "Server.h"
 #include "SocketError.h"
 #include "SocketManager.h"
 
@@ -49,6 +50,7 @@ void SocketManager::add(Socket socket, Listener* listener) {
     if (map.contains(socket)) {
         ERROR()
     } else {
+        listener->set(this);
         map[socket] = listener;
         logger.info("add  %-8s  %s", toString(socket), listener->name());
     }
@@ -70,9 +72,18 @@ bool SocketManager::contains(Socket socket) {
     return map.contains(socket);
 }
 
-void SocketManager::process(Session& session, ByteBuffer& rx) {
-    std::lock_guard<std::mutex> locck(mutex);
+// Listener& get(Socket socket);
 
+SocketManager::Listener* SocketManager::get(Socket socket) {
+    std::lock_guard<std::mutex> locck(mutex);
+    if (map.contains(socket)) {
+        return map[socket];
+    } else {
+        ERROR()
+    }
+}
+
+void SocketManager::process(Session& session, ByteBuffer& rx) {
     // special for Error packet
     auto packetType = session.rxIDP.packetType;
     if (packetType == xns::IDP::PacketType::ERROR_) {
@@ -83,8 +94,12 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
     }
 
     auto socket = session.rxIDP.dst.socket;
-    if (map.contains(socket)) {
-        auto* listener = map[socket];
+    Listener* listener;
+    {
+        std::lock_guard<std::mutex> locck(mutex);
+        listener = map.contains(socket) ? map[socket] : 0;
+    }
+    if (listener) {
         bool stopped = false;
         listener->process(session, rx, stopped);
         if (stopped) {
@@ -94,6 +109,17 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
         }
     } else {
         logger.warn("unknown  %s  %s", toString(socket), xns::IDP::toString(packetType));
+        if (packetType == xns::IDP::PacketType::PEX) {
+            xns::PEX   pexHeader;
+            ByteBuffer pexBody = getByteBuffer();
+            rx.read(pexHeader, pexBody);
+            logger.info("unknown  PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
+        } else if (packetType == xns::IDP::PacketType::SPP) {
+            xns::SPP   sppHeader;
+            ByteBuffer sppBody = getByteBuffer();
+            rx.read(sppHeader, sppBody);
+            logger.info("unknown  SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
+        }
     }
 }
 
