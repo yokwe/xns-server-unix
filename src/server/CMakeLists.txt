@@ -32,4 +32,4 @@ target_sources(
 
 add_dependencies(server service courier xns util)
 
-target_link_libraries (server service courier xns util)
+target_link_libraries (server spp service courier xns util)
