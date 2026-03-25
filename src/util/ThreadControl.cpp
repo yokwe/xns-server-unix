@@ -43,6 +43,42 @@ static const Logger logger(__FILE__);
 
 std::map<std::thread::id, std::string> ThreadControl::map;
 
+void ThreadControl::set(const std::string& name_, Function function_) {
+    if (joinable()) ERROR()
+    name     = name_;
+    function = function_;
+}
+void ThreadControl::set(Function function_) {
+    if (joinable()) ERROR()
+    function = function_;
+}
+
+// COPY
+ThreadControl::ThreadControl(const ThreadControl& that) {
+    if (that.joinable())  ERROR()
+    name     = that.name;
+    function = that.function;
+}
+ThreadControl& ThreadControl::operator =(const ThreadControl& that) {
+    if (that.joinable())  ERROR()
+    name     = that.name;
+    function = that.function;
+    return *this;
+}
+
+// MOVE
+ThreadControl::ThreadControl(ThreadControl&& that) {
+    name     = that.name;
+    function = that.function;
+    thread   = std::move(that.thread);
+}
+ThreadControl& ThreadControl::operator =(ThreadControl&& that) {
+    name     = that.name;
+    function = that.function;
+    thread   = std::move(that.thread);
+    return *this;
+}
+
 void ThreadControl::start() {
     logger.info("thread start   %s", name);
     thread = std::thread(function);
@@ -50,7 +86,13 @@ void ThreadControl::start() {
 }
 
 void ThreadControl::join() {
+    // sanity check
+    if (!joinable()) ERROR()
     logger.info("thread joining %s", name);
     thread.join();
     logger.info("thread joined  %s", name);
+}
+
+bool ThreadControl::joinable() const {
+    return thread.joinable();
 }

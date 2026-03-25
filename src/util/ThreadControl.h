@@ -42,35 +42,36 @@
 
 class ThreadControl {
 	static std::map<std::thread::id, std::string> map;
+	
 public:
 	using Function = std::function<void()>;
-
-	static std::string getName(const std::thread::id& id) {
-		return map.contains(id) ? map[id] : "???";
-	}
 
 	std::string name;
 	Function    function;
 	std::thread thread;
 
+	static std::string getName(const std::thread::id& id) {
+		return map.contains(id) ? map[id] : "???";
+	}
+
+	ThreadControl(const std::string& name_, Function function_) : name(name_), function(function_) {}
+	ThreadControl(const std::string& name_) : name(name_) {}
+	
 	ThreadControl() {}
-	ThreadControl(const char* name_, Function function_) : name(name_), function(function_) {}
 
-	ThreadControl(ThreadControl&& that) : name(that.name), function(that.function) {
-		thread = std::move(that.thread);
-	}
-	ThreadControl& operator =(ThreadControl&& that) {
-		name     = that.name;
-		function = that.function;
-		thread   = std::move(that.thread);
-		return *this;
-	}
+	void set(const std::string& name_, Function function_);
+	void set(Function function_);
 
-	void set(const std::string& name_, Function function_) {
-		name     = name_;
-		function = function_;
-	}
+	// COPY
+	ThreadControl(const ThreadControl& that);
+	ThreadControl& operator =(const ThreadControl& that);
+
+	// MOVE
+	ThreadControl(ThreadControl&& that);
+	ThreadControl& operator =(ThreadControl&& that);
 
 	void start();
 	void join();
+
+	bool joinable() const;
 };
