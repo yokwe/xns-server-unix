@@ -74,7 +74,8 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
     std::lock_guard<std::mutex> locck(mutex);
 
     // special for Error packet
-    if (session.rxIDP.packetType == xns::IDP::PacketType::ERROR_) {
+    auto packetType = session.rxIDP.packetType;
+    if (packetType == xns::IDP::PacketType::ERROR_) {
         static SocketError socketError;
         bool stopped = false;
         socketError.process(session, rx, stopped);
@@ -92,7 +93,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
             map.erase(socket);
         }
     } else {
-        logger.warn("unknown  %s", toString(socket));
+        logger.warn("unknown  %s  %s", toString(socket), xns::IDP::toString(packetType));
     }
 }
 
