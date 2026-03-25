@@ -45,7 +45,7 @@
 #include "../xns/XNS.h"
 
 // forward declaration
-namespace server {
+namespace spp {
 //
 class Connection;
 }
@@ -53,7 +53,7 @@ class Connection;
 namespace courier {
 //
 
-using Connection = server::Connection;
+using Connection = spp::Connection;
 
 //
 // STRING

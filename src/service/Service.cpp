@@ -43,6 +43,7 @@ static const Logger logger(__FILE__);
 
 namespace service {
 //
+using Connection = spp::Connection;
 
 bool ServicesBase::hasProtocolRange(const ByteBuffer& rx) {
     rx.mark();
@@ -56,7 +57,7 @@ bool ServicesBase::hasProtocolRange(const ByteBuffer& rx) {
     return ret;
 }
 
-ByteBuffer ServicesBase::callExpeditedMessage(server::Connection& connection, const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callExpeditedMessage(Connection& connection, const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;
         rx.read(protocolRange);
@@ -78,7 +79,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(server::Connection& connection, co
     }
 }
 
-ByteBuffer ServicesBase::callCourierMessage(server::Connection& connection, const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callCourierMessage(Connection& connection, const ByteBuffer& rx) {
     courier::Courier3::Message message;
     rx.read(message);
 

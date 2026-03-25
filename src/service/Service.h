@@ -45,12 +45,14 @@
 #include "../courier/Courier3.h"
 
 // forward declaration
-namespace server {
+namespace spp {
 class Connection;
 }
 
 namespace service {
 //
+using Connection = spp::Connection;
+
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 inline ByteBuffer getByteBuffer() {
     return ByteBuffer(MAX_PACKET_SIZE);
@@ -186,7 +188,7 @@ struct ProcedureBase {
     const std::string name;
 
     virtual bool empty() const = 0;
-    virtual ByteBuffer call(server::Connection& connection, const ByteBuffer& bb) const = 0; // called from network input
+    virtual ByteBuffer call(Connection& connection, const ByteBuffer& bb) const = 0; // called from network input
 
     ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
 
@@ -212,7 +214,7 @@ public:
         return !function;
     }
 
-    ByteBuffer call(server::Connection& connection, const ByteBuffer& rx) const override {
+    ByteBuffer call(Connection& connection, const ByteBuffer& rx) const override {
         ByteBuffer tx = getByteBuffer();
         if constexpr (std::is_void_v<A>) {
             if (rx.remains() != 0) {
@@ -289,10 +291,10 @@ struct ServicesBase {
     }
 
     bool hasProtocolRange(const ByteBuffer& rx);
-    ByteBuffer callCourierMessage  (server::Connection& connection, const ByteBuffer& rx);
-    ByteBuffer callExpeditedMessage(server::Connection& connection, const ByteBuffer& rx);
+    ByteBuffer callCourierMessage  (Connection& connection, const ByteBuffer& rx);
+    ByteBuffer callExpeditedMessage(Connection& connection, const ByteBuffer& rx);
 
-    ByteBuffer callCourier(server::Connection& connection, const ByteBuffer& rx) {
+    ByteBuffer callCourier(Connection& connection, const ByteBuffer& rx) {
         if (hasProtocolRange(rx)) {
             return callExpeditedMessage(connection, rx);
         } else {
