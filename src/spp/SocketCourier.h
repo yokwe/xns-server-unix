@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
+//
+// SPP.h
+//
 
- //
- // Stream.h
- //
 
 #pragma once
 
-#include <vector>
-#include <cstdint>
+#include <string>
 
-#include "../xns/SPP.h"
+#include "../util/ByteBuffer.h"
 
-namespace stream {
+#include "../xns/XNS.h"
+
+#include "../server/SocketManager.h"
+
+#include "ClientCourier.h"
+#include "SocketSPP.h"
+
+namespace spp {
 //
-using SST = xns::SPP::SST;
+using SocketManager = server::SocketManager;
+using Session       = server::Session;
 
-enum class Reason {
-    normal, timeout, endOfStream,
+
+struct SocketCourierClient: public SocketManager::Listener {
+    static const constexpr std::string NAME = "SocketCourier";
+
+    SocketCourierClient() : SocketManager::Listener() {}
+
+    void process(Session& session, ByteBuffer&rx, bool& stopped); // rx is idb body
+    const std::string& name() {
+        return NAME;
+    }
+    void idle();
 };
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
+
+struct SocketCourier: public SocketSPP {
+    static const constexpr auto SOCKET = xns::Socket::COURIER;
+    static const constexpr auto NAME = "SocketCourier";
+
+    SocketCourier() : SocketSPP(NAME) {}
+
+    SocketManager::Listener* getListener() override {
+        return new SocketCourierClient;
+    }
+    Client* getClient(Connection* connection) override {
+        return new ClientCourier(connection);
+    }
+
 };
 
-using Data = std::vector<uint8_t>;
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
-
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
-
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
 
 }

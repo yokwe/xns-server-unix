@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
- //
- // Stream.h
- //
-
-#pragma once
-
-#include <vector>
-#include <cstdint>
-
-#include "../xns/SPP.h"
-
-namespace stream {
+ 
 //
-using SST = xns::SPP::SST;
+// ClientCourier.cpp
+//
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-using Data = std::vector<uint8_t>;
+#include "../service/Services.h"
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
+#include "Stream.h"
+#include "ClientCourier.h"
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+namespace spp {
+//
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+static const constexpr uint64_t DEFUALT_TIMEOUT = 500; // milliseconds
+void ClientCourier::run() {
+    threadRunning = true;
+    logger.info("START");
+    stream.timeout(DEFUALT_TIMEOUT);
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
+    Data rxdata;
+    for(;;) {
+        if (stopThread) break;
+        auto result = stream.get(rxdata);
+        if (result.reason == Reason::timeout)     continue;
+        if (result.reason == Reason::endOfStream) break;
+        
+        ByteBuffer rx(rxdata.data(), rxdata.size());
+        auto tx = service::services.callCourier(*connection, rx);
+        auto txdata = tx.toVector();
+        stream.put(txdata, true, xns::SPP::SST::DATA);
+    }
+
+    logger.info("STOP");
+    threadRunning = false;
+}
 
 }

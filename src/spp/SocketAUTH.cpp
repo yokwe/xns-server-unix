@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
+ 
  //
- // Stream.h
+ // SocketAUTH.cpp
  //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <vector>
-#include <cstdint>
+#include "../util/ByteBuffer.h"
 
-#include "../xns/SPP.h"
+#include "../service/Services.h"
 
-namespace stream {
+#include "Connection.h"
+
+#include "SocketAUTH.h"
+
+namespace spp {
 //
-using SST = xns::SPP::SST;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+void SocketAUTH::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
+    if (session.rxIDP.packetType != xns::IDP::PacketType::PEX)    ERROR()
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+    ByteBuffer pexBody;
+    rx.read(session.rxPEX, pexBody);
+    if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", session.rxPEX.toString(), pexBody.byteLimit(), pexBody.toString());
 
-using Data = std::vector<uint8_t>;
+    Connection connection(session, 0, 0); // define dummy connection
+    auto tx = service::services.callCourier(connection, pexBody);
+    if (tx.empty()) return;
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
-
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
-
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
+    
+    logger.info("duration  %d", session.duration());
+    session.sendPEX(tx);
+}
 
 }

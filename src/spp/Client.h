@@ -29,20 +29,53 @@
  *******************************************************************************/
 
 //
-// ConnectionClient.h
+// Client.h
 //
 
 #pragma once
+
+#include <functional>
+
+#include "../util/ThreadControl.h"
+
+#include "ConnectionStream.h"
 
 namespace spp {
 //
 class Connection;
 
-struct ConnectionClient {
-    virtual ~ConnectionClient() = default;
-    
-    // Connection will create thead and call run from the thread
+class Client : public ThreadControl {
+protected:
+    Connection* connection;
+
+    bool        stopThread;
+    bool        threadRunning;
+    ConnectionStream stream;
+
+public:
+    Client(const char* name_, Connection* connection_) :
+        ThreadControl(name_, std::bind(&Client::run, this)),
+        connection(connection_),
+        stopThread(false),
+        threadRunning(false),
+        stream(connection) {}
+
+    virtual ~Client() = default;
+
     virtual void run() = 0;
+
+    void start() {
+        stopThread    = false;
+        threadRunning = true;
+        ThreadControl::start();
+    }
+    void stop() {
+        stopThread = true;
+        join();
+    }
+    bool runnning() {
+        return threadRunning;
+    }
 };
 
 }

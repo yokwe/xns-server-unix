@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,51 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
- //
- // Stream.h
- //
+//
+// ConnectionStream.h
+//
 
 #pragma once
 
-#include <vector>
 #include <cstdint>
+
+#include "../util/ByteBuffer.h"
 
 #include "../xns/SPP.h"
 
-namespace stream {
+#include "Stream.h"
+
+namespace spp {
 //
-using SST = xns::SPP::SST;
+using Reason = stream::Reason;
+using Result = stream::Result;
+using Data   = stream::Data;
+using SST    = xns::SPP::SST;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+// forward declaration
+class Connection;
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+class ConnectionStream : public stream::Stream {
+    Connection* connection;
 
-using Data = std::vector<uint8_t>;
+    uint32_t timeoutValue   = 3'600'000; // unit is milliseconds
 
-class Stream {
 public:
-    static const constexpr int NO_ATTENTION = -1;
+    ConnectionStream(Connection* connection_): connection(connection_) {}
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+    Result   get(Data& data) override;
+    void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) override;
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+    void put(ByteBuffer& bb, bool endOfMessage = false, SST sst = SST::DATA) {
+        auto data = bb.toVector();
+        put(data, endOfMessage, sst);
+    }
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
+    void     attention(uint8_t value) override;
+    int      attention() override;  // return -1 when no attention
+
+    uint32_t timeout() override;               // unit is milliseconds
+    void     timeout(uint32_t value) override; // unit is milliseconds
 };
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
+ 
  //
- // Stream.h
+ // ConnectionStream.cpp
  //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <vector>
-#include <cstdint>
+#include "Packet.h"
+#include "Connection.h"
+#include "ConnectionStream.h"
 
-#include "../xns/SPP.h"
-
-namespace stream {
+namespace spp {
 //
-using SST = xns::SPP::SST;
+stream::Result   ConnectionStream::get(Data& data) {
+    if (connection->closed()) {
+        return Result(Reason::endOfStream, SST::DATA, false);
+    }
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
+    Packet packet;
+    auto timeoutDuration = std::chrono::milliseconds(timeoutValue);
+    auto hasData = connection->clientQueue.pop(packet, timeoutDuration);
+
     Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+    if (hasData) {
+        data = packet.data;
+        reason = Reason::normal;
+    } else {
+        reason = connection->closed() ? Reason::endOfStream : Reason::timeout;
+    }
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+    return Result(reason, packet.sst, packet.endOfMessage());
+}
+void     ConnectionStream::put(Data& data, bool endOfMessage, SST sst) {
+    connection->transmitUser(false, endOfMessage, sst, data);
+}
 
-using Data = std::vector<uint8_t>;
+void     ConnectionStream::attention(uint8_t value) {
+    connection->transmitAttention(value);
+}
+int      ConnectionStream::attention() { // return -1 when no attention
+    return connection->attention();
+}
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
-
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
-
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
+uint32_t ConnectionStream::timeout() { // unit is milliseconds
+    return timeoutValue;
+}               
+void     ConnectionStream::timeout(uint32_t value) { // unit is milliseconds
+    timeoutValue = value;
+}
 
 }

@@ -30,7 +30,7 @@
 
  
  //
- // SocketTime.cpp
+ // SocketCHS.cpp
  //
 
 #include "../util/Util.h"

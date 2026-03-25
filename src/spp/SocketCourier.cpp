@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
+ 
  //
- // Stream.h
+ // SocketCourier.cpp
  //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <vector>
-#include <cstdint>
+#include "../util/ByteBuffer.h"
 
-#include "../xns/SPP.h"
+#include "Connection.h"
 
-namespace stream {
+#include "SocketCourier.h"
+
+
+namespace spp {
 //
-using SST = xns::SPP::SST;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
+    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+    xns::SPP   rxHeader;
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
+    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-using Data = std::vector<uint8_t>;
+    auto key = getKey(rxHeader);
+    if (!connections.contains(key)) ERROR()
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
+    auto& connection = connections.get(key);
+    connection.receive(rxHeader, rxbb);
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+    if (connection.closed()) {
+        logger.info("SSP CLOSE  %s", name());
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+        // notify SocketManager to stop listening this socket
+        stopped = true;
+        
+        // stop client
+        connection.client->stop();
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
+        // remove connection from connections
+        connections.remove(key);
+    }
+}
+
+void SocketCourierClient::idle() {
+
+}
 
 }

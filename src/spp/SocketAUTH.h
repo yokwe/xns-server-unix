@@ -30,46 +30,29 @@
 
 
  //
- // Stream.h
+ // SockeAUTH.h
  //
 
 #pragma once
 
-#include <vector>
-#include <cstdint>
 
-#include "../xns/SPP.h"
+#include "../server/SocketManager.h"
+#include "../server/Session.h"
 
-namespace stream {
+namespace spp {
 //
-using SST = xns::SPP::SST;
+using SocketManager = server::SocketManager;
+using Socket        = xns::Socket;
+using Session       = server::Session;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+struct SocketAUTH: public SocketManager::Listener {
+    static const constexpr auto SOCKET = Socket::AUTH;
+    static const constexpr std::string NAME = "SocketAUTH";
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
-
-using Data = std::vector<uint8_t>;
-
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
-
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
-
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
+    void process(Session& session, ByteBuffer&rx, bool& stopped) override;
+    const std::string& name() override {
+        return NAME;
+    }
 };
 
 }

@@ -51,7 +51,9 @@ static const Logger logger(__FILE__);
 #include "SocketEcho.h"
 
 #include "../spp/SocketCHS.h"
+#include "../spp/SocketAUTH.h"
 #include "../spp/Clearinghouse3.h"
+#include "../spp/SocketCourier.h"
 
 int main(int, char **) {
     using namespace server;
@@ -90,6 +92,8 @@ int main(int, char **) {
     socketManager.add<server::SocketRIP>();
     socketManager.add<server::SocketEcho>();
     socketManager.add<spp::SocketCHS>();
+    socketManager.add<spp::SocketAUTH>();
+    socketManager.add<spp::SocketCourier>();
 
     // enable service implementation
     spp::Clearinghouse3::enable();

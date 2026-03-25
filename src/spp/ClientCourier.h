@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
- //
- // Stream.h
- //
+//
+// ClientCourier.h
+//
 
 #pragma once
 
-#include <vector>
-#include <cstdint>
+#include "Client.h"
+#include "ConnectionStream.h"
 
-#include "../xns/SPP.h"
-
-namespace stream {
+namespace spp {
 //
-using SST = xns::SPP::SST;
-
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
-
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
-
-using Data = std::vector<uint8_t>;
-
-class Stream {
+class ClientCourier : public Client {
+protected:
 public:
-    static const constexpr int NO_ATTENTION = -1;
+    static const constexpr char* NAME = "ClientCourier";
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+    ClientCourier(Connection* connection_): Client(NAME, connection_) {}
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
-
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
+    void run() override;
 };
 
 }

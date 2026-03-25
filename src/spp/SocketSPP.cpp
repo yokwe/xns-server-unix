@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,71 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
+ 
  //
- // Stream.h
+ // SocketSP.cpp
  //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <vector>
-#include <cstdint>
+#include "Connection.h"
 
-#include "../xns/SPP.h"
+#include "SocketSPP.h"
 
-namespace stream {
+namespace spp {
 //
-using SST = xns::SPP::SST;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
+    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+    xns::SPP   rxHeader;
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
+    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-using Data = std::vector<uint8_t>;
+    // sanity check
+    if (!rxHeader.system()) {
+        logger.error("Unexpected NOT system packet");
+        ERROR()
+    }
+    if (!rxbb.empty()) {
+        logger.error("Unexpected rxbb is not empty");
+        ERROR()
+    }
 
-class Stream {
-public:
-    static const constexpr int NO_ATTENTION = -1;
+    // get new socket for srcSocket
+    auto srcSocket = socketManager->newSocket();
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+    // set dst.socket to redirect socket
+    session.rxIDP.dst.socket = srcSocket;
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+    // start listening new socket
+    auto* clientListener = getListener();
+    socketManager->add(srcSocket, clientListener);
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
-};
+    // add new connection
+    const uint16_t dstID = rxHeader.srcID;
+    const uint16_t srcID = connections.newSrcID(dstID);
+    const uint32_t key   = getKey(srcID, dstID);
+
+    connections.add(new Connection(session, srcID, dstID));    
+
+    // get reference of connection from connections
+    auto& connection = connections.get(key);
+
+    // set client to connection
+
+    connection.set(getClient(&connection));
+
+    // start client thread
+    connection.client->start();
+
+    logger.info("SPP OPEN   %s  %s", myName, connection.toString());
+
+    // send packet
+    connection.transmitSystem(true);
+}
 
 }

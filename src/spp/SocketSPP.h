@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
+//
+// SocketSPP.h
+//
 
- //
- // Stream.h
- //
 
 #pragma once
 
-#include <vector>
-#include <cstdint>
+#include <chrono>
 
-#include "../xns/SPP.h"
+#include "../util/ByteBuffer.h"
 
-namespace stream {
+#include "../server/SocketManager.h"
+
+#include "Connection.h"
+#include "Client.h"
+
+namespace spp {
 //
-using SST = xns::SPP::SST;
+using Listener      = server::SocketManager::Listener;
+using Session       = server::Session;
+using Socket        = xns::Socket;
+using milliseconds  = std::chrono::milliseconds;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+// SocketSPP process request and add client socket to newly allocated socket
+class SocketSPP: public Listener {
+protected:
+    std::string myName;
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
-
-using Data = std::vector<uint8_t>;
-
-class Stream {
 public:
-    static const constexpr int NO_ATTENTION = -1;
+    SocketSPP(const std::string& name) : myName(name) {}
+    virtual ~SocketSPP() = default;
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) = 0;
+    void process(Session& session, ByteBuffer&rx, bool& stopped) override;
+    const std::string& name() override {
+        return myName;
+    }
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+    virtual Listener* getListener()          = 0;
+    virtual Client*   getClient(Connection*) = 0;
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
 };
+
 
 }
