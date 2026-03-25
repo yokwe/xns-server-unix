@@ -35,7 +35,7 @@
 #pragma once
 
 #include <cstdint>
-#include <list>
+#include <vector>
 #include <mutex>
 
 #include "../util/Util.h"
@@ -46,7 +46,7 @@
 #include "../server/Session.h"
 
 #include "Packet.h"
-#include "ConnectionClient.h"
+#include "Client.h"
 
 namespace spp {
 //
@@ -55,6 +55,14 @@ using Session = server::Session;
 //
 // Connection
 //
+static inline uint32_t getKey(uint16_t srcID, uint16_t dstID) {
+    return (srcID << 16) | dstID;
+}
+static inline uint32_t getKey(const xns::SPP& rxHeader) {
+    return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
+}
+
+
 class Connection {
 public:
     static const constexpr int NO_ATTENTION = -1;
@@ -75,8 +83,10 @@ public:
 
     State    state;
     Session  session;
+
     uint16_t srcID;
     uint16_t dstID;
+    uint32_t key;
 
     uint16_t seq;
     uint16_t ack;
@@ -89,35 +99,38 @@ public:
     SimpleQueue<Packet> clientQueue;
     ThreadControl       clientThread;
 
-    std::shared_ptr<ConnectionClient> client;
+    Client*   client;
 
     int attentionValue;
 
     Connection(const Connection& that) :
-        state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
+        state(that.state), session(that.session),
+        srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
-        state(that.state), session(that.session), srcID(that.srcID), dstID(that.dstID),
+        state(that.state), session(that.session),
+        srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), ack(that.ack), alloc(that.alloc),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
-        state(State::NEW), session(session_), srcID(srcID_), dstID(dstID_),
+        state(State::NEW), session(session_),
+        srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
         seq(0), ack(0), alloc(0),
         clientSeq(0), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%s  %04X  %04X  %d  %d  %d  %d  %d}", toString(state), srcID, dstID, seq, ack, alloc, clientSeq, clientQueue.size());
+        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, ack, alloc, clientSeq, clientQueue.size());
     }
 
-    void set(std::shared_ptr<ConnectionClient> client);
+    void set(Client* client);
 
     // from client
     void transmitSystem(bool sendAck) {
@@ -165,57 +178,25 @@ private:
 // Connections
 //
 struct Connections {
-    static inline uint32_t getKey(const xns::SPP& rxHeader) {
-        return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
-    }
-    static inline uint32_t getKey(const Connection& connection) {
-        return getKey(connection.srcID, connection.dstID);
-    }
-    static inline uint32_t getKey(uint16_t srcID, uint16_t dstID) {
-        return (srcID << 16) | dstID;
-    }
+    using VECTOR = std::vector<Connection*>;
 
-    ThreadControl threadControl;
-    void start();
-    void run();
+    static const constexpr uint32_t SIZE  = 10;
+    static const constexpr uint32_t DELTA = 10;
 
-    std::list<Connection> list;
-    std::set<uint32_t>    set;
-    std::mutex            mutex;
+    VECTOR      vector;
+    std::mutex  mutex;
 
-    void add(Connection& connection) {
-        auto key = getKey(connection);
-        if (contains(key)) ERROR()
+    Connections(uint32_t size = SIZE) : vector(size, 0) {}
 
-        std::lock_guard<std::mutex> lock(mutex);
-        set.emplace(key);
-        list.emplace_back(connection);
-    }
-    
-    void remove(uint32_t key) {
-        static auto pred = [=](Connection& e){return key == getKey(e);};
+    void add     (Connection* connection);
+    void remove  (uint32_t key);
+    bool contains(uint32_t key);
 
-        std::lock_guard<std::mutex> lock(mutex);
-        set.erase(key);
-        auto count = std::erase_if(list, pred);
-        if (count == 0) ERROR()
-    }
+    Connection& get(uint32_t key);
+    uint32_t size();
 
-    bool contains(uint32_t key) {
-        std::lock_guard<std::mutex> lock(mutex);
-        return set.contains(key);
-    }
-    Connection& get(uint32_t key) {
-        std::lock_guard<std::mutex> lock(mutex);
-        for(auto& e: list) {
-            if (key == getKey(e)) return e;
-        }
-        ERROR()
-    }
-    uint32_t size() {
-        std::lock_guard<std::mutex> lock(mutex);
-        return set.size();
-    }
+    uint16_t newSrcID(uint16_t dstID);
 };
 
+inline Connections connections;
 }

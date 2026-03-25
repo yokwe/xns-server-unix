@@ -35,7 +35,6 @@
 
 #include <chrono>
 #include <functional>
-#include <thread>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -97,8 +96,6 @@ void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfM
 //
 void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
     auto sst = header.sst;
-
-    logger.info("SPP  >>  %s  (%d) %s", header.toString(), body.byteLimit(), body.toString());
 
     removeAcknowledged(header.ack);
 
@@ -252,10 +249,10 @@ void Connection::removeAcknowledged(uint16_t ack) {
 }
 
 
-void Connection::set(std::shared_ptr<ConnectionClient> client_) {
+void Connection::set(Client* client_) {
     client = client_;
     
-    ThreadControl::Function function = std::bind(&ConnectionClient::run, client);
+    ThreadControl::Function function = std::bind(&Client::run, client);
     clientThread.set("ClientThread", function);
 }
 
@@ -263,27 +260,74 @@ void Connection::set(std::shared_ptr<ConnectionClient> client_) {
 // Connections
 //
 
-void Connections::start() {
-    std::function<void()> function = std::bind(&Connections::run, this);
-    threadControl.set("Connection", function);
-    threadControl.start();
-}
+void Connections::add(Connection* connection) {
+    std::lock_guard<std::mutex> lock(mutex);
+    // sanity check
+    // check duplicate key
+    auto myKey = connection->key;
+    for(auto* e: vector) {
+        if (e && e->key == myKey) ERROR()
+    }
 
-void Connections::run() {
-    auto ONE_SECOND = std::chrono::seconds(1);
-    auto now = std::chrono::steady_clock::now();
-
-    for(;;) {
-        now += ONE_SECOND;
-        std::this_thread::sleep_until(now);
-
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            for(auto& e: list) {
-                e.retransmit();
-            }    
+    // if vector is full, resize vector with default value
+    if (vector.capacity() == 0) {
+        vector.resize(vector.size() + DELTA, 0);
+    }
+    // find first empty entry and store connection in it
+    for(auto*& e: vector) {
+        if (e == 0) {
+            e = connection;
+            return;
         }
     }
+    ERROR()
+}
+
+void Connections::remove(uint32_t key) {
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto& e: vector) {
+        if (e && key == e->key) {
+            // delete Connection
+            delete e;
+            // set ZERO to element
+            e = 0;
+            return;
+        }
+    }
+    ERROR()
+}
+
+bool Connections::contains(uint32_t key) {
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto* e: vector) {
+        if (e && key == e->key) return true;
+    }
+    return false;
+}
+Connection& Connections::get(uint32_t key) {
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto* e: vector) {
+        if (e && key == e->key) return *e;
+    }
+    ERROR()
+}
+uint32_t Connections::size() {
+    std::lock_guard<std::mutex> lock(mutex);
+    return vector.size();
+}
+
+uint16_t Connections::newSrcID(uint16_t dstID) {
+    std::lock_guard<std::mutex> lock(mutex);
+    uint16_t srcID = static_cast<uint16_t>(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
+    auto key = getKey(srcID, dstID);
+    for(auto* e: vector) {
+        if (e && key == e->key) {
+            srcID += 13;
+            key = getKey(srcID, dstID);
+            continue;
+        }
+    }
+    return srcID;
 }
 
 }
