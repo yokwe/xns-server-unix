@@ -52,8 +52,9 @@ static const Logger logger(__FILE__);
 
 #include "../spp/SocketCHS.h"
 #include "../spp/SocketAUTH.h"
-#include "../spp/Clearinghouse3.h"
 #include "../spp/SocketCourier.h"
+#include "../spp/Clearinghouse3.h"
+#include "../spp/Authentication2.h"
 
 int main(int, char **) {
     using namespace server;
@@ -97,6 +98,7 @@ int main(int, char **) {
 
     // enable service implementation
     spp::Clearinghouse3::enable();
+    spp::Authentication2::enable();
 
 //    server::startSPP();
 

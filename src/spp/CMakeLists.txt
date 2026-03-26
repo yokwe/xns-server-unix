@@ -7,6 +7,7 @@ add_library(spp STATIC)
 target_sources(
 	spp
 	PUBLIC
+		Authentication2.h
 		Clearinghouse3.h
 		Client.h
 		ClientCourier.h
@@ -19,6 +20,7 @@ target_sources(
 		SocketSPP.h
 		Stream.h
 	PRIVATE
+		Authentication2.cpp
 		Clearinghouse3.cpp
 		ClientCourier.cpp
 		Connection.cpp
