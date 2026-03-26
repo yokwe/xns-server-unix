@@ -37,7 +37,7 @@ import yokwe.courier.program.Type;
 import yokwe.util.AutoIndentPrintWriter;
 
 public class CompilerString extends CompilerPair {
-	public static final String TYPE_STRING = "std::string";
+	public static final String TYPE_STRING = "STRING";
 
 	@Override
 	public void compileType(final Context context, final AutoIndentPrintWriter out, final String name, final Type type) {
