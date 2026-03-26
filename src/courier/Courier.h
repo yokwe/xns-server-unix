@@ -58,7 +58,52 @@ using Connection = spp::Connection;
 //
 // STRING
 //
-// use std::string for STRING
+class STRING {
+    std::string value;
+public:
+    STRING() {}
+    STRING(const std::string& that) {
+        value = that;
+    }
+    STRING(const char* that) {
+        value = that;
+    }
+
+    STRING& operator = (const std::string& that) {
+        value = that;
+        return *this;
+    }
+    explicit operator std::string () {
+        return value;
+    }
+    
+    // read
+    void read(const ByteBuffer& bb) {
+        uint32_t size = bb.get16();
+
+        value.clear();
+        for(uint32_t i = 0; i < size; i++) {
+            value += bb.get8();
+        }
+        if (size & 1) bb.get8(); // Ignore filler byte
+    }
+
+    // write
+    void write(ByteBuffer& bb) const {
+        uint32_t size = value.size();
+        if (65535 < size) ERROR()
+        bb.put16(size);
+        for(uint32_t i = 0; i < size; i++) {
+            bb.put8(value[i]);
+        }
+        if (size & 1) bb.put8(0); // To align word boundary, write filler byte
+    }
+
+    // toString
+    std::string toString() const {
+        return std_sprintf("(%d) \"%s\"", value.size(), value);
+    }
+};
 
 //
 // ARRAY
