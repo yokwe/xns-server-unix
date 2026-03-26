@@ -65,22 +65,6 @@ concept has_read_write_ = has_read<T> && has_write<T>;
 template<typename T>
 concept has_read_write = has_read_write_<std::remove_cvref_t<T>>;
 
-template<typename T>
-concept has_from_bb = requires (T& o, const ByteBuffer& bb) {
-    { from_bb(bb, o) } -> std::same_as<void>;
-};
-template<typename T>
-concept has_to_bb = requires (const T& o, ByteBuffer& bb) {
-    { to_bb(bb, o) } -> std::same_as<void>;
-};
-template<typename T>
-concept has_from_bb_to_bb = has_from_bb<T> && has_to_bb<T>;
-
-template<typename T>
-concept valid_for_bb_ = has_read_write<T> || has_from_bb_to_bb<T> || std::is_enum_v<T> || std::is_integral_v<T>;
-template<typename T>
-concept valid_for_bb = valid_for_bb_<std::remove_cvref_t<T>>;
-
 class ByteBuffer {
     static const bool USE_MESA_BYTE_ORDER = false;
 
@@ -365,9 +349,6 @@ public:
             UT value;
             read(value);
             o = static_cast<T>(value);
-        } else if constexpr (has_from_bb_to_bb<T>) {
-            if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
-            from_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
             if constexpr (TRACE_BYTE_BUFFER_READ) DEBUG_TRACE()
             o.read(*this);
@@ -440,9 +421,6 @@ public:
             using UT = std::underlying_type_t<T>;
             UT value = static_cast<UT>(o);
             write(value);
-        } else if constexpr (has_from_bb_to_bb<T>) {
-            if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
-            to_bb(*this, o);
         } else if constexpr (has_read_write<T>) {
             if constexpr (TRACE_BYTE_BUFFER_WRITE) DEBUG_TRACE()
             o.write(*this);
@@ -472,73 +450,3 @@ struct ByteBufferException {
         return std_sprintf("myBytePos  %u  byteSize  %u  myByteLimit  %u", bb.bytePos(), byteSize, bb.byteLimit());
     }
 };
-
-
-//
-// std::string
-//
-inline void to_bb(ByteBuffer& bb, const std::string& string) {
-    int size = string.size();
-    if (65535 < size) ERROR()
-    bb.put16(size);
-    for(int i = 0; i < size; i++) {
-        uint8_t c = string[i];
-        bb.put8(c);
-    }
-}
-inline void from_bb(const ByteBuffer& bb, std::string& string) {
-    int size = bb.get16();
-    if (65535 < size) ERROR()
-    string.reserve(size);
-    for(int i = 0; i < size; i++) {
-        uint8_t c = bb.get8();
-        string.push_back(c);
-    }
-}
-//
-// std::vector
-//
-template<typename T>
-void to_bb(ByteBuffer& bb, const std::vector<T>& vector) {
-    int size = vector.size();
-    if (65535 < size) ERROR()
-    bb.put16(size);
-    for(int i = 0; i < size; i++) {
-        T value = vector[i];
-        bb.write(value);
-    }
-}
-template<typename T>
-void from_bb(const ByteBuffer& bb, std::vector<T>& vector) {
-    int size = bb.get16();
-    if (65535 < size) ERROR()
-    vector.reserve(size);
-    for(int i = 0; i < size; i++) {
-        T value;
-        bb.read(value);
-        vector[i] = value;
-    }
-}
-//
-// std::array
-//
-template<typename T, std::size_t N>
-void to_bb(ByteBuffer& bb, const std::array<T, N>& array) {
-    int size = array.size();
-    if (65535 < size) ERROR()
-    for(int i = 0; i < size; i++) {
-        T value = array[i];
-        bb.write(value);
-    }
-}
-template<typename T, std::size_t N>
-void from_bb(const ByteBuffer& bb, std::array<T, N>& array) {
-    int size = array.size();
-    if (65535 < size) ERROR()
-    if (size != N) ERROR()
-    for(int i = 0; i < size; i++) {
-        T value;
-        bb.read(value);
-        array[i] = value;
-    }
-}
