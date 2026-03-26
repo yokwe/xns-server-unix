@@ -64,9 +64,7 @@ static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
 
 static GetStrongCredentials::Result GetStrongCredentials(Connection& connection, GetStrongCredentials::Argument argument) {
     (void)connection;
-    DEBUG_TRACE()
     logger.info("%s  argument %s", __func__, argument.toString());
-    DEBUG_TRACE()
     GetStrongCredentials::Result result;
 
     return result;
