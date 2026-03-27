@@ -127,7 +127,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
     if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !receiveQueue.contains(rxseq)) {
         // add to rxQueue
         receiveQueue.add(Packet{header, body});
-        logger.info("ACCEPT rxseq  %d", rxseq);
+        logger.info("ACCEPT  %d  %s", rxseq, xns::SPP::toString(header.sst));
 
         // update attentionValue
         if (header.attention()) {
@@ -142,22 +142,24 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
             ack++;
             sendAck = true;
         }
-        alloc = ack + 4;    
-    }
+        alloc = ack + 4;
 
-    // move packet from rxQeueu to clientQueue in order of clientSeq
-    for (;;) {
-        if (!receiveQueue.contains(clientSeq)) break;
-        auto& packet = receiveQueue.get(clientSeq);
-        logger.info("clientQueue  %04X", clientSeq);
-        clientQueue.push(packet);
-        receiveQueue.remove(clientSeq);
-        clientSeq++;
+        // move packet from receiveQueue to clientQueue in order of clientSeq
+        for (;;) {
+            if (!receiveQueue.contains(clientSeq)) break;
+            auto& packet = receiveQueue.get(clientSeq);
+            logger.info("clientQueue  %04X", clientSeq);
+            clientQueue.push(packet);
+            receiveQueue.remove(clientSeq);
+            clientSeq++;
+        }    
+    } else {
+        logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
     }
 
     if (sendAck) {
-        // send acknledge
-        logger.info("SEND ACK  %d", ack);
+        // send acknowledge with current ack and alloc
+        logger.info("SEND ACK  %d  %d  %d", seq, ack, alloc);
         transmitSystem(false);
     }
 }
@@ -211,7 +213,7 @@ void Connection::receiveSystem(const xns::SPP& header, const ByteBuffer& body) {
     if (state == State::NEW) state = State::OPEN;
 
     if (header.sendAck()) {
-        logger.info("SEND ACK  %d", ack);
+        logger.info("SEND ACK  %d  %d  %d", seq, ack, alloc);
         transmitSystem(false);
     }
 }
