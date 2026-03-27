@@ -71,6 +71,8 @@ NUMBER
     ;
 
 ID  : CHAR_ALPHA (CHAR_ALPHA | CHAR_DEC | '_')*;
+IDEXT : CHAR_ALPHA (CHAR_ALPHA | CHAR_DEC | '_' | '<' | '>')*;
+
 
 STR : '"' ('""' | ~('"'))* '"';
 
@@ -175,9 +177,9 @@ signedNumberType
     ;
 
 reference
-    :    name=ID                   # ReferenceLocal
-    |    program=ID   '.'  name=ID # ReferenceRemote
-    |    namespace=ID '::' name=ID # ReferenceExternal
+    :    name=ID                      # ReferenceLocal
+    |    program=ID   '.'  name=ID    # ReferenceRemote
+    |    namespace=ID '::' name=(ID | IDEXT) # ReferenceExternal
     ;
 
 /* 3.4 Predefiend types */
