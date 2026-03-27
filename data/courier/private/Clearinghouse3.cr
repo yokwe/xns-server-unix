@@ -30,12 +30,7 @@ TwoPartName: TYPE = RECORD [
 
 DomainName: TYPE = TwoPartName;
 
-StreamOfDomainName: TYPE = CHOICE OF {
-	nextSegment (0) => RECORD [
-		segment: SEQUENCE OF DomainName],
---		restOfStream: StreamOfDomainName],
-	lastSegment (1) => SEQUENCE OF DomainName};
-
+StreamOfDomainName: TYPE = courier::StreamOf<DomainName>;
 
 
 RetrieveAddresses: PROCEDURE
