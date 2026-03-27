@@ -68,16 +68,18 @@ static void ListDomainServed(Connection& connection, courier::Clearinghouse3::Li
     if (argument.domains.key != courier::BulkData1::Descriptor::Key::immediate) ERROR()
 
     // transmit SreamOfDomainName to BULK
-    courier::SEQUENCE<DomainName, 65535> segment = {
-        {DomainName{"FXIS", "Fuji Xerox"}},
+    Clearinghouse3::StreamOfDomainName result = {
+        { "FXIS", "Fuji Xerox"},
     };
-    auto result = StreamOfDomainName::fromLastSegment(segment);
 
-    auto txbb = ByteBuffer(1400); // FIXME
-    txbb.write(result);
-    Data data = txbb.toVector();
-
-    connection.transmitUser(false, true, SST::BULK, data);
+    logger.info("result  %s", result.toString());
+    auto txbb = service::getByteBuffer();
+    while(!result.last()) {
+        txbb.clear();
+        result.write(txbb);
+        Data data = txbb.toVector();
+        connection.transmitUser(false, true, SST::BULK, data);
+    }
 }
 
 static service::Clearinghouse3::FunctionTable functionTable {
