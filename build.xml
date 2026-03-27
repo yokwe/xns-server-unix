@@ -15,9 +15,9 @@
 		</java>
 	</target>
 
-	<!-- DumpCourier -->
-	<target name="dump-courier">
-		<java module="yokwe.courier/yokwe.courier.app.DumpCourier" fork="true" failonerror="true">
+	<!-- CheckService -->
+	<target name="check-service">
+		<java module="yokwe.courier/yokwe.courier.app.CheckService" fork="true" failonerror="true">
 			<modulepath refid="build.classpath" />
 			<modulepath refid="target.jar" />
 		</java>
