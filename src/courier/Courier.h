@@ -137,6 +137,10 @@ public:
 		return std::move(data.at(n));
 	}
 
+    uint32_t size() {
+        return N;
+    }
+
     // read
     void read(const ByteBuffer& bb) {
         for(std::size_t i = 0; i < SIZE; i++) {
@@ -196,6 +200,10 @@ public:
 		return std::move(data.at(n));
 	}
 
+    uint32_t size() {
+        return data.size();
+    }
+
     // read
     void read(const ByteBuffer& bb) {
         uint16_t size = bb.get16();
@@ -235,6 +243,144 @@ public:
     }
 };
 
+//
+// StreamOf
+//
+template<typename T>
+struct StreamOf {
+    // MAXWORDS from trunk/xns/xnslib/courier.h of XNSOnUX
+    static const constexpr uint32_t MAXWORDS = 267;
+    static const constexpr uint32_t MAXBYTES = MAXWORDS * 2;
+
+    enum class Key : uint16_t {
+        NEXT = 0,
+        LAST = 1,
+    };
+
+    mutable Key      key;
+    mutable uint32_t writeIndex;
+    std::vector<T>   vector;
+public:
+    StreamOf() : key(Key::NEXT), writeIndex(0) {}
+    StreamOf(std::initializer_list<T> list) : key(Key::NEXT), writeIndex(0) {
+        vector.resize(list.size());
+
+        int i = 0;
+        for(auto& e: list) {
+            vector[i++] = e;
+        }
+    }
+    StreamOf(const SEQUENCE<T>& that) : key(Key::NEXT), writeIndex(0) {
+        uint32_t size = that.size();
+        vector.resize(size);
+
+        for(uint32_t i = 0; i < size; i++) {
+            vector[i] = that[i];
+        }
+    }
+    StreamOf(const std::vector<T>& that) : key(Key::NEXT), writeIndex(0) {
+        uint32_t size = that.size();
+        vector.resize(size);
+
+        for(uint32_t i = 0; i < size; i++) {
+            vector[i] = that[i];
+        }
+    }
+
+	T &operator[](std::size_t n) & {
+        return vector.at(n);
+    }
+	const T &operator[](std::size_t n) const & {
+        return vector.at(n);
+    }
+	T operator[](std::size_t n) const && {
+		return std::move(vector.at(n));
+	}
+
+    bool last() const {
+        return key == Key::LAST;
+    }
+    void prepare() const {
+        key        = Key::NEXT; // prepare for read / write
+        writeIndex = 0;
+    }
+    void clear() {
+        vector.clear();
+    }
+    uint32_t size() const {
+        return vector.size();
+    }
+    void push_back(const T& value) {
+        if (vector.size() == vector.capacity()) {
+            vector.reserve(std::min(128, vector.size()));
+        }
+        vector.push_back(value);
+    }
+    void push_back(T&& value) {
+        if (vector.size() == vector.capacity()) {
+            vector.reserve(std::min(128, vector.size()));
+        }
+        vector.push_back(value);
+    }
+
+    // read
+    void read(const ByteBuffer& bb) {
+        // sanity check
+        if (key == Key::LAST) ERROR()
+
+        // read segment
+        bb.read(key);
+        // sanity check
+        if (key != Key::FIRST && key != Key::LAST) ERROR()
+
+        // read SEQUENCE<T>
+        uint32_t size = bb.get16();
+        for(uint32_t i = 0; i < size; i++) {
+            T value;
+            bb.read(value);
+            push_back(value);
+        }
+    }
+    // write
+    void write(ByteBuffer& bb) const {
+        // sanity check
+        if (key == Key::LAST) ERROR()
+
+        // calculate writeCount
+        // size of result cannot exeeds MAXBYTES
+        uint32_t writeCount = 0;
+        {
+            ByteBuffer bbtemp(MAXBYTES * 2);
+            for(uint32_t i = writeIndex; i < vector.size(); i++) {
+                vector[i].write(bbtemp);
+                if (MAXBYTES < bbtemp.bytePos()) break;
+                writeCount++;
+            }
+        }
+        if (size() == (writeIndex + writeCount)) key = Key::LAST;
+        bb.write(key);
+
+        // write SEQUENCE<T>
+        bb.put16(writeCount);
+        for(uint32_t i = 0; i < writeCount; i++) {
+            bb.write(vector[writeIndex++]);
+        }
+    }
+    // toString
+    std::string toString() const {
+        size_t size = vector.size();
+
+        std::string ret;
+        ret += std_sprintf("(%d) [", size);
+        for(std::size_t i = 0; i < size; i++) {
+            if (i) ret += "  ";
+            T value = vector[i];
+            ret += ::toString(value);
+        }
+        ret += "]";
+        return ret;
+    }
+};
 
 //
 // BOOL for boolean
