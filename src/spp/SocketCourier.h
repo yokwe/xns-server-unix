@@ -53,7 +53,7 @@ using Session       = server::Session;
 
 
 struct SocketCourierClient: public SocketManager::Listener {
-    static const constexpr std::string NAME = "SocketCourier";
+    static const constexpr std::string NAME = "SocketCourierClient";
 
     SocketCourierClient() : SocketManager::Listener() {}
 
