@@ -73,12 +73,8 @@ static void ListDomainServed(Connection& connection, courier::Clearinghouse3::Li
     };
 
     logger.info("result  %s", result.toString());
-    auto txbb = service::getByteBuffer();
-    while(!result.last()) {
-        txbb.clear();
-        result.write(txbb);
-        Data data = txbb.toVector();
-        connection.transmitUser(false, true, SST::BULK, data);
+    for(auto& e: result.toVector()) {
+        connection.transmitUser(false, true, SST::BULK, e);
     }
 }
 

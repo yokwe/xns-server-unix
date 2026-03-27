@@ -366,6 +366,16 @@ public:
             bb.write(vector[writeIndex++]);
         }
     }
+    std::vector<std::vector<uint8_t>> toVector() {
+        std::vector<std::vector<uint8_t>> ret;
+        ByteBuffer bb(MAXBYTES * 2);
+        while(!last()) {
+            bb.clear();
+            write(bb);
+            ret.push_back(bb.toVector());
+        }
+        return ret;
+    }
     // toString
     std::string toString() const {
         size_t size = vector.size();
