@@ -92,7 +92,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     logger.info("SPP OPEN   %s  %s", myName, connection.toString());
 
     // send packet
-    connection.transmitSystem(true);
+    connection.transmitSystemAck();
 }
 
 }
