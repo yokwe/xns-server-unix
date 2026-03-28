@@ -73,8 +73,10 @@ static void ListDomainServed(Connection& connection, courier::Clearinghouse3::Li
     };
 
     logger.info("result  %s", result.toString());
-    for(auto& e: result.toVector()) {
-        connection.transmitUser(false, true, SST::BULK, e);
+    auto vector = result.toVector();
+    for(auto i = vector.begin(); i != vector.end(); i++) {
+        auto endOfMessage = std::next(i) == vector.end();
+        connection.transmitUser(false, endOfMessage, SST::BULK, *i);
     }
 }
 
