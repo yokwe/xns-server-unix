@@ -37,6 +37,7 @@
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
+#include <compare>
 
 namespace xns {
 //
@@ -53,13 +54,15 @@ public:
 
     // function for seq comparison
     // return true when a is before b
-    static inline bool isBefore(uint16_t a, uint16_t b) {
+    static inline constexpr bool isBefore(uint16_t a, uint16_t b) {
         if (a < b) {
-            // a = 10  b = 20  => true
-            return true;
+            // a = 10  b =    20 => diff =    10 => true
+            // a = 10  b = 65530 => diff = 65520 => false
+            auto diff = b - a;
+            return diff < 30000;
         } else if (a > b) {
-            // a = 10     b = 5  => false
-            // a = 65530  b = 5  => true
+            // a =    20  b = 10  => diff =    20 => false
+            // a = 65530  b = 10  => diff = 65520 => true
             auto diff = a - b;
             return 30000 < diff;
         } else {
@@ -67,6 +70,13 @@ public:
         }
     }
 
+    inline static constexpr std::strong_ordering strong_order_seq(uint16_t a, uint16_t b) {
+        if (a == b) {
+            return std::strong_ordering::equal;
+        } else {
+            return isBefore(a, b) ? std::strong_ordering::less : std::strong_ordering::greater;
+        }
+    }
 
     uint8_t  control; // Control Bit
     SST      sst;     // Sub System Type
