@@ -42,63 +42,64 @@ static const Logger logger(__FILE__);
 
 namespace spp {
 //
-void PacketQueue::add(const Packet& packet) {
-    std::lock_guard<std::mutex> lock(mutex);
-    // sanity check
-    for(auto& e: vector) {
-        if (!e.vacant && e.packet.seq == packet.seq) ERROR()
-    }
-
-    for(auto& e: vector) {
-        if (e.vacant) {
-            e.vacant = false;
-            e.packet = packet;
-            count++;
-            return;
-        }
-    }
-    ERROR()
-}
-void PacketQueue::remove(uint16_t seq) {
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        if (!e.vacant && e.packet.seq == seq) {
-            e.vacant = true;
-            count--;
-            return;
-        }
-    }
-    ERROR()
-}
-
 bool PacketQueue::contains(uint16_t seq) {
     if (empty()) return false;
 
     std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        if (!e.vacant && e.packet.seq == seq) return true;
+    for(auto& e: list) {
+        if (e.seq == seq) return true;
     }
     return false;
+}
+void PacketQueue::add(const Packet& packet) {
+    if (packet.system()) ERROR();
+
+    std::lock_guard<std::mutex> lock(mutex);
+    // sanity check
+    for(auto& e: list) {
+        if (e.seq == packet.seq) {
+            logger.info("Duplicate seq");
+            logger.info("  packet %s", packet.toString());
+            logger.info("  e      %s", e.toString());
+            ERROR()
+        }
+    }
+
+    list.push_back(packet);
+    count++;
+}
+void PacketQueue::remove(uint16_t seq) {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    for(auto i = list.begin(); i != list.end();) {
+        if (i->seq == seq) {
+            list.erase(i);
+            count--;
+            return;
+        } else {
+            i++;
+        }
+    }
+    ERROR()
 }
 
 Packet& PacketQueue::get(uint16_t seq) {
     std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        if (!e.vacant && e.packet.seq == seq) {
-            return e.packet;
-        }
+    for(auto& e: list) {
+        if (e.seq == seq) return e;
     }
     ERROR()
 }
 
 void PacketQueue::clear() {
     std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        e.vacant = true;
-    }
+    list.clear();
     count = 0;
 }
 
+uint32_t PacketQueue::size() {
+    return count;
+}
 bool PacketQueue::empty() {
     return count == 0;
 }
@@ -106,19 +107,15 @@ bool PacketQueue::empty() {
 void PacketQueue::map(MapFunction function) {
     if (empty()) return;
     std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        if (!e.vacant) function(e.packet);
+    for(auto& e: list) {
+        function(e);
     }
 }
 
 void PacketQueue::mapDelete(MapDeleteFunction function) {
     if (empty()) return;
     std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: vector) {
-        if (!e.vacant) {
-            if (function(e.packet)) e.vacant = true;
-        }
-    }
+    list.remove_if(function);
 }
 
 }

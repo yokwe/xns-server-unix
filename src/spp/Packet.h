@@ -39,6 +39,7 @@
 #include <cstdint>
 #include <functional>
 #include <mutex>
+#include <list>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -61,25 +62,23 @@ class Connection;
 
 class Packet {
 public:
-    Clock::time_point timestamp; // for retransmit
-    uint8_t           control;   // Control Bit
-    SST               sst;       // Sub System Type
-    uint16_t          seq;
-    Data              data;
+    uint8_t  control; // Control Bit
+    SST      sst;     // Sub System Type
+    uint16_t seq;
+    Data     data;
 
     Packet(const xns::SPP& header, const ByteBuffer& bb) :
-        timestamp(Clock::now()), control(header.control), sst(header.sst), seq(0), data(bb.toVector()) {}
+        control(header.control), sst(header.sst), seq(0), data(bb.toVector()) {}
 
     Packet(bool system_, bool sendAck_, bool attention_, bool endOfMessage_, SST sst_, uint16_t seq_, Data data_) :
-        timestamp(Clock::now()), control(0), sst(sst_), seq(seq_), data(data_) {
+        control(0), sst(sst_), seq(seq_), data(data_) {
         system(system_);
         sendAck(sendAck_);
         attention(attention_);
         endOfMessage(endOfMessage_);
     }
     
-    Packet() :
-        timestamp(Clock::now()), control(0), sst(SST::DATA), seq(0) {}
+    Packet() : control(0), sst(SST::DATA), seq(0) {}
 
     // Copy
     Packet(const Packet&  that)             = default;
@@ -120,7 +119,7 @@ public:
     }
 
     std::string toString() const {
-        return std_sprintf("{%s%s%s%s  %s  %d  %d}",
+        return std_sprintf("{%s%s%s%s  %s  %d  (%d)}",
             system()       ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
@@ -129,6 +128,11 @@ public:
             seq,
             data.size());
     }
+
+    friend auto operator<=>(const Packet& a, const Packet& b) {
+        return xns::SPP::strong_order_seq(a.seq, b.seq);
+    }
+
 private:
     // format of control
     //   bit 0  system packet
@@ -143,29 +147,22 @@ private:
 
 
 class PacketQueue {
-    struct Entry {
-        bool   vacant;
-        Packet packet;
+    using LIST = std::list<Packet>;
 
-        Entry() : vacant(true) {}
-    };
-
-    using VECTOR = std::vector<Entry>;
-
-    uint32_t   size;
-    int        count;
-    VECTOR     vector;
-    std::mutex mutex;
+    int         count;
+    LIST        list;
+    std::mutex  mutex;
 
 public:
-    PacketQueue(uint32_t size_) : size(size_), count(0), vector(size) {}
-    PacketQueue(const PacketQueue& that) : size(that.size), count(that.count), vector(that.vector) {}
+    PacketQueue() : count(0), list() {}
+    PacketQueue(const PacketQueue& that) : count(that.count), list(that.list) {}
     
+    bool    contains(uint16_t seq);
     void    add(const Packet& packet);
     void    remove(uint16_t seq);
-    bool    contains(uint16_t seq);
     Packet& get(uint16_t seq);
     void    clear();
+    uint32_t size();
     bool    empty();
 
     using MapFunction = std::function<void(Packet&)>;
@@ -173,6 +170,10 @@ public:
 
     using MapDeleteFunction = std::function<bool(Packet&)>;
     void mapDelete(MapDeleteFunction function);
+
+    void sort() {
+        list.sort();
+    }
 };
 
 }
