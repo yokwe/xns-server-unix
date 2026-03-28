@@ -61,17 +61,10 @@ using SST = xns::SPP::SST;
 //
 // transmitXXX
 //
-void Connection::transmitAndQueue(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-    if (system) {
-        transmit(system, sendAck, attention, endOfMessage, sst, data);
-    } else {
-        transmit(system, sendAck, attention, endOfMessage, sst, data);
-        retransmitQueue.add(Packet{system, sendAck, attention, endOfMessage, sst, seq, data});
-        // NOTE increment seq
-        seq++;
-    }
+void Connection::queue(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+    retransmitQueue.add(Packet{false, sendAck, attention, endOfMessage, sst, seq, data});
 }
-void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
     xns::SPP txHeader;
     txHeader.system(system);
     txHeader.sendAck(sendAck);
@@ -90,28 +83,81 @@ void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfM
     session.send(txHeader, txbb);
 }
 
+void Connection::transmitRaw(Packet& packet) {
+    xns::SPP txHeader;
+    txHeader.control = packet.control;
+    txHeader.sst     = packet.sst;
+    txHeader.srcID   = srcID;
+    txHeader.dstID   = dstID;
+    txHeader.seq     = packet.seq;
+    txHeader.ack     = ack;
+    txHeader.alloc   = alloc;
+
+    ByteBuffer txbb(packet.data.data(), packet.data.size());
+    session.send(txHeader, txbb);
+}
+
+void Connection::retransmit() {
+    if (retransmitQueue.empty()) return;
+    {
+        PacketQueue::MapFunction function = [&](Packet& e) {
+            transmitRaw(e);
+            logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+        };
+        retransmitQueue.map(function);
+    }
+}
+
 
 //
 // receiveXXX
 //
 void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
+    // seq   -- seq of next data packet
+    // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
+    // alloc -- other side can accept sequence number [ack..alloc]
+
+    // maintain retransmitQueue
+    if (!retransmitQueue.empty()) {
+        PacketQueue::MapDeleteFunction function = [&](Packet& e) {
+            auto ret = isBefore(e.seq, header.ack); // remove if seq is bofore ack;
+            if (ret) {
+                logger.info("RETRANSMIT  REMOVE  %d", e.seq);
+            }
+            return ret;
+        };
+        retransmitQueue.mapDelete(function);
+    }
+
     auto sst = header.sst;
 
-    removeAcknowledged(header.ack);
-
+    // sepcial for system packet
     if (header.system()) {
-        receiveSystem(header, body);
+        // sanity check
+        if (sst != SST::DATA) ERROR()
+
+        if (state == State::NEW && header.seq == 0) {
+            state = State::OPEN;
+        }
+        if (header.sendAck()) transmitSystemAck();
+        return;
+    }
+
+    if (sst == SST::DATA || sst == SST::BULK) {
+        receiveDataBulk(header, body);
     } else if (sst == SST::CLOSE) {
         receiveClose(header, body);
     } else if (sst == SST::CLOSE_REPLY) {
         receiveCloseReply(header, body);
-    } else if (sst == SST::DATA || sst == SST::BULK) {
-        receiveDataBulk(header, body);
     } else {
         ERROR()
     }
 }
 void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body) {
+    if (state == State::NEW && header.seq == 0) {
+        state = State::OPEN;
+    }
+
     // sanity check
     if (state != State::OPEN) {
         logger.error("connection  %s", toString());
@@ -127,7 +173,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
     if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !receiveQueue.contains(rxseq)) {
         // add to rxQueue
         receiveQueue.add(Packet{header, body});
-        logger.info("ACCEPT  %d  %s", rxseq, xns::SPP::toString(header.sst));
+        logger.info("ACCEPT  %d", rxseq);
 
         // update attentionValue
         if (header.attention()) {
@@ -141,6 +187,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
         while(receiveQueue.contains(ack)) {
             ack++;
             sendAck = true;
+            logger.info("NEW ACK %d", ack);
         }
         alloc = ack + 4;
 
@@ -157,11 +204,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
         logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
     }
 
-    if (sendAck) {
-        // send acknowledge with current ack and alloc
-        logger.info("SEND ACK  %d  %d  %d", seq, ack, alloc);
-        transmitSystem(false);
-    }
+    if (sendAck) transmitSystemAck();
 }
 void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
     (void)header;
@@ -174,10 +217,8 @@ void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
 
     logger.info("SST CLOSE");
     state = State::CLOSE;
-    retransmitQueue.clear();
 
-    Data data;
-    transmitAndQueue(false, false, false, false, SST::CLOSE, data);
+    transmitUser(false, false, SST::CLOSE);
     return;
 }
 void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& body) {
@@ -191,31 +232,16 @@ void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& bod
 
     logger.info("SST CLOSE_REPLY");
     state = State::CLOSE_REPLY;
+    // clear queue for close connection
     retransmitQueue.clear();
+    receiveQueue.clear();
+    clientQueue.clear();
 
+    // special for CLOSE_REPLY
+    // Don't expect acknowledge packet will receive
     Data data;
-    transmit(false, false, false, false, SST::CLOSE_REPLY, data);
+    transmitRaw(false, false, false, false, SST::CLOSE_REPLY, data);
     seq++;
-}
-void Connection::receiveSystem(const xns::SPP& header, const ByteBuffer& body) {
-    // seq   -- seq of next data packet
-    // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
-    // alloc -- other side can accept sequence number [ack..alloc]
-
-    // sanity check
-    if (!body.empty()) ERROR()
-    if (header.sst != SST::DATA) {
-        logger.error("connection  %s", toString());
-        ERROR()
-    }
-
-    // change state
-    if (state == State::NEW) state = State::OPEN;
-
-    if (header.sendAck()) {
-        logger.info("SEND ACK  %d  %d  %d", seq, ack, alloc);
-        transmitSystem(false);
-    }
 }
 
 int Connection::attention() {
@@ -225,31 +251,6 @@ int Connection::attention() {
     }
     return ret;
 }
-
-
-void Connection::retransmit() {
-    auto now = std::chrono::steady_clock::now();
-    PacketQueue::MapFunction function = [&](Packet& e) {
-        if ((e.timestamp + RETRANSMIT_INTERVAL) < now) {
-            // retransmit packet
-            transmit(e.system(), e.sendAck(), e.attention(), e.endOfMessage(), e.sst, e.data);
-            logger.info("RETRANSMIT  %04X  %04X  %s", srcID, dstID, e.toString());
-
-            // update timestmp
-            e.timestamp += RETRANSMIT_INTERVAL;
-        }
-    };
-    retransmitQueue.map(function);
-}
-
-void Connection::removeAcknowledged(uint16_t ack) {
-    PacketQueue::MapDeleteFunction function = [&](Packet& e) {
-        return isBefore(e.seq, ack); // remove if seq is bofore ack
-    };
-
-    retransmitQueue.mapDelete(function);
-}
-
 
 void Connection::set(Client* client_) {
     client = client_;

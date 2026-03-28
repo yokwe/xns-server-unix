@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <vector>
 #include <mutex>
@@ -66,7 +67,7 @@ static inline uint32_t getKey(const xns::SPP& rxHeader) {
 class Connection {
 public:
     static const constexpr int NO_ATTENTION = -1;
-    static const constexpr auto RETRANSMIT_INTERVAL = std::chrono::seconds(5);
+    static const constexpr auto RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
 
     enum class State {
         NEW, OPEN, CLOSE, CLOSE_REPLY,
@@ -92,8 +93,8 @@ public:
     uint16_t ack;
     uint16_t alloc;  // alloc == ack
 
-    PacketQueue receiveQueue{4};     // hold received packet
-    PacketQueue retransmitQueue{10}; // hold retransmit packet
+    PacketQueue receiveQueue;    // hold received packet
+    PacketQueue retransmitQueue; // hold retransmit packet
 
     uint16_t            clientSeq;
     SimpleQueue<Packet> clientQueue;
@@ -132,41 +133,52 @@ public:
 
     void set(Client* client);
 
-    // from client
-    void transmitSystem(bool sendAck) {
-        Data data;
-        transmitAndQueue(true, sendAck, false, false, SST::DATA, data);
+    // for client
+    bool closed() {
+        return state == State::CLOSE_REPLY;
     }
-    void transmitAttention(uint8_t value) {
-        Data data{value};
-        transmitAndQueue(false, false, true, false, SST::DATA, data);
-    }
+    int attention(); // return attention value
+    void retransmit();
+
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
-        transmitAndQueue(false, sendAck, false, endOfMessage, sst, data);
+        transmit(sendAck, false, endOfMessage, sst, data);
+        queue(sendAck, false, endOfMessage, sst, data);
+        seq++;
+    }
+    void transmitUser(bool sendAck, bool endOfMessage, SST sst) {
+        Data data;
+        transmit(sendAck, false, endOfMessage, sst, data);
+        queue(sendAck, false, endOfMessage, sst, data);
+        seq++;
     }
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, ByteBuffer& bb) {
         auto data = bb.toVector();
-        transmitAndQueue(false, sendAck, false, endOfMessage, sst, data);
+        transmit(sendAck, false, endOfMessage, sst, data);
+        queue(sendAck, false, endOfMessage, sst, data);
+        seq++;
+    }
+    void transmitAttention(uint8_t value) {
+        Data data = { value };
+        queue(false, true, false, SST::DATA, data);
+        transmit(false, true, false, SST::DATA, data);
+        seq++;
+    }
+    void transmitSystemAck() {
+        Data data;
+        transmitRaw(true, false, false, false, SST::DATA, data);    
     }
 
     // from network
     void receive(const xns::SPP& header, const ByteBuffer& body);
 
-    void retransmit();
-
-    void removeAcknowledged(uint16_t seq);
-
-    int attention();
-
-    bool closed() {
-        return state == State::CLOSE_REPLY;
-    }
-
 private:
-    void transmitAndQueue (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
-    void transmit         (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void queue   (bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void transmit(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+        transmitRaw(false, sendAck, attention, endOfMessage, sst, data);
+    }
+    void transmitRaw(Packet& packet);
 
-    void receiveSystem    (const xns::SPP& header, const ByteBuffer& body);
     void receiveDataBulk  (const xns::SPP& header, const ByteBuffer& body);
     void receiveClose     (const xns::SPP& header, const ByteBuffer& body);
     void receiveCloseReply(const xns::SPP& header, const ByteBuffer& body);
