@@ -33,19 +33,32 @@
 // ClientCourier.cpp
 //
 
+#include <chrono>
+
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../service/Services.h"
 
+#include "Connection.h"
 #include "Stream.h"
 #include "ClientCourier.h"
 
 namespace spp {
 //
+using Clock = std::chrono::steady_clock;
 
-static const constexpr uint64_t DEFUALT_TIMEOUT = 500; // milliseconds
+void ClientCourier::idle() {
+    static Clock::time_point lastRetransmit = Clock::now();
+
+    auto now = Clock::now();
+
+    if (now < (lastRetransmit + Connection::RETRANSMIT_INTERVAL)) return;
+    lastRetransmit += Connection::RETRANSMIT_INTERVAL;
+    connection->retransmit();
+}
+
 void ClientCourier::run() {
     threadRunning = true;
     logger.info("START");
@@ -55,8 +68,11 @@ void ClientCourier::run() {
     for(;;) {
         if (stopThread) break;
         auto result = stream.get(rxdata);
-        if (result.reason == Reason::timeout)     continue;
         if (result.reason == Reason::endOfStream) break;
+        if (result.reason == Reason::timeout) {
+            idle();
+            continue;
+        }
         
         ByteBuffer rx(rxdata.data(), rxdata.size());
         auto tx = service::services.callCourier(*connection, rx);

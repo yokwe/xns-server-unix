@@ -43,10 +43,12 @@ class ClientCourier : public Client {
 protected:
 public:
     static const constexpr char* NAME = "ClientCourier";
+    static const constexpr uint64_t DEFUALT_TIMEOUT = 500; // milliseconds
 
     ClientCourier(Connection* connection_): Client(NAME, connection_) {}
 
     void run() override;
+    void idle();
 };
 
 }
