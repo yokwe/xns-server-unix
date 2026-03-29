@@ -74,8 +74,8 @@ void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool end
     txHeader.srcID = srcID;
     txHeader.dstID = dstID;
     txHeader.seq   = seq;
-    txHeader.ack   = ack;
-    txHeader.alloc = alloc;
+    txHeader.ack   = txrange.ack;
+    txHeader.alloc = txrange.alloc;
 
     ByteBuffer txbb = server::getByteBuffer();
     txbb.putVector(data);
@@ -90,22 +90,37 @@ void Connection::transmitRaw(Packet& packet) {
     txHeader.srcID   = srcID;
     txHeader.dstID   = dstID;
     txHeader.seq     = packet.seq;
-    txHeader.ack     = ack;
-    txHeader.alloc   = alloc;
+    txHeader.ack     = txrange.ack;
+    txHeader.alloc   = txrange.alloc;
 
     ByteBuffer txbb(packet.data.data(), packet.data.size());
     session.send(txHeader, txbb);
 }
 
-void Connection::retransmit() {
-    if (retransmitQueue.empty()) return;
+void Connection::retransmit(bool sendAck) {    
+    {
+        PacketQueue::MapDeleteFunction function = [&](Packet& e) {
+            // remove entry before rxrange
+            auto ret = rxrange.before(e.seq);
+            if (ret) {
+                logger.info("RETRANSMIT  REMOVE  %d", e.seq);
+            }
+            return ret;
+        };
+        retransmitQueue.mapDelete(function);    
+    }
     {
         PacketQueue::MapFunction function = [&](Packet& e) {
-            transmitRaw(e);
-            logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+            // transmit only within txrange
+            if (txrange.within(e.seq)) {
+                transmitRaw(e);
+                logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+                sendAck = false;
+            }
         };
         retransmitQueue.map(function);
     }
+    if (sendAck) transmitSystemAck();
 }
 
 
@@ -117,17 +132,8 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
-    // maintain retransmitQueue
-    if (!retransmitQueue.empty()) {
-        PacketQueue::MapDeleteFunction function = [&](Packet& e) {
-            auto ret = isBefore(e.seq, header.ack); // remove if seq is bofore ack;
-            if (ret) {
-                logger.info("RETRANSMIT  REMOVE  %d", e.seq);
-            }
-            return ret;
-        };
-        retransmitQueue.mapDelete(function);
-    }
+    // record received ack and alloc for retransmit
+    rxrange = {header.ack, header.alloc};
 
     auto sst = header.sst;
 
@@ -139,7 +145,8 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
         if (state == State::NEW && header.seq == 0) {
             state = State::OPEN;
         }
-        if (header.sendAck()) transmitSystemAck();
+
+        retransmit(header.sendAck());
         return;
     }
 
@@ -169,9 +176,9 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
     bool sendAck = header.sendAck();
     auto rxseq = header.seq;
     
-    // add packet to rxQueue if header.seq is in [ack .. alloc]
-    if (!isBefore(rxseq, ack) && !isBefore(alloc, rxseq) && !receiveQueue.contains(rxseq)) {
-        // add to rxQueue
+    // add packet to receiveQueue if header.seq is in [ack .. alloc]
+    if (rxrange.within(rxseq) && !receiveQueue.contains(rxseq)) {
+        // add to receiveQueue
         receiveQueue.add(Packet{header, body});
         logger.info("ACCEPT  %d", rxseq);
 
@@ -184,12 +191,12 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
         }
 
         // update ack/alloc
-        while(receiveQueue.contains(ack)) {
-            ack++;
+        while(receiveQueue.contains(rxrange.ack)) {
+            rxrange.ack++;
             sendAck = true;
-            logger.info("NEW ACK %d", ack);
+            logger.info("NEW ACK %d", rxrange.ack);
         }
-        alloc = ack + 4;
+        rxrange.alloc = rxrange.ack + 4;
 
         // move packet from receiveQueue to clientQueue in order of clientSeq
         for (;;) {

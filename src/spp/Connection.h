@@ -63,6 +63,26 @@ static inline uint32_t getKey(const xns::SPP& rxHeader) {
     return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
 }
 
+struct SeqRange {
+    uint16_t ack;
+    uint16_t alloc;
+
+    SeqRange() : ack(0), alloc(0) {}
+    SeqRange(uint16_t ack_, uint16_t alloc_) : ack(ack_), alloc(alloc_) {}
+
+    // COPY
+    SeqRange(const SeqRange&)              = default;
+    SeqRange& operator = (const SeqRange&) = default;
+
+    // before return true when seq is before ack
+    bool before(uint16_t seq) {
+        return xns::SPP::isBefore(seq, ack);
+    }
+    // within return true when seq is in [ack .. alloc]
+    bool within(uint16_t seq) {
+        return !(xns::SPP::isBefore(seq, ack) || xns::SPP::isBefore(alloc, seq));
+    }
+};
 
 class Connection {
 public:
@@ -90,8 +110,9 @@ public:
     uint32_t key;
 
     uint16_t seq;
-    uint16_t ack;
-    uint16_t alloc;  // alloc == ack
+
+    SeqRange rxrange;
+    SeqRange txrange;
 
     PacketQueue receiveQueue;    // hold received packet
     PacketQueue retransmitQueue; // hold retransmit packet
@@ -107,7 +128,7 @@ public:
     Connection(const Connection& that) :
         state(that.state), session(that.session),
         srcID(that.srcID), dstID(that.dstID), key(that.key),
-        seq(that.seq), ack(that.ack), alloc(that.alloc),
+        seq(that.seq), rxrange(that.rxrange), txrange(that.txrange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
@@ -115,7 +136,7 @@ public:
     Connection(Connection&& that) :
         state(that.state), session(that.session),
         srcID(that.srcID), dstID(that.dstID), key(that.key),
-        seq(that.seq), ack(that.ack), alloc(that.alloc),
+        seq(that.seq), rxrange(that.rxrange), txrange(that.txrange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
@@ -123,12 +144,12 @@ public:
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         state(State::NEW), session(session_),
         srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
-        seq(0), ack(0), alloc(0),
+        seq(0),
         clientSeq(0), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, ack, alloc, clientSeq, clientQueue.size());
+        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, txrange.ack, txrange.alloc, clientSeq, clientQueue.size());
     }
 
     void set(Client* client);
@@ -138,7 +159,7 @@ public:
         return state == State::CLOSE_REPLY;
     }
     int attention(); // return attention value
-    void retransmit();
+    void retransmit(bool snedAck = false);
 
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
         transmit(sendAck, false, endOfMessage, sst, data);
