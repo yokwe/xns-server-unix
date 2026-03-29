@@ -30,7 +30,7 @@
 
  
  //
- // SocketSP.cpp
+ // SocketSPP.cpp
  //
 
 #include "../util/Util.h"
