@@ -163,25 +163,21 @@ public:
 
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
         transmit(sendAck, false, endOfMessage, sst, data);
-        queue(sendAck, false, endOfMessage, sst, data);
+        queue   (sendAck, false, endOfMessage, sst, data);
         seq++;
     }
     void transmitUser(bool sendAck, bool endOfMessage, SST sst) {
         Data data;
-        transmit(sendAck, false, endOfMessage, sst, data);
-        queue(sendAck, false, endOfMessage, sst, data);
-        seq++;
+        transmitUser(sendAck, endOfMessage, sst, data);
     }
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, ByteBuffer& bb) {
-        auto data = bb.toVector();
-        transmit(sendAck, false, endOfMessage, sst, data);
-        queue(sendAck, false, endOfMessage, sst, data);
-        seq++;
+        Data data = bb.toVector();
+        transmitUser(sendAck, endOfMessage, sst, data);
     }
     void transmitAttention(uint8_t value) {
         Data data = { value };
-        queue(false, true, false, SST::DATA, data);
         transmit(false, true, false, SST::DATA, data);
+        queue   (false, true, false, SST::DATA, data);
         seq++;
     }
     void transmitSystemAck() {
@@ -194,10 +190,11 @@ public:
 
 private:
     void queue   (bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
-    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
     void transmit(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
         transmitRaw(false, sendAck, attention, endOfMessage, sst, data);
     }
+
+    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
     void transmitRaw(Packet& packet);
 
     void receiveDataBulk  (const xns::SPP& header, const ByteBuffer& body);
