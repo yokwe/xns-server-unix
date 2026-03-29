@@ -204,16 +204,16 @@ public class CompilerChoice extends CompilerPair {
 	    // output toString
 		out.println("inline std::string toString() const {");
 		out.println("switch(key) {");
-		for(var candidate: candidateList) {
+		for(int i = 0; i < candidateList.size(); i++) {
+			var candidate  = candidateList.get(i);
 			var myName     = candidate.name;
 			var myTypeName = candidate.typeName;
-			var myNumber   = candidate.number;
 
 			out.println("case %s::%s:", enumTypeName, Util.sanitizeSymbol(myName));
 			if (myTypeName.equals("std::monostate")) {
 				out.println("return \"{%s  {}}\";", myName);
 			} else {
-				out.println("return \"{%s  \" + ::toString((%s)std::get<%d>(variant)) + \"}\"; ", myName, myTypeName, myNumber);
+				out.println("return \"{%s  \" + ::toString((%s)std::get<%d>(variant)) + \"}\"; ", myName, myTypeName, i);
 			}
 		}
 		out.println("default: ERROR()");
