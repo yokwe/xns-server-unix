@@ -51,7 +51,8 @@ namespace xns {
 class Host {
     uint64_t value;
 public:
-    static const uint64_t BROADCAST = 0xFFFF'FFFF'FFFF;
+    static const uint64_t BROADCAST         = 0xFFFF'FFFF'FFFF;
+    static const uint64_t BFN_GVWIN_NETBOOT = 0x0000'AA00'0E60;
 
     Host() : value(0) {}
     Host(uint64_t value_) {

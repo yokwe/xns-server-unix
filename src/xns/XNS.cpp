@@ -33,7 +33,8 @@
  // XNS.cpp
  //
 
- #include <utility>
+ #include <unordered_map>
+#include <utility>
 
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -48,8 +49,11 @@ static const Logger logger(__FILE__);
 namespace xns {
 //
 std::string Host::toString() const {
-    if (value == BROADCAST) return "BROADCAST";
-    return net::toHexaDecimalString(value, "");
+    static std::unordered_map<uint64_t, std::string> map = {
+        {BROADCAST,         "BROADCAST"},
+        {BFN_GVWIN_NETBOOT, "BFN_GVWIN_NETBOOT"},
+    };
+    return map.contains(value) ? map[value] : net::toHexaDecimalString(value, "-");
 }
 
 std::string toString(Network value) {
