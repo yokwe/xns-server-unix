@@ -53,6 +53,7 @@ static const Logger logger(__FILE__);
 #include "../spp/SocketCHS.h"
 #include "../spp/SocketAUTH.h"
 #include "../spp/SocketCourier.h"
+#include "../spp/SocketBoot.h"
 #include "../spp/Clearinghouse3.h"
 #include "../spp/Authentication2.h"
 
@@ -95,6 +96,7 @@ int main(int, char **) {
     socketManager.add<spp::SocketCHS>();
     socketManager.add<spp::SocketAUTH>();
     socketManager.add<spp::SocketCourier>();
+    socketManager.add<spp::SocketBoot>();
 
     // enable service implementation
     spp::Clearinghouse3::enable();
@@ -133,7 +135,7 @@ int main(int, char **) {
     
         ethenetBody.read(session.rxIDP);
         auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
-        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", server::toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
+        logger.info("IDP  >>  %s  (%d) %s", server::toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
     
         // sanity check
         if (session.rxIDP.checksum != xns::IDP::Checksum::NOCHECK) {

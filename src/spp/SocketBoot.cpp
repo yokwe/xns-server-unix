@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
+ 
+ //
+ // SocketBoot.cpp
+ //
 
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
+
+#include "../util/ByteBuffer.h"
+
+#include "../courier/Boot.h"
+
+#include "../server/Server.h"
+#include "../server/Session.h"
+#include "../server/Context.h"
+
+#include "SocketBoot.h"
+
+namespace spp {
 //
-// Debug.h
-//
+using PacketType = xns::IDP::PacketType;
 
-#pragma once
+using namespace courier::Boot;
 
-constexpr const int SHOW_PACKET_BOOT     = 1;
-constexpr const int SHOW_PACKET_ECHO     = 0;
-constexpr const int SHOW_PACKET_ERROR    = 1;
-constexpr const int SHOW_PACKET_ETHERNET = 0;
-constexpr const int SHOW_PACKET_IDP      = 0;
-constexpr const int SHOW_PACKET_PEX      = 1;
-constexpr const int SHOW_PACKET_RIP      = 0;
-constexpr const int SHOW_PACKET_SPP      = 1;
-constexpr const int SHOW_PACKET_TIME     = 0;
+void SocketBoot::process(Session& session, ByteBuffer&rx, bool& stopped) {
+    stopped = false;
+    if (session.rxIDP.packetType != PacketType::BOOT)    ERROR()
 
-constexpr const int SHOW_RESPONSE_DURATION  = 0;
+    // make reference
+ //   auto& context = *session.context;
 
-constexpr const int TRACE_BYTE_BUFFER_READ  = 0;
-constexpr const int TRACE_BYTE_BUFFER_WRITE = 0;
+    courier::Boot::BootFileRequest rxHeader;
+    rx.read(rxHeader);
+    auto rxbb = rx.rangeRemains();
+    if constexpr (SHOW_PACKET_BOOT) logger.info("BOOT >>  %s  (%d) %s", toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+
+}
+
+}

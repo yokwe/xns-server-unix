@@ -15,6 +15,7 @@ target_sources(
 		ConnectionStream.h
 		Packet.h
 		SocketAUTH.h
+		SocketBoot.h
 		SocketCHS.h
 		SocketCourier.h
 		SocketSPP.h
@@ -27,6 +28,7 @@ target_sources(
 		ConnectionStream.cpp
 		Packet.cpp
 		SocketAUTH.cpp
+		SocketBoot.cpp
 		SocketCHS.cpp
 		SocketCourier.cpp
 		SocketSPP.cpp

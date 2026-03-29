@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
+//
+// SocketBoot.h
+//
 
-//
-// Debug.h
-//
 
 #pragma once
 
-constexpr const int SHOW_PACKET_BOOT     = 1;
-constexpr const int SHOW_PACKET_ECHO     = 0;
-constexpr const int SHOW_PACKET_ERROR    = 1;
-constexpr const int SHOW_PACKET_ETHERNET = 0;
-constexpr const int SHOW_PACKET_IDP      = 0;
-constexpr const int SHOW_PACKET_PEX      = 1;
-constexpr const int SHOW_PACKET_RIP      = 0;
-constexpr const int SHOW_PACKET_SPP      = 1;
-constexpr const int SHOW_PACKET_TIME     = 0;
+#include <string>
 
-constexpr const int SHOW_RESPONSE_DURATION  = 0;
+#include "../util/ByteBuffer.h"
 
-constexpr const int TRACE_BYTE_BUFFER_READ  = 0;
-constexpr const int TRACE_BYTE_BUFFER_WRITE = 0;
+#include "../xns/XNS.h"
+
+#include "../server/SocketManager.h"
+
+namespace spp {
+//
+using SocketManager = server::SocketManager;
+using Session       = server::Session;
+
+struct SocketBoot: public SocketManager::Listener {
+    static const constexpr auto SOCKET = xns::Socket::BOOT;
+    static const constexpr std::string NAME = "SocketBoot";
+
+    void process(Session& session, ByteBuffer&rx, bool& stopped) override;
+    const std::string& name() override {
+        return NAME;
+    }
+};
+
+}
