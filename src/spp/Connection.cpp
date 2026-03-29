@@ -190,13 +190,13 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
             body.reset();
         }
 
-        // update ack/alloc
-        while(receiveQueue.contains(rxrange.ack)) {
-            rxrange.ack++;
+        // update txrange.ack/alloc
+        while(receiveQueue.contains(txrange.ack)) {
+            txrange.ack++;
             sendAck = true;
-            logger.info("NEW ACK %d", rxrange.ack);
+            logger.info("NEW ACK %d", txrange.ack);
         }
-        rxrange.alloc = rxrange.ack + 4;
+        txrange.alloc = txrange.ack + 4;
 
         // move packet from receiveQueue to clientQueue in order of clientSeq
         for (;;) {
