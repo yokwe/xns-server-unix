@@ -75,8 +75,4 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
     }
 }
 
-void SocketCourierClient::idle() {
-
-}
-
 }

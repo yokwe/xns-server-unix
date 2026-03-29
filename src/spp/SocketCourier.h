@@ -61,7 +61,6 @@ struct SocketCourierClient: public SocketManager::Listener {
     const std::string& name() {
         return NAME;
     }
-    void idle();
 };
 
 
