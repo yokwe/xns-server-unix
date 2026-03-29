@@ -59,7 +59,7 @@ std::string IDP::toString(PacketType value) {
         ENUM_NAME_VALUE(PacketType, ERROR_, 3)
         ENUM_NAME_VALUE(PacketType, PEX,    4)
         ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   6)
+        ENUM_NAME_VALUE(PacketType, BOOT,   9)
     };
     return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }

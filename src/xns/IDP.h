@@ -63,7 +63,7 @@ public:
         ENUM_NAME_VALUE(PacketType, ERROR_, 3)
         ENUM_NAME_VALUE(PacketType, PEX,    4)
         ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   6)
+        ENUM_NAME_VALUE(PacketType, BOOT,   9)
     };
     static std::string toString(PacketType value);
     
