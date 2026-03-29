@@ -48,6 +48,9 @@ class IDP {
 public:
     static constexpr int HEADER_LENGTH_IN_BYTE = 30;
 
+    //   maxIDPBytesPerPacket: CARDINAL = 576; -- from APilot/15.0.1/NS/Friends/NSTypes.mesa
+    static const constexpr uint32_t IDP_MAX_BODY_SIZE_IN_BYTE = 576;
+
     enum class Checksum : uint16_t {
         ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
         ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)  // minus zero
