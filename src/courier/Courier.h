@@ -43,6 +43,7 @@
 #include "../util/ByteBuffer.h"
 
 #include "../xns/XNS.h"
+#include "../xns/IDP.h"
 
 // forward declaration
 namespace spp {
@@ -248,9 +249,7 @@ public:
 //
 template<typename T>
 struct StreamOf {
-    // MAXWORDS from trunk/xns/xnslib/courier.h of XNSOnUX
-    static const constexpr uint32_t MAXWORDS = 267;
-    static const constexpr uint32_t MAXBYTES = MAXWORDS * 2;
+    static const constexpr auto IDP_MAX_BODY_SIZE_IN_BYTE = xns::IDP::IDP_MAX_BODY_SIZE_IN_BYTE;
 
     enum class Key : uint16_t {
         NEXT = 0,
@@ -350,10 +349,10 @@ public:
         // size of result cannot exeeds MAXBYTES
         uint32_t writeCount = 0;
         {
-            ByteBuffer bbtemp(MAXBYTES * 2);
+            ByteBuffer bbtemp(IDP_MAX_BODY_SIZE_IN_BYTE * 2);
             for(uint32_t i = writeIndex; i < vector.size(); i++) {
                 vector[i].write(bbtemp);
-                if (MAXBYTES < bbtemp.bytePos()) break;
+                if (IDP_MAX_BODY_SIZE_IN_BYTE < bbtemp.bytePos()) break;
                 writeCount++;
             }
         }
@@ -368,7 +367,7 @@ public:
     }
     std::vector<std::vector<uint8_t>> toVector() {
         std::vector<std::vector<uint8_t>> ret;
-        ByteBuffer bb(MAXBYTES * 2);
+        ByteBuffer bb(IDP_MAX_BODY_SIZE_IN_BYTE);
         while(!last()) {
             bb.clear();
             write(bb);
