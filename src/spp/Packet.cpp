@@ -116,6 +116,7 @@ void PacketQueue::mapDelete(MapDeleteFunction function) {
     if (empty()) return;
     std::lock_guard<std::mutex> lock(mutex);
     list.remove_if(function);
+    count = list.size();
 }
 
 }
