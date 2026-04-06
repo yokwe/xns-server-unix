@@ -52,22 +52,17 @@ public:
     };
     static std::string toString(SST value);
 
-    // function for seq comparison
+    // function for seq comparison  consider the case when seq is overflowed
     // return true when a is before b
-    static inline constexpr bool isBefore(uint16_t a, uint16_t b) {
-        if (a < b) {
-            // a = 10  b =    20 => diff =    10 => true
-            // a = 10  b = 65530 => diff = 65520 => false
-            auto diff = b - a;
-            return diff < 30000;
-        } else if (a > b) {
-            // a =    20  b = 10  => diff =    20 => false
-            // a = 65530  b = 10  => diff = 65520 => true
-            auto diff = a - b;
-            return 30000 < diff;
-        } else {
-            return false;
-        }
+    inline static constexpr bool isBefore(uint16_t a, uint16_t b) {
+        // a     10  b     20  c     -10  d     10  true
+        // a     10  b  65530  c  -65520  d  65530  false
+        // a     20  b     10  c      10  d     10  false
+        // a  65530  b     10  c   65520  d  65520  true
+
+        auto c = a - b;
+        auto d = abs(c);
+        return c < 0 ? d < 32000 : 32000 < d;
     }
 
     inline static constexpr std::strong_ordering strong_order_seq(uint16_t a, uint16_t b) {
