@@ -103,22 +103,24 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
         bool stopped = false;
         listener->process(session, rx, stopped);
         if (stopped) {
-            logger.info("stopped  %s  %s", toString(socket), listener->name());
+            logger.info("stopped      %s  %s", toString(socket), listener->name());
             delete listener;
             map.erase(socket);
         }
     } else {
-        logger.warn("unknown  %s  %s", toString(socket), xns::IDP::toString(packetType));
+        logger.warn("no listener  %s  %s", toString(socket), xns::IDP::toString(packetType));
         if (packetType == xns::IDP::PacketType::PEX) {
             xns::PEX   pexHeader;
             ByteBuffer pexBody = getByteBuffer();
             rx.read(pexHeader, pexBody);
-            logger.info("unknown  PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
+            logger.info("    PEX  >>  %s  (%d) %s", pexHeader.toString(), pexBody.byteLimit(), pexBody.toString());
         } else if (packetType == xns::IDP::PacketType::SPP) {
             xns::SPP   sppHeader;
             ByteBuffer sppBody = getByteBuffer();
             rx.read(sppHeader, sppBody);
-            logger.info("unknown  SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
+            logger.info("    SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
+        } else {
+            logger.info("    IDP  >>  %s  (%d) %s", toString(session.rxIDP), rx.byteLimit(), rx.toString());
         }
     }
 }

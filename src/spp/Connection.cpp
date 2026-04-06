@@ -74,8 +74,8 @@ void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool end
     txHeader.srcID = srcID;
     txHeader.dstID = dstID;
     txHeader.seq   = seq;
-    txHeader.ack   = txrange.ack;
-    txHeader.alloc = txrange.alloc;
+    txHeader.ack   = txRange.ack;
+    txHeader.alloc = txRange.alloc;
 
     ByteBuffer txbb = server::getByteBuffer();
     txbb.putVector(data);
@@ -90,36 +90,34 @@ void Connection::transmitRaw(Packet& packet) {
     txHeader.srcID   = srcID;
     txHeader.dstID   = dstID;
     txHeader.seq     = packet.seq;
-    txHeader.ack     = txrange.ack;
-    txHeader.alloc   = txrange.alloc;
+    txHeader.ack     = txRange.ack;
+    txHeader.alloc   = txRange.alloc;
 
     ByteBuffer txbb(packet.data.data(), packet.data.size());
     session.send(txHeader, txbb);
 }
 
+void Connection::maintainRetransmit() {    
+    PacketQueue::MapDeleteFunction function = [&](Packet& e) {
+        // remove entry before rxRange
+        auto ret = rxRange.isBefore(e.seq);
+        if (ret) {
+            logger.info("RETRANSMIT  REMOVE  %d", e.seq);
+        }
+        return ret;
+    };
+    retransmitQueue.mapDelete(function);    
+}
 void Connection::retransmit(bool sendAck) {    
-    {
-        PacketQueue::MapDeleteFunction function = [&](Packet& e) {
-            // remove entry before rxrange
-            auto ret = rxrange.before(e.seq);
-            if (ret) {
-                logger.info("RETRANSMIT  REMOVE  %d", e.seq);
-            }
-            return ret;
-        };
-        retransmitQueue.mapDelete(function);    
-    }
-    {
-        PacketQueue::MapFunction function = [&](Packet& e) {
-            // transmit only within txrange
-            if (txrange.within(e.seq)) {
-                transmitRaw(e);
-                logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
-                sendAck = false;
-            }
-        };
-        retransmitQueue.map(function);
-    }
+    PacketQueue::MapFunction function = [&](Packet& e) {
+        // transmit only within txRange
+        if (txRange.contains(e.seq)) {
+            transmitRaw(e);
+            logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+            sendAck = false;
+        }
+    };
+    retransmitQueue.map(function);
     if (sendAck) transmitSystemAck();
 }
 
@@ -132,8 +130,12 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
 
-    // record received ack and alloc for retransmit
-    rxrange = {header.ack, header.alloc};
+    // record received ack and alloc in rxRange
+    {
+        bool rangeChanged = rxRange.ack != header.ack || rxRange.alloc != header.alloc;
+        rxRange = {header.ack, header.alloc};
+        if (rangeChanged) maintainRetransmit();    
+    }
 
     auto sst = header.sst;
 
@@ -177,36 +179,39 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
     auto rxseq = header.seq;
     
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
-    if (rxrange.within(rxseq) && !receiveQueue.contains(rxseq)) {
-        // add to receiveQueue
-        receiveQueue.add(Packet{header, body});
-        logger.info("ACCEPT  %d", rxseq);
-
-        // update attentionValue
-        if (header.attention()) {
-            if (body.byteRemains() != 1) ERROR()
-            body.mark();
-            attentionValue = body.get8();
-            body.reset();
+    if (rxRange.contains(rxseq)) {
+        if (!receiveQueue.contains(rxseq)) {
+            // add to receiveQueue
+            receiveQueue.add(Packet{header, body});
+            logger.info("ACCEPT  %d", rxseq);
+    
+            // update attentionValue
+            if (header.attention()) {
+                if (body.byteRemains() != 1) ERROR()
+                body.mark();
+                attentionValue = body.get8();
+                body.reset();
+            }
+    
+            // maintain txRange
+            while(receiveQueue.contains(txRange.ack)) {
+                txRange++;
+                sendAck = true;
+                logger.info("NEW ACK %d", txRange.ack);
+            }
+    
+            // maintain clientQueue
+            for (;;) {
+                if (!receiveQueue.contains(clientSeq)) break;
+                auto& packet = receiveQueue.get(clientSeq);
+                logger.info("clientQueue  %04X", clientSeq);
+                clientQueue.push(packet);
+                receiveQueue.remove(clientSeq);
+                clientSeq++;
+            }        
+        } else {
+            logger.info("DUP     %d  %s", rxseq, xns::SPP::toString(header.sst));
         }
-
-        // update txrange.ack/alloc
-        while(receiveQueue.contains(txrange.ack)) {
-            txrange.ack++;
-            sendAck = true;
-            logger.info("NEW ACK %d", txrange.ack);
-        }
-        txrange.alloc = txrange.ack + 4;
-
-        // move packet from receiveQueue to clientQueue in order of clientSeq
-        for (;;) {
-            if (!receiveQueue.contains(clientSeq)) break;
-            auto& packet = receiveQueue.get(clientSeq);
-            logger.info("clientQueue  %04X", clientSeq);
-            clientQueue.push(packet);
-            receiveQueue.remove(clientSeq);
-            clientSeq++;
-        }    
     } else {
         logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
     }
@@ -216,7 +221,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
 void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
     (void)header;
     // sanity check
-    if (state != State::OPEN) {
+    if (state != State::OPEN && state != State::CLOSE) {
         logger.error("connection  %s", toString());
         ERROR()
     }
@@ -225,7 +230,9 @@ void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
     logger.info("SST CLOSE");
     state = State::CLOSE;
 
-    transmitUser(false, false, SST::CLOSE);
+    // special for CLOSE
+    // Dont update seq for retransmit
+    transmitRaw(false, false, false, false, SST::CLOSE);
     return;
 }
 void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& body) {
@@ -246,9 +253,8 @@ void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& bod
 
     // special for CLOSE_REPLY
     // Don't expect acknowledge packet will receive
-    Data data;
-    transmitRaw(false, false, false, false, SST::CLOSE_REPLY, data);
     seq++;
+    transmitRaw(false, false, false, false, SST::CLOSE_REPLY);
 }
 
 int Connection::attention() {

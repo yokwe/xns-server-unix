@@ -67,23 +67,30 @@ struct SeqRange {
     uint16_t ack;
     uint16_t alloc;
 
-    SeqRange() : ack(0), alloc(0) {}
+    SeqRange() : ack(0), alloc(3) {}
     SeqRange(uint16_t ack_, uint16_t alloc_) : ack(ack_), alloc(alloc_) {}
 
     // COPY
     SeqRange(const SeqRange&)              = default;
     SeqRange& operator = (const SeqRange&) = default;
 
+    // postfix ++ operator
+    SeqRange operator++(int) {
+        auto ret = *this;
+        ack++;
+        alloc++;
+        return ret;
+    }
+
     // before return true when seq is before ack
-    bool before(uint16_t seq) {
+    bool isBefore(uint16_t seq) {
         return xns::SPP::isBefore(seq, ack);
     }
-    // within return true when seq is in [ack .. alloc]
-    bool within(uint16_t seq) {
+    // contains return true when seq is within [ack .. alloc]
+    bool contains(uint16_t seq) {
         return !(xns::SPP::isBefore(seq, ack) || xns::SPP::isBefore(alloc, seq));
     }
 };
-
 class Connection {
 public:
     static const constexpr int NO_ATTENTION = -1;
@@ -111,8 +118,8 @@ public:
 
     uint16_t seq;
 
-    SeqRange rxrange;
-    SeqRange txrange;
+    SeqRange rxRange;
+    SeqRange txRange;
 
     PacketQueue receiveQueue;    // hold received packet
     PacketQueue retransmitQueue; // hold retransmit packet
@@ -128,7 +135,7 @@ public:
     Connection(const Connection& that) :
         state(that.state), session(that.session),
         srcID(that.srcID), dstID(that.dstID), key(that.key),
-        seq(that.seq), rxrange(that.rxrange), txrange(that.txrange),
+        seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(0), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
@@ -136,7 +143,7 @@ public:
     Connection(Connection&& that) :
         state(that.state), session(that.session),
         srcID(that.srcID), dstID(that.dstID), key(that.key),
-        seq(that.seq), rxrange(that.rxrange), txrange(that.txrange),
+        seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
         attentionValue(that.attentionValue) {}
@@ -149,7 +156,7 @@ public:
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, txrange.ack, txrange.alloc, clientSeq, clientQueue.size());
+        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, txRange.ack, txRange.alloc, clientSeq, clientQueue.size());
     }
 
     void set(Client* client);
@@ -160,6 +167,7 @@ public:
     }
     int attention(); // return attention value
     void retransmit(bool snedAck = false);
+    void maintainRetransmit();
 
     void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
         transmit(sendAck, false, endOfMessage, sst, data);
@@ -195,6 +203,11 @@ private:
     }
 
     void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
+    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst) {
+        Data data;
+        transmitRaw(system, sendAck, attention, endOfMessage, sst, data);
+    }
+    
     void transmitRaw(Packet& packet);
 
     void receiveDataBulk  (const xns::SPP& header, const ByteBuffer& body);
