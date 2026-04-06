@@ -152,6 +152,8 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
         return;
     }
 
+    logger.info("SST %s", xns::SPP::toString(header.sst));
+
     if (sst == SST::DATA || sst == SST::BULK) {
         receiveDataBulk(header, body);
     } else if (sst == SST::CLOSE) {
@@ -173,14 +175,18 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
         ERROR()
     }
 
-    logger.info("SST %s", xns::SPP::toString(header.sst));
-
     bool sendAck = header.sendAck();
     auto rxseq = header.seq;
     
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
     if (rxRange.contains(rxseq)) {
-        if (!receiveQueue.contains(rxseq)) {
+        if (xns::SPP::isBefore(rxseq, clientSeq)) {
+            // already processed
+            logger.info("DUP_A   %d  %s", rxseq, xns::SPP::toString(header.sst));
+        } else if (receiveQueue.contains(rxseq)) {
+            // already processed
+            logger.info("DUP_B   %d  %s", rxseq, xns::SPP::toString(header.sst));
+        } else {
             // add to receiveQueue
             receiveQueue.add(Packet{header, body});
             logger.info("ACCEPT  %d", rxseq);
@@ -208,9 +214,7 @@ void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body)
                 clientQueue.push(packet);
                 receiveQueue.remove(clientSeq);
                 clientSeq++;
-            }        
-        } else {
-            logger.info("DUP     %d  %s", rxseq, xns::SPP::toString(header.sst));
+            }
         }
     } else {
         logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
@@ -227,7 +231,6 @@ void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
     }
     if (!body.empty()) ERROR()
 
-    logger.info("SST CLOSE");
     state = State::CLOSE;
 
     // special for CLOSE
@@ -244,7 +247,6 @@ void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& bod
     }
     if (!body.empty()) ERROR()
 
-    logger.info("SST CLOSE_REPLY");
     state = State::CLOSE_REPLY;
     // clear queue for close connection
     retransmitQueue.clear();
