@@ -49,6 +49,8 @@ public class CompilerProcedure extends CompilerPair {
 		var typeProcedure = type.toTypeProcedure();
 		var argumentList  = typeProcedure.argumentList;
 		var resultList    = typeProcedure.resultList;
+		var bulkArgList   = typeProcedure.bulkArgList;
+		var bulkResList   = typeProcedure.bulkResList;
 		var errorList     = typeProcedure.errorList;
 
 		var consNumber = cons.toConsNumber();
@@ -72,6 +74,12 @@ public class CompilerProcedure extends CompilerPair {
 			out.println("using Result = void;");
 		} else {
 			compiler.compileType(context, out, "Result", new TypeRecord(resultList));
+		}
+		if (!bulkArgList.isEmpty()) {
+			compiler.compileType(context, out, "BulkArgument", new TypeRecord(bulkArgList));
+		}
+		if (!bulkResList.isEmpty()) {
+			compiler.compileType(context, out, "BulkResult", new TypeRecord(bulkResList));
 		}
 
 		// special handling when arugmentList is empty

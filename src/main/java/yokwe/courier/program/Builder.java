@@ -424,8 +424,22 @@ public class Builder {
 	Type toType(final Program myProgram, final CourierParser.ProcedureTypeContext context) {
 		var argumentList  = toNameTypeList(myProgram, context.argumentList().fieldList());
 		var resultList    = toNameTypeList(myProgram, context.resultList().fieldList());
+
+		List<NameType> bulkArgList = new ArrayList<NameType>();
+		List<NameType> bulkResList = new ArrayList<NameType>();
+
+		if (!context.bulkData().isEmpty()) {
+			var bulkData = context.bulkData();
+			if (bulkData.argumentList() != null) {
+				bulkArgList = toNameTypeList(myProgram, bulkData.argumentList().fieldList());
+			}
+			if (bulkData.resultList() != null) {
+				bulkResList = toNameTypeList(myProgram, bulkData.resultList().fieldList());
+			}
+		}
+
 		var errorList     = context.errorList().nameList().elements.stream().map(Token::getText).toList();
-		return new TypeProcedure(argumentList, resultList, errorList);
+		return new TypeProcedure(argumentList, resultList, bulkArgList, bulkResList, errorList);
 	}
 	Type toType(final Program myProgram, final CourierParser.ErrorTypeContext context) {
 		var argumentList = toNameTypeList(myProgram, context.argumentList().fieldList());

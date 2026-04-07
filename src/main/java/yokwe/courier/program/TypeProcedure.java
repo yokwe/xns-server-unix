@@ -37,13 +37,22 @@ import yokwe.courier.program.Program.NameType;
 public class TypeProcedure extends Type {
 	public final List<NameType>  argumentList;
 	public final List<NameType>  resultList;
-	public final List<String> errorList;
+	public final List<NameType>  bulkArgList;
+	public final List<NameType>  bulkResList;
+	public final List<String>    errorList;
 
-	public TypeProcedure(final List<NameType>  argumentList, final List<NameType>  resultList, final List<String> errorList) {
+	public TypeProcedure(
+			final List<NameType> argumentList,
+			final List<NameType> resultList,
+			final List<NameType> bulkArgList,
+			final List<NameType> bulkResList,
+			final List<String>   errorList) {
 		super(Kind.PROCEDURE);
 
 		this.argumentList = argumentList;
 		this.resultList   = resultList;
+		this.bulkArgList  = bulkArgList;
+		this.bulkResList  = bulkResList;
 		this.errorList    = errorList;
 	}
 
@@ -51,7 +60,9 @@ public class TypeProcedure extends Type {
 	public String toString() {
 		var argument = argumentList.isEmpty() ? "" : String.format(" {%s}", String.join(" ", argumentList.stream().map(NameType::toString).toList()));
 		var result   = resultList.isEmpty() ? "" : String.format(" RETURNS {%s}", String.join(" ", resultList.stream().map(NameType::toString).toList()));
+		var bulkArg  = bulkArgList.isEmpty() ? "" : String.format(" {%s}", String.join(" ", bulkArgList.stream().map(NameType::toString).toList()));
+		var bulkRes  = bulkResList.isEmpty() ? "" : String.format(" RETURNS {%s}", String.join(" ", bulkResList.stream().map(NameType::toString).toList()));
 		var error    = errorList.isEmpty() ? "" : String.format(" REPORTS {%s}", String.join(" ", errorList));
-		return String.format("{%s%s%s%s}", kind, argument, result, error);
+		return String.format("{%s%s BULK%s%s}", kind, argument, result, bulkArg, bulkRes, error);
 	}
 }
