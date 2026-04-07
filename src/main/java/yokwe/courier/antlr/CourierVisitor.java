@@ -612,6 +612,12 @@ public interface CourierVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitResultList(CourierParser.ResultListContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CourierParser#bulkData}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBulkData(CourierParser.BulkDataContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CourierParser#errorList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

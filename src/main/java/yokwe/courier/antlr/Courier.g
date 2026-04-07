@@ -33,8 +33,10 @@ grammar Courier;
 ARRAY        : 'ARRAY';
 BEGIN        : 'BEGIN';
 BOOLEAN      : 'BOOLEAN';
+BULK         : 'BULK';
 CARDINAL     : 'CARDINAL';
 CHOICE       : 'CHOICE';
+DATA         : 'DATA';
 DEPENDS      : 'DEPENDS';
 DEPENDENT    : 'DEPENDENT';
 END          : 'END';
@@ -342,7 +344,7 @@ candidateName
 
 /* 3.5.6 Procedure */
 procedureType
-    :    PROCEDURE argumentList resultList errorList
+    :    PROCEDURE argumentList resultList bulkData errorList
     ;
 
 argumentList
@@ -353,6 +355,11 @@ argumentList
 resultList
     :    /* EMPTY */
     |    RETURNS '[' fieldList ']'
+    ;
+
+bulkData
+    :    /* EMPTY */
+    |    BULK DATA argumentList resultList
     ;
 
 errorList
