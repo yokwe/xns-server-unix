@@ -54,7 +54,7 @@ stream::Result   ConnectionStream::get(Data& data) {
     Reason reason;
     if (hasData) {
         data = packet.data;
-        reason = Reason::normal;
+        reason = packet.attention() ? Reason::timeout : Reason::normal;
     } else {
         reason = connection->closed() ? Reason::endOfStream : Reason::timeout;
     }
