@@ -36,7 +36,6 @@ BOOLEAN      : 'BOOLEAN';
 BULK         : 'BULK';
 CARDINAL     : 'CARDINAL';
 CHOICE       : 'CHOICE';
-DATA         : 'DATA';
 DEPENDS      : 'DEPENDS';
 DEPENDENT    : 'DEPENDENT';
 END          : 'END';
@@ -344,7 +343,7 @@ candidateName
 
 /* 3.5.6 Procedure */
 procedureType
-    :    PROCEDURE argumentList resultList bulkData errorList
+    :    PROCEDURE argumentList bulkArgumentList bulkResultList resultList errorList
     ;
 
 argumentList
@@ -352,9 +351,19 @@ argumentList
     |    '[' fieldList ']'
     ;
 
+bulkArgumentList
+    :    /* EMPTY */
+    |    BULK '[' fieldList ']'
+    ;
+
 resultList
     :    /* EMPTY */
     |    RETURNS '[' fieldList ']'
+    ;
+
+bulkResultList
+    :    /* EMPTY */
+    |    BULK RETURNS '[' fieldList ']'
     ;
 
 bulkData
