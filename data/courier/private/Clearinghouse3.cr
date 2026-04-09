@@ -40,7 +40,7 @@ REPORTS [CallError] = 0;
 -- ListDomainServed returns StreamOfDomainName in BulkData
 -- See bfsgetdoms.c and bdt.c of XNSOnUX
 ListDomainServed: PROCEDURE [domains: BulkData.Sink, agent: Authenticator]
-BULK DATA RETURNS [domains: StreamOfDomainName]
+BULK RETURNS [domains: StreamOfDomainName]
 REPORTS [AuthenticationError, CallError] = 1;
 
 END.
