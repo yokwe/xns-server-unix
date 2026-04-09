@@ -67,25 +67,33 @@ public class CompilerProcedure extends CompilerPair {
 
 		if (argumentList.isEmpty()) {
 			out.println("using Argument = void;");
+			out.println();
 		} else {
 			compiler.compileType(context, out, "Argument", new TypeRecord(argumentList));
 		}
 		if (resultList.isEmpty()) {
 			out.println("using Result = void;");
+			out.println();
 		} else {
 			compiler.compileType(context, out, "Result", new TypeRecord(resultList));
 		}
-		if (!bulkArgList.isEmpty()) {
+		if (bulkArgList.isEmpty()) {
+			out.println("using BulkArgument = void;");
+			out.println();
+		} else {
 			compiler.compileType(context, out, "BulkArgument", new TypeRecord(bulkArgList));
 		}
-		if (!bulkResList.isEmpty()) {
+		if (bulkResList.isEmpty()) {
+			out.println("using BulkResult = void;");
+			out.println();
+		} else {
 			compiler.compileType(context, out, "BulkResult", new TypeRecord(bulkResList));
 		}
 
 		// special handling when arugmentList is empty
 		{
-			var argumentType = argumentList.isEmpty() ? "Connection&"     : "Connection&, Argument";
-			var resultType   = resultList.isEmpty()   ? "void" : "Result";
+			var argumentType = argumentList.isEmpty() ? "Session&" : "Session&, Argument";
+			var resultType   = resultList.isEmpty()   ? "void"     : "Result";
 			out.println("using Function = std::function<%s(%s)>;", resultType, argumentType);
 		}
 
