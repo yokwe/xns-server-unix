@@ -30,6 +30,7 @@
 
 package yokwe.courier.app;
 
+import yokwe.courier.compiler.Compiler;
 import yokwe.courier.program.Builder;
 
 public class GenCourier {
@@ -43,10 +44,19 @@ public class GenCourier {
 		};
 
 		var builder = new Builder();
+		builder.scanDirectory(pathList);
 
-		for(var e: pathList) {
-			builder.scanDirectory(e);
+		for(var program: builder.programMap.values()) {
+			logger.info("{}", String.format("program   %-16s  %3d  %3d", program.self.toName(), program.dependList.size(), program.declList.size()));
 		}
+
+		var compiler = new Compiler();
+		for(var program: builder.programMap.values()) {
+			logger.info("file      src/courier/{}.h", program.self.toName());
+			compiler.compile(program);
+		}
+
 		logger.debug("STOP");
 	}
 }
+
