@@ -38,7 +38,7 @@
 
 #include "../util/ThreadControl.h"
 
-#include "ConnectionStream.h"
+#include "StreamSPP.h"
 
 namespace spp {
 //
@@ -48,9 +48,9 @@ class Client : public ThreadControl {
 protected:
     Connection* connection;
 
-    bool        stopThread;
-    bool        threadRunning;
-    ConnectionStream stream;
+    bool      stopThread;
+    bool      threadRunning;
+    StreamSPP stream;
 
 public:
     Client(const char* name_, Connection* connection_) :

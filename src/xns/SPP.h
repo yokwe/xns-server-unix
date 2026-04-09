@@ -35,15 +35,24 @@
 
 #pragma once
 
+#include <compare>
+
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
-#include <compare>
+
+#include "IDP.h"
 
 namespace xns {
 //
 
 class SPP {
 public:
+    static const constexpr uint32_t HEADER_SIZE_IN_BYTE = 12;
+
+    //  -- from APilot/15.0.1/NS/Friends/NSTypes.mesa
+    // maxDataBytesPerSpp: CARDINAL = maxIDPBytesPerPacket - bytesPerSppHeader - bytesPerIDPHeader;
+    static const constexpr uint32_t MAX_BODY_SIZE_IN_BYTE = IDP::MAX_BODY_SIZE_IN_BYTE - HEADER_SIZE_IN_BYTE;
+
     enum class SST : uint8_t {
         ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
         ENUM_NAME_VALUE(SST, BULK,          1) // for bulk data

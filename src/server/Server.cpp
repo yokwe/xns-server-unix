@@ -69,9 +69,6 @@ bool ThreadReceive::produce(ReceiveData& data, std::chrono::milliseconds timeout
 }
 
 
-// context is used in toString()
-static Context* context = 0;
-
 //
 // Context
 //
@@ -99,8 +96,6 @@ Context::Context() {
     for(const auto& e: config.host) {
         hostNameMap[e.address] = e.name;
     }
-    // set static uglobal variable context
-    context = this;
 }
 
 
@@ -108,13 +103,11 @@ Context::Context() {
 // toString()
 //
 std::string toStringNetwork(uint32_t value) {
-    if (context == 0) ERROR()
-    auto& map = context->networkNameMap;
+    auto& map = context.networkNameMap;
     return map.contains(value) ? map[value] : std_sprintf("%08X", value);
 }
 std::string toStringHost(uint64_t value) {
-    if (context == 0) ERROR()
-    auto& map = context->hostNameMap;
+    auto& map = context.hostNameMap;
     return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
 }
 

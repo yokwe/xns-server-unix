@@ -46,10 +46,11 @@ namespace xns {
 //
 class IDP {
 public:
-    static constexpr int HEADER_LENGTH_IN_BYTE = 30;
-
     //   maxIDPBytesPerPacket: CARDINAL = 576; -- from APilot/15.0.1/NS/Friends/NSTypes.mesa
-    static const constexpr uint32_t IDP_MAX_BODY_SIZE_IN_BYTE = 576;
+    static const constexpr uint32_t MAX_PACKET_SIZE_IN_BYTE = 576;
+    static const constexpr uint32_t HEADER_SIZE_IN_BYTE     = 30;
+    static const constexpr uint32_t MAX_BODY_SIZE_IN_BYTE   = MAX_PACKET_SIZE_IN_BYTE - HEADER_SIZE_IN_BYTE;
+
 
     enum class Checksum : uint16_t {
         ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero

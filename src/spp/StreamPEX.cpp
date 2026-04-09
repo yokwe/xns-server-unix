@@ -28,51 +28,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-//
-// ConnectionStream.h
-//
+ 
+ //
+ // StreamPEX.cpp
+ //
 
-#pragma once
+#include "../util/Util.h"
+static const Logger logger(__FILE__);
 
-#include <cstdint>
+#include "../server/Session.h"
 
-#include "../util/ByteBuffer.h"
-
-#include "../xns/SPP.h"
-
-#include "Stream.h"
+#include "Packet.h"
+#include "StreamPEX.h"
 
 namespace spp {
 //
-using Reason = stream::Reason;
-using Result = stream::Result;
-using Data   = stream::Data;
-using SST    = xns::SPP::SST;
+Result   StreamPEX::get(Data& data) {
+    (void)data;
+    ERROR()
+}
+void     StreamPEX::put(Data& data, SST sst, bool endOfMessage) {
+    (void)sst; (void)endOfMessage;
 
-// forward declaration
-class Connection;
+    ByteBuffer bb(data);
+    session.sendPEX(bb);
+}
 
-class ConnectionStream : public stream::Stream {
-    Connection* connection;
+void     StreamPEX::attention(uint8_t value) {
+    (void)value;
+    ERROR()
+}
+int      StreamPEX::attention() { // return -1 when no attention
+    ERROR()
+}
 
-    uint32_t timeoutValue   = 3'600'000; // unit is milliseconds
-
-public:
-    ConnectionStream(Connection* connection_): connection(connection_) {}
-
-    Result   get(Data& data) override;
-    void     put(Data& data, bool endOfMessage = false, SST sst = SST::DATA) override;
-
-    void put(ByteBuffer& bb, bool endOfMessage = false, SST sst = SST::DATA) {
-        auto data = bb.toVector();
-        put(data, endOfMessage, sst);
-    }
-
-    void     attention(uint8_t value) override;
-    int      attention() override;  // return -1 when no attention
-
-    uint32_t timeout() override;               // unit is milliseconds
-    void     timeout(uint32_t value) override; // unit is milliseconds
-};
+uint32_t StreamPEX::timeout() { // unit is milliseconds
+    return timeoutValue;
+}               
+void     StreamPEX::timeout(uint32_t value) { // unit is milliseconds
+    timeoutValue = value;
+}
 
 }

@@ -46,7 +46,7 @@
 namespace server{
 //
 
-struct Context {
+inline struct Context {
     using Network = xns::Network;
     using Delay   = xns::Delay;
 
@@ -70,6 +70,6 @@ struct Context {
     HostNameMap     hostNameMap;
 
     Context();
-};
+} context;
 
 }

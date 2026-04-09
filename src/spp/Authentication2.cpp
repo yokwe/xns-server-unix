@@ -41,17 +41,17 @@ static const Logger logger(__FILE__);
 #include "../service/Authentication2.h"
 #include "../service/Services.h"
 
-#include "Connection.h"
-
 namespace spp::Authentication2 {
 //
 using namespace courier::Authentication2;
 using Context = server::Context;
 
-static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
+static RetrieveAddresses::Result RetrieveAddres(Stream* stream) {
+    (void)stream;
     logger.info("%s", __func__);
 
-    Context& context = *connection.session.context;
+    auto& context = server::context;
+
     auto host = xns::Host(context.me);
     NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
     NetworkAddressList list{networkAddress};
@@ -62,8 +62,8 @@ static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
     return result;
 }
 
-static GetStrongCredentials::Result GetStrongCredentials(Connection& connection, GetStrongCredentials::Argument argument) {
-    (void)connection;
+static GetStrongCredentials::Result GetStrongCredentials(Stream* stream, GetStrongCredentials::Argument argument) {
+    (void)stream;
     logger.info("%s  argument %s", __func__, argument.toString());
     GetStrongCredentials::Result result;
 

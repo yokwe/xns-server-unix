@@ -36,25 +36,28 @@
 #pragma once
 
 #include <initializer_list>
+#include <iterator>
 #include <string>
 #include <cstdint>
+#include <algorithm>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
 #include "../xns/XNS.h"
-#include "../xns/IDP.h"
+#include "../xns/SPP.h"
 
 // forward declaration
 namespace spp {
 //
-class Connection;
+class Stream;
 }
 
 namespace courier {
 //
+using Data = std::vector<uint8_t>;
 
-using Connection = spp::Connection;
+using Stream = spp::Stream;
 
 //
 // STRING
@@ -249,7 +252,6 @@ public:
 //
 template<typename T>
 struct StreamOf {
-    static const constexpr auto IDP_MAX_BODY_SIZE_IN_BYTE = xns::IDP::IDP_MAX_BODY_SIZE_IN_BYTE;
 
     enum class Key : uint16_t {
         NEXT = 0,
@@ -311,15 +313,26 @@ public:
     }
     void push_back(const T& value) {
         if (vector.size() == vector.capacity()) {
-            vector.reserve(std::min(128, vector.size()));
+            uint32_t a = 128;
+            uint32_t b = vector.size();
+            vector.reserve(std::min(a, b));
         }
         vector.push_back(value);
     }
     void push_back(T&& value) {
         if (vector.size() == vector.capacity()) {
-            vector.reserve(std::min(128, vector.size()));
+            uint32_t a = 128;
+            uint32_t b = vector.size();
+            vector.reserve(std::min(a, b));
         }
         vector.push_back(value);
+    }
+
+    auto begin() {
+        return vector.begin();
+    }
+    auto end() {
+        return vector.end();
     }
 
     // read
@@ -330,7 +343,7 @@ public:
         // read segment
         bb.read(key);
         // sanity check
-        if (key != Key::FIRST && key != Key::LAST) ERROR()
+        if (key != Key::NEXT && key != Key::LAST) ERROR()
 
         // read SEQUENCE<T>
         uint32_t size = bb.get16();
@@ -342,36 +355,30 @@ public:
     }
     // write
     void write(ByteBuffer& bb) const {
-        // sanity check
-        if (key == Key::LAST) ERROR()
-
-        // calculate writeCount
-        // size of result cannot exeeds MAXBYTES
-        uint32_t writeCount = 0;
-        {
-            ByteBuffer bbtemp(IDP_MAX_BODY_SIZE_IN_BYTE * 2);
-            for(uint32_t i = writeIndex; i < vector.size(); i++) {
-                vector[i].write(bbtemp);
-                if (IDP_MAX_BODY_SIZE_IN_BYTE < bbtemp.bytePos()) break;
-                writeCount++;
-            }
-        }
-        if (size() == (writeIndex + writeCount)) key = Key::LAST;
-        bb.write(key);
-
-        // write SEQUENCE<T>
-        bb.put16(writeCount);
-        for(uint32_t i = 0; i < writeCount; i++) {
-            bb.write(vector[writeIndex++]);
+        // write key
+        bb.write(Key::LAST);
+        // write vector
+        uint16_t size = vector.size();
+        bb.write(size);
+        for(auto i = vector.begin(); i != vector.end(); i++) {
+            bb.write(*i);
         }
     }
-    std::vector<std::vector<uint8_t>> toVector() {
-        std::vector<std::vector<uint8_t>> ret;
-        ByteBuffer bb(IDP_MAX_BODY_SIZE_IN_BYTE);
-        while(!last()) {
+
+    std::vector<Data> write() {
+        std::vector<Data> ret;
+        ByteBuffer bb(xns::SPP::MAX_BODY_SIZE_IN_BYTE * 2);
+        Data data;
+        for(auto i = vector.begin(); i != vector.end(); i++) {
+            Key key = std::next(i) == vector.end() ? Key::Last : Key::Next;
             bb.clear();
-            write(bb);
-            ret.push_back(bb.toVector());
+            bb.write(key, *i);
+            auto element = bb.toVector();
+            if (xns::SPP::MAX_BODY_SIZE_IN_BYTE < (data.size() + element.size())) {
+                ret.push_back(data);
+                data.clear();
+            }
+            std::copy(element.begin(), element.end(), std::back_inserter(data));
         }
         return ret;
     }

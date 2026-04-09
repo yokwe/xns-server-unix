@@ -40,7 +40,7 @@ static const Logger logger(__FILE__);
 
 #include "../service/Services.h"
 
-#include "Connection.h"
+#include "StreamPEX.h"
 
 #include "SocketCHS.h"
 
@@ -55,8 +55,8 @@ void SocketCHS::process(Session& session, ByteBuffer&rx, bool& stopped) {
     rx.read(session.rxPEX, pexBody);
     if constexpr (SHOW_PACKET_PEX)  logger.info("PEX  >>  %s  (%d) %s", session.rxPEX.toString(), pexBody.byteLimit(), pexBody.toString());
 
-    Connection connection(session, 0, 0); // define dummy connection
-    auto tx = service::services.callCourier(connection, pexBody);
+    StreamPEX stream(session);
+    auto tx = service::services.callCourier(&stream, pexBody);
     if (tx.empty()) return;
 
     

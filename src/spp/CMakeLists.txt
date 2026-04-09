@@ -12,7 +12,6 @@ target_sources(
 		Client.h
 		ClientCourier.h
 		Connection.h
-		ConnectionStream.h
 		Packet.h
 		SocketAUTH.h
 		SocketBoot.h
@@ -20,18 +19,21 @@ target_sources(
 		SocketCourier.h
 		SocketSPP.h
 		Stream.h
+		StreamPEX.h
+		StreamSPP.h
 	PRIVATE
 		Authentication2.cpp
 		Clearinghouse3.cpp
 		ClientCourier.cpp
 		Connection.cpp
-		ConnectionStream.cpp
 		Packet.cpp
 		SocketAUTH.cpp
 		SocketBoot.cpp
 		SocketCHS.cpp
 		SocketCourier.cpp
 		SocketSPP.cpp
+		StreamPEX.cpp
+		StreamSPP.cpp
 	)
 
 target_link_libraries(spp service courier xns util)

@@ -37,13 +37,15 @@ static const Logger logger(__FILE__);
 
 #include "../courier/Courier3.h"
 
+#include "../server/Session.h"
+
 #include "Services.h"
 #include "Service.h"
 
 
 namespace service {
 //
-using Connection = spp::Connection;
+using Session = server::Session;
 
 bool ServicesBase::hasProtocolRange(const ByteBuffer& rx) {
     rx.mark();
@@ -57,7 +59,7 @@ bool ServicesBase::hasProtocolRange(const ByteBuffer& rx) {
     return ret;
 }
 
-ByteBuffer ServicesBase::callExpeditedMessage(Connection& connection, const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callExpeditedMessage(Stream* stream, const ByteBuffer& rx) {
     {
         courier::Courier3::ProtocolRange protocolRange;
         rx.read(protocolRange);
@@ -70,7 +72,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(Connection& connection, const Byte
 
     {
         courier::Courier3::ProtocolRange protocolRange = {courier::Courier3::SupportingProtol, courier::Courier3::SupportingProtol};
-        auto response = callCourierMessage(connection, rx);
+        auto response = callCourierMessage(stream, rx);
         auto tx = getByteBuffer();
         tx.write(protocolRange);
         tx.write(response);
@@ -79,7 +81,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(Connection& connection, const Byte
     }
 }
 
-ByteBuffer ServicesBase::callCourierMessage(Connection& connection, const ByteBuffer& rx) {
+ByteBuffer ServicesBase::callCourierMessage(Stream* stream, const ByteBuffer& rx) {
     courier::Courier3::Message message;
     rx.read(message);
 
@@ -132,7 +134,7 @@ ByteBuffer ServicesBase::callCourierMessage(Connection& connection, const ByteBu
             courier::Courier3::ReturnMessage returnMessage{transactionID};
             auto message = courier::Courier3::Message::fromReturn(returnMessage);
     
-            auto result = proc->call(connection, rx);
+            auto result = proc->call(stream, rx);
     
             logger.info("RETURN  %04X  %s  %s", transactionID, service->name, proc->name);
     

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, Yasuhiro Hasegawa
+ * Copyright (c) 2026, Yasuhiro Hasegawa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-
- //
- // Stream.h
- //
+//
+// StreamPEX.h
+//
 
 #pragma once
 
-#include <vector>
 #include <cstdint>
+
+#include "../util/ByteBuffer.h"
 
 #include "../xns/SPP.h"
 
+#include "Stream.h"
+
+namespace server {
+    struct Session;
+}
+
 namespace spp {
 //
-using SST = xns::SPP::SST;
+using Session = server::Session;
+using SST     = xns::SPP::SST;
 
-enum class Reason {
-    normal, timeout, endOfStream,
-};
-struct Result {
-    Reason reason;
-    SST    sst;
-    bool   endOfMessage;
+class StreamPEX : public Stream {
+    Session& session;
 
-    Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
-    Result() : Result(Reason::normal, SST::DATA, false) {}
-};
+    uint32_t timeoutValue   = 3'600'000; // unit is milliseconds
 
-using Data = std::vector<uint8_t>;
-
-class Stream {
 public:
-    static const constexpr int NO_ATTENTION = -1;
+    StreamPEX(Session& session_): session(session_) {}
 
-    virtual Result   get(Data& data) = 0;
-    virtual void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) = 0;
+    Result   get(Data& data) override;
+    void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) override;
 
-    virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+    void put(ByteBuffer& bb, SST sst = SST::DATA, bool endOfMessage = false) {
+        auto data = bb.toVector();
+        put(data, sst, endOfMessage);
+    }
 
-    virtual uint32_t timeout() = 0;               // unit is milliseconds
-    virtual void     timeout(uint32_t value) = 0; // unit is milliseconds
+    void     attention(uint8_t value) override;
+    int      attention() override;  // return -1 when no attention
+
+    uint32_t timeout() override;               // unit is milliseconds
+    void     timeout(uint32_t value) override; // unit is milliseconds
 };
 
 }

@@ -41,17 +41,18 @@ static const Logger logger(__FILE__);
 #include "../service/Clearinghouse3.h"
 #include "../service/Services.h"
 
-#include "Connection.h"
+#include "Stream.h"
 
 namespace spp::Clearinghouse3 {
 //
 using namespace courier::Clearinghouse3;
 using Context = server::Context;
 
-static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
+static RetrieveAddresses::Result RetrieveAddres(Stream* stream) {
+    (void)stream;
     logger.info("%s", __func__);
 
-    Context& context = *connection.session.context;
+    auto& context = server::context;
     auto host = xns::Host(context.me);
     NetworkAddress networkAddress = {context.net, host, xns::Socket::COURIER};
     NetworkAddressList list{networkAddress};
@@ -62,22 +63,21 @@ static RetrieveAddresses::Result RetrieveAddres(Connection& connection) {
     return result;
 }
 
-static void ListDomainServed(Connection& connection, courier::Clearinghouse3::ListDomainServed::Argument argument) {
-    (void)connection;
+static void ListDomainServed(Stream* stream, courier::Clearinghouse3::ListDomainServed::Argument argument) {
+    (void)stream;
     logger.info("%s  argument %s", __func__, argument.toString());
     if (argument.domains.key != courier::BulkData1::Descriptor::Key::immediate) ERROR()
 
     // transmit SreamOfDomainName to BULK
-    Clearinghouse3::StreamOfDomainName result = {
+    courier::Clearinghouse3::ListDomainServed::BulkResult bulkResult;
+    bulkResult.domains = {
         { "FXIS", "Fuji Xerox"},
     };
 
-    logger.info("result  %s", result.toString());
-    auto vector = result.toVector();
-    for(auto i = vector.begin(); i != vector.end(); i++) {
-        auto endOfMessage = std::next(i) == vector.end();
-        connection.transmitUser(false, endOfMessage, SST::BULK, *i);
-    }
+    auto bb = service::getByteBuffer();
+    bb.write(bulkResult);
+    auto data = bb.toVector();
+    stream->put(data, SST::BULK, true);
 }
 
 static service::Clearinghouse3::FunctionTable functionTable {

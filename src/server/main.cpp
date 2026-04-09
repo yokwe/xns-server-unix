@@ -69,8 +69,6 @@ int main(int, char **) {
 	setSignalHandler(SIGTRAP);
 	setSignalHandler(SIGABRT);
 
-    server::Context context{};
-
 	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), toStringHost(context.driver->device.address), context.driver->device.name);
 	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), toStringHost(context.me));
 	logger.info("network  %d  %s", context.net, toStringNetwork(context.net));
@@ -134,7 +132,7 @@ int main(int, char **) {
         if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", server::toString(session.rxEthernet), ethenetBody.byteLimit(), ethenetBody.toString());
     
         ethenetBody.read(session.rxIDP);
-        auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_LENGTH_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_LENGTH_IN_BYTE);
+        auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_SIZE_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_SIZE_IN_BYTE);
         if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", server::toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
     
         // sanity check

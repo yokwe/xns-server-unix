@@ -35,7 +35,6 @@
 #pragma once
 
 #include "Client.h"
-#include "ConnectionStream.h"
 
 namespace spp {
 //

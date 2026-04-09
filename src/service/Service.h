@@ -46,12 +46,12 @@
 
 // forward declaration
 namespace spp {
-class Connection;
+class Stream;
 }
 
 namespace service {
 //
-using Connection = spp::Connection;
+using Stream = spp::Stream;
 
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
 inline ByteBuffer getByteBuffer() {
@@ -188,7 +188,7 @@ struct ProcedureBase {
     const std::string name;
 
     virtual bool empty() const = 0;
-    virtual ByteBuffer call(Connection& connection, const ByteBuffer& bb) const = 0; // called from network input
+    virtual ByteBuffer call(Stream* stream, const ByteBuffer& bb) const = 0; // called from network input
 
     ProcedureBase(uint16_t value_, const char* name_) : value(value_), name(name_) {}
 
@@ -214,16 +214,16 @@ public:
         return !function;
     }
 
-    ByteBuffer call(Connection& connection, const ByteBuffer& rx) const override {
+    ByteBuffer call(Stream* stream, const ByteBuffer& rx) const override {
         ByteBuffer tx = getByteBuffer();
         if constexpr (std::is_void_v<A>) {
             if (rx.remains() != 0) {
                 throw InvalidArgumentReject{};
             }
             if constexpr (std::is_void_v<R>) {
-                function(connection);
+                function(stream);
             } else {
-                R result = function(connection);
+                R result = function(stream);
                 tx.write(result);
             }
         } else {
@@ -233,9 +233,9 @@ public:
                     throw InvalidArgumentReject{};
                 }
                 if constexpr (std::is_void_v<R>) {
-                    function(connection, argument);
+                    function(stream, argument);
                 } else {
-                    R result = function(connection, argument);
+                    R result = function(stream, argument);
                     tx.write(result);
                 }
             } catch (ByteBufferException e) {
@@ -291,14 +291,14 @@ struct ServicesBase {
     }
 
     bool hasProtocolRange(const ByteBuffer& rx);
-    ByteBuffer callCourierMessage  (Connection& connection, const ByteBuffer& rx);
-    ByteBuffer callExpeditedMessage(Connection& connection, const ByteBuffer& rx);
+    ByteBuffer callCourierMessage  (Stream* stream, const ByteBuffer& rx);
+    ByteBuffer callExpeditedMessage(Stream* stream, const ByteBuffer& rx);
 
-    ByteBuffer callCourier(Connection& connection, const ByteBuffer& rx) {
+    ByteBuffer callCourier(Stream* stream, const ByteBuffer& rx) {
         if (hasProtocolRange(rx)) {
-            return callExpeditedMessage(connection, rx);
+            return callExpeditedMessage(stream, rx);
         } else {
-            return callCourierMessage(connection, rx);
+            return callCourierMessage(stream, rx);
         }    
     }
 

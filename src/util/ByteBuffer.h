@@ -101,6 +101,9 @@ public:
     ByteBuffer(uint8_t* data, uint32_t byteSize) : ByteBuffer(data, byteSize, byteSize) {}
     ByteBuffer(uint32_t byteSize) : ByteBuffer(std::make_shared<uint8_t[]>(byteSize), byteSize, 0) {}
 
+    // Constructor below share vector.data()
+    ByteBuffer(std::vector<uint8_t>& vector) : ByteBuffer(vector.data(), vector.size()) {}
+
     ~ByteBuffer() {
         myData          = 0;
         myByteCapacity  = 0;
@@ -150,6 +153,7 @@ public:
     void clear() {
         myByteLimit = 0;
         myBytePos   = 0;
+        myByteMark  = BAD_MARK;
     }
     //
     // flip -- make ByteBuffer ready for read from start after write

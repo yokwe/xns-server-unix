@@ -74,7 +74,7 @@ void Session::sendIDP(const ByteBuffer& txbb) {
     xns::IDP txHeader;
 
     txHeader.checksum    = xns::IDP::Checksum::NOCHECK;
-    txHeader.length      = xns::IDP::HEADER_LENGTH_IN_BYTE + txbb.byteLimit();
+    txHeader.length      = xns::IDP::HEADER_SIZE_IN_BYTE + txbb.byteLimit();
     txHeader.control     = 0;
     txHeader.packetType  = rxIDP.packetType;
     txHeader.dst.network = rxIDP.src.network;

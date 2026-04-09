@@ -30,7 +30,7 @@
 
  
  //
- // ConnectionStream.cpp
+ // StreamSPP.cpp
  //
 
 #include "../util/Util.h"
@@ -38,11 +38,11 @@ static const Logger logger(__FILE__);
 
 #include "Packet.h"
 #include "Connection.h"
-#include "ConnectionStream.h"
+#include "StreamSPP.h"
 
 namespace spp {
 //
-stream::Result   ConnectionStream::get(Data& data) {
+Result   StreamSPP::get(Data& data) {
     if (connection->closed()) {
         return Result(Reason::endOfStream, SST::DATA, false);
     }
@@ -61,21 +61,21 @@ stream::Result   ConnectionStream::get(Data& data) {
 
     return Result(reason, packet.sst, packet.endOfMessage());
 }
-void     ConnectionStream::put(Data& data, bool endOfMessage, SST sst) {
+void     StreamSPP::put(Data& data, SST sst, bool endOfMessage) {
     connection->transmitUser(false, endOfMessage, sst, data);
 }
 
-void     ConnectionStream::attention(uint8_t value) {
+void     StreamSPP::attention(uint8_t value) {
     connection->transmitAttention(value);
 }
-int      ConnectionStream::attention() { // return -1 when no attention
+int      StreamSPP::attention() { // return -1 when no attention
     return connection->attention();
 }
 
-uint32_t ConnectionStream::timeout() { // unit is milliseconds
+uint32_t StreamSPP::timeout() { // unit is milliseconds
     return timeoutValue;
 }               
-void     ConnectionStream::timeout(uint32_t value) { // unit is milliseconds
+void     StreamSPP::timeout(uint32_t value) { // unit is milliseconds
     timeoutValue = value;
 }
 

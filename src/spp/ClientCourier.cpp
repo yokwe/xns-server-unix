@@ -75,9 +75,9 @@ void ClientCourier::run() {
         }
         
         ByteBuffer rx(rxdata.data(), rxdata.size());
-        auto tx = service::services.callCourier(*connection, rx);
+        auto tx = service::services.callCourier(&stream, rx);
         auto txdata = tx.toVector();
-        stream.put(txdata, true, xns::SPP::SST::DATA);
+        stream.put(txdata, xns::SPP::SST::DATA, true);
     }
 
     logger.info("STOP");
