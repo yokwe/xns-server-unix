@@ -356,19 +356,14 @@ bulkArgumentList
     |    BULK '[' fieldList ']'
     ;
 
-resultList
-    :    /* EMPTY */
-    |    RETURNS '[' fieldList ']'
-    ;
-
 bulkResultList
     :    /* EMPTY */
     |    BULK RETURNS '[' fieldList ']'
     ;
 
-bulkData
+resultList
     :    /* EMPTY */
-    |    BULK DATA argumentList resultList
+    |    RETURNS '[' fieldList ']'
     ;
 
 errorList
