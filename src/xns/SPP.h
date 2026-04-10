@@ -101,11 +101,13 @@ public:
         bb.write(control, sst, srcID, dstID, seq, ack, alloc);
     }
     std::string toString() const {
-        return std_sprintf("{%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
+        return std_sprintf("{%s%s%s%s%s%s  %s  %04X  %04X  %d  %d  %d}",
             system()       ? "S" : "_",
             sendAck()      ? "S" : "_",
             attention()    ? "A" : "_",
             endOfMessage() ? "E" : "_",
+            negotiation()  ? "N" : "_",
+            parameter()    ? "P" : "_",
             toString(sst), srcID, dstID, seq, ack, alloc);
     }
 
@@ -122,6 +124,12 @@ public:
     bool endOfMessage() const {
         return control & BIT_END_OF_MESSAGE;
     }
+    bool negotiation() const {
+        return control & BIT_NEGOTIATION;
+    }
+    bool parameter() const {
+        return control & BIT_PARAMETER;
+    }
 
     void system(bool newValue) {
         control = (control & ~BIT_SYSTEM)         | (newValue ? BIT_SYSTEM : 0);
@@ -135,6 +143,13 @@ public:
     void endOfMessage(bool newValue) {
         control = (control & ~BIT_END_OF_MESSAGE) | (newValue ? BIT_END_OF_MESSAGE : 0);
     }
+    void negotiation(bool newValue) {
+        control = (control & ~BIT_NEGOTIATION) | (newValue ? BIT_NEGOTIATION : 0);
+    }
+    void parameter(bool newValue) {
+        control = (control & ~BIT_PARAMETER) | (newValue ? BIT_PARAMETER : 0);
+    }
+    
 
 private:
     // format of control
@@ -142,10 +157,17 @@ private:
     //   bit 1  sent acknowledgement
     //   bit 2  attention
     //   bit 3  end of message
+    //   bit 4  negotiation
+    //   bit 5  parameter
+
+    // See APilot/15.0.1/NS/Private/NewNetworkStreamImpl.mesa for negitiation and parameter
+  
     static const constexpr uint8_t BIT_SYSTEM         = 0x80;
     static const constexpr uint8_t BIT_SEND_ACK       = 0x40;
     static const constexpr uint8_t BIT_ATTENTION      = 0x20;
     static const constexpr uint8_t BIT_END_OF_MESSAGE = 0x10;
+    static const constexpr uint8_t BIT_NEGOTIATION    = 0x08;
+    static const constexpr uint8_t BIT_PARAMETER      = 0x04;
 };
 
 }
