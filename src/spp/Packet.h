@@ -147,23 +147,37 @@ private:
 
 
 class PacketQueue {
-    using LIST = std::list<Packet>;
+    using LIST   = std::list<Packet>;
+    using SEQVEC = std::vector<uint16_t>;
 
     int         count;
     LIST        list;
     std::mutex  mutex;
 
+    inline SEQVEC seqVec() {
+        SEQVEC ret;
+        ret.reserve(list.size());
+        for(auto& e: list) {
+            ret.push_back(e.seq);
+        }
+        return ret;
+    }
 public:
     PacketQueue() : count(0), list() {}
     PacketQueue(const PacketQueue& that) : count(that.count), list(that.list) {}
-    
-    bool    contains(uint16_t seq);
-    void    add(const Packet& packet);
-    void    remove(uint16_t seq);
-    Packet& get(uint16_t seq);
-    void    clear();
-    uint32_t size();
-    bool    empty();
+
+    bool     contains(uint16_t seq);
+    SEQVEC   add(const Packet& packet);
+    bool     get(uint16_t seq, Packet& packet);
+
+    void     clear();
+    uint32_t size() {
+        return count;
+    }
+    bool     empty() {
+        return count == 0;
+    }
+    bool     checkAttention(uint8_t& value);
 
     using MapFunction = std::function<void(Packet&)>;
     void map(MapFunction function);
@@ -171,9 +185,6 @@ public:
     using MapDeleteFunction = std::function<bool(Packet&)>;
     void mapDelete(MapDeleteFunction function);
 
-    void sort() {
-        list.sort();
-    }
 };
 
 }

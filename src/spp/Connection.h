@@ -124,8 +124,6 @@ public:
     PacketQueue receiveQueue;    // hold received packet
     PacketQueue retransmitQueue; // hold retransmit packet
 
-    uint16_t            clientSeq;
-    SimpleQueue<Packet> clientQueue;
     ThreadControl       clientThread;
 
     Client*   client;
@@ -137,7 +135,7 @@ public:
         srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        clientSeq(0), clientQueue(that.clientQueue), client(that.client),
+        client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
@@ -145,18 +143,17 @@ public:
         srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
+        client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         state(State::NEW), session(session_),
         srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
         seq(0),
-        clientSeq(0), client(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%s  %08X  %d  %d  %d  %d  %d}", toString(state), key, seq, txRange.ack, txRange.alloc, clientSeq, clientQueue.size());
+        return std_sprintf("{%s  %08X  %d  %d  %d}", toString(state), key, seq, txRange.ack, txRange.alloc);
     }
 
     void set(Client* client);
@@ -192,6 +189,12 @@ public:
         Data data;
         transmitRaw(true, false, false, false, SST::DATA, data);    
     }
+    void transmitClose() {
+        transmitRaw(false, false, false, false, SST::CLOSE);
+    }
+    void transmitCloseReply() {
+        transmitRaw(false, false, false, false, SST::CLOSE_REPLY);
+    }
 
     // from network
     void receive(const xns::SPP& header, const ByteBuffer& body);
@@ -209,10 +212,6 @@ private:
     }
     
     void transmitRaw(Packet& packet);
-
-    void receiveDataBulk  (const xns::SPP& header, const ByteBuffer& body);
-    void receiveClose     (const xns::SPP& header, const ByteBuffer& body);
-    void receiveCloseReply(const xns::SPP& header, const ByteBuffer& body);
 
 };
 

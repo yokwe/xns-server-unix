@@ -50,12 +50,16 @@ using SST    = xns::SPP::SST;
 class Connection;
 
 class StreamSPP : public Stream {
-    Connection* connection;
+    static constexpr uint32_t TIMEOUT_VALUE = 3'600'000;
 
-    uint32_t timeoutValue   = 3'600'000; // unit is milliseconds
+    Connection* connection;
+    uint32_t    timeoutValue;
+    uint16_t    seq;
+    bool        attentionFlag;
+    uint8_t     attentionValue;
 
 public:
-    StreamSPP(Connection* connection_): connection(connection_) {}
+    StreamSPP(Connection* connection_): connection(connection_), timeoutValue(TIMEOUT_VALUE), seq(0), attentionFlag(false), attentionValue(0) {}
 
     Result   get(Data& data) override;
     void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) override;
@@ -66,7 +70,8 @@ public:
     }
 
     void     attention(uint8_t value) override;
-    int      attention() override;  // return -1 when no attention
+    bool     checkAttention() override;
+    uint8_t  attention() override;
 
     uint32_t timeout() override;               // unit is milliseconds
     void     timeout(uint32_t value) override; // unit is milliseconds

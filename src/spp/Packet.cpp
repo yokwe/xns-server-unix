@@ -51,7 +51,7 @@ bool PacketQueue::contains(uint16_t seq) {
     }
     return false;
 }
-void PacketQueue::add(const Packet& packet) {
+PacketQueue::SEQVEC PacketQueue::add(const Packet& packet) {
     if (packet.system()) ERROR();
 
     std::lock_guard<std::mutex> lock(mutex);
@@ -67,41 +67,29 @@ void PacketQueue::add(const Packet& packet) {
 
     list.push_back(packet);
     count++;
+    return seqVec();
 }
-void PacketQueue::remove(uint16_t seq) {
-    std::lock_guard<std::mutex> lock(mutex);
 
+bool PacketQueue::get(uint16_t seq, Packet& packet) {
+    if (empty()) return false;
+    std::lock_guard<std::mutex> lock(mutex);
     for(auto i = list.begin(); i != list.end();) {
         if (i->seq == seq) {
+            packet = *i;
             list.erase(i);
             count--;
-            return;
+            return true;
         } else {
             i++;
         }
     }
-    ERROR()
-}
-
-Packet& PacketQueue::get(uint16_t seq) {
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: list) {
-        if (e.seq == seq) return e;
-    }
-    ERROR()
+    return false;
 }
 
 void PacketQueue::clear() {
     std::lock_guard<std::mutex> lock(mutex);
     list.clear();
     count = 0;
-}
-
-uint32_t PacketQueue::size() {
-    return count;
-}
-bool PacketQueue::empty() {
-    return count == 0;
 }
 
 void PacketQueue::map(MapFunction function) {
@@ -117,6 +105,18 @@ void PacketQueue::mapDelete(MapDeleteFunction function) {
     std::lock_guard<std::mutex> lock(mutex);
     list.remove_if(function);
     count = list.size();
+}
+
+bool PacketQueue::checkAttention(uint8_t& value) {
+    if (empty()) return false;
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto& e: list) {
+        if (e.attention()) {
+            value = e.data[0];
+            return true;
+        }
+    }
+    return false;
 }
 
 }

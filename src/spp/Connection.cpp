@@ -33,6 +33,7 @@
  // Connection.cpp
  //
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 
@@ -154,109 +155,32 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
 
     logger.info("SST %s", xns::SPP::toString(header.sst));
 
-    if (sst == SST::DATA || sst == SST::BULK) {
-        receiveDataBulk(header, body);
-    } else if (sst == SST::CLOSE) {
-        receiveClose(header, body);
-    } else if (sst == SST::CLOSE_REPLY) {
-        receiveCloseReply(header, body);
-    } else {
-        ERROR()
-    }
-}
-void Connection::receiveDataBulk(const xns::SPP& header, const ByteBuffer& body) {
-    if (state == State::NEW && header.seq == 0) {
-        state = State::OPEN;
-    }
-
-    // sanity check
-    if (state != State::OPEN) {
-        logger.error("connection  %s", toString());
-        ERROR()
-    }
-
     bool sendAck = header.sendAck();
     auto rxseq = header.seq;
     
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
-    if (rxRange.contains(rxseq)) {
-        if (xns::SPP::isBefore(rxseq, clientSeq)) {
+    if (txRange.contains(rxseq)) {
+        if (receiveQueue.contains(rxseq)) {
             // already processed
-            logger.info("DUP_A   %d  %s", rxseq, xns::SPP::toString(header.sst));
-        } else if (receiveQueue.contains(rxseq)) {
-            // already processed
-            logger.info("DUP_B   %d  %s", rxseq, xns::SPP::toString(header.sst));
+            logger.info("DUP     %d  %s", rxseq, xns::SPP::toString(header.sst));
         } else {
             // add to receiveQueue
-            receiveQueue.add(Packet{header, body});
+            auto seqVec = receiveQueue.add(Packet{header, body});
             logger.info("ACCEPT  %d", rxseq);
     
-            // update attentionValue
-            if (header.attention()) {
-                if (body.byteRemains() != 1) ERROR()
-                body.mark();
-                attentionValue = body.get8();
-                body.reset();
-            }
-    
             // maintain txRange
-            while(receiveQueue.contains(txRange.ack)) {
+            while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
                 txRange++;
                 sendAck = true;
                 logger.info("NEW ACK %d", txRange.ack);
             }
-    
-            // maintain clientQueue
-            for (;;) {
-                if (!receiveQueue.contains(clientSeq)) break;
-                auto& packet = receiveQueue.get(clientSeq);
-                logger.info("clientQueue  %04X", clientSeq);
-                clientQueue.push(packet);
-                receiveQueue.remove(clientSeq);
-                clientSeq++;
-            }
         }
     } else {
+        logger.info("rxRange  %d  %d", rxRange.ack, rxRange.alloc);
         logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
     }
 
     if (sendAck) transmitSystemAck();
-}
-void Connection::receiveClose(const xns::SPP& header, const ByteBuffer& body) {
-    (void)header;
-    // sanity check
-    if (state != State::OPEN && state != State::CLOSE) {
-        logger.error("connection  %s", toString());
-        ERROR()
-    }
-    if (!body.empty()) ERROR()
-
-    state = State::CLOSE;
-
-    // special for CLOSE
-    // Dont update seq for retransmit
-    transmitRaw(false, false, false, false, SST::CLOSE);
-    return;
-}
-void Connection::receiveCloseReply(const xns::SPP& header, const ByteBuffer& body) {
-    (void)header;
-    // sanity check
-    if (state != State::CLOSE) {
-        logger.error("connection  %s", toString());
-        ERROR()
-    }
-    if (!body.empty()) ERROR()
-
-    state = State::CLOSE_REPLY;
-    // clear queue for close connection
-    retransmitQueue.clear();
-    receiveQueue.clear();
-    clientQueue.clear();
-
-    // special for CLOSE_REPLY
-    // Don't expect acknowledge packet will receive
-    seq++;
-    transmitRaw(false, false, false, false, SST::CLOSE_REPLY);
 }
 
 int Connection::attention() {

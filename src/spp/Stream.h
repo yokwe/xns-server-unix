@@ -47,6 +47,14 @@ using SST = xns::SPP::SST;
 enum class Reason {
     normal, timeout, endOfStream,
 };
+inline std::string toString(Reason value) {
+    static std::unordered_map<Reason, std::string, ScopedEnumHash> map = {
+        {Reason::normal,       "normal"},
+        {Reason::timeout,      "timeout"},
+        {Reason::endOfStream,  "endOfStream"},
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
 struct Result {
     Reason reason;
     SST    sst;
@@ -54,6 +62,10 @@ struct Result {
 
     Result(Reason reason_, SST sst_, bool endOfMessage_) : reason(reason_), sst(sst_), endOfMessage(endOfMessage_) {}
     Result() : Result(Reason::normal, SST::DATA, false) {}
+
+    std::string toString() {
+        return std_sprintf("{%s  %s  %s}", ::toString(reason), ::toString(sst), endOfMessage ? "T" : "F");
+    }
 };
 
 using Data = std::vector<uint8_t>;
@@ -66,7 +78,8 @@ public:
     virtual void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) = 0;
 
     virtual void     attention(uint8_t value) = 0;
-    virtual int      attention() = 0; // return -1 when no attention
+    virtual bool     checkAttention() = 0;
+    virtual uint8_t  attention() = 0; // return -1 when no attention
 
     virtual uint32_t timeout() = 0;               // unit is milliseconds
     virtual void     timeout(uint32_t value) = 0; // unit is milliseconds

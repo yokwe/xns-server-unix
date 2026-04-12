@@ -59,19 +59,32 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
     if (!connections.contains(key)) ERROR()
 
     auto& connection = connections.get(key);
-    connection.receive(rxHeader, rxbb);
 
-    if (connection.closed()) {
+    auto sst = rxHeader.sst;
+    if (sst == SST::CLOSE) {
+        connection.receiveQueue.clear();
+        connection.retransmitQueue.clear();
         logger.info("SSP CLOSE  %s", name());
-
-        // notify SocketManager to stop listening this socket
-        stopped = true;
+        connection.transmitClose();
+        connection.state = Connection::State::CLOSE;
+    } else if (sst == SST::CLOSE_REPLY) {
+        connection.receiveQueue.clear();
+        connection.retransmitQueue.clear();
+        logger.info("SSP CLOSE_REPLY  %s", name());
+        connection.seq++;
+        connection.transmitCloseReply();
+        connection.state = Connection::State::CLOSE_REPLY;
         
         // stop client
         connection.client->stop();
 
         // remove connection from connections
         connections.remove(key);
+
+        // notify SocketManager to stop listening this socket
+        stopped = true;
+    } else {
+        connection.receive(rxHeader, rxbb);
     }
 }
 

@@ -35,7 +35,6 @@
 
 #include <chrono>
 
-
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -73,13 +72,20 @@ void ClientCourier::run() {
             idle();
             continue;
         }
-        
-        ByteBuffer rx(rxdata.data(), rxdata.size());
-        auto tx = service::services.callCourier(&stream, rx);
-        auto txdata = tx.toVector();
-        stream.put(txdata, xns::SPP::SST::DATA, true);
-    }
 
+        // SST::CLOSE and SST::CLOSE_REPLY is processed in SocketCourierClient::process
+        if (result.sst == SST::DATA) {
+            ByteBuffer rx(rxdata.data(), rxdata.size());
+            auto tx = service::services.callCourier(&stream, rx);
+            auto txdata = tx.toVector();
+            stream.put(txdata, xns::SPP::SST::DATA, true);    
+        } else if (result.sst == SST::BULK) {
+            // FIXME
+        } else {
+            logger.error("result  %s", result.toString());
+            ERROR()
+        }
+    }
     logger.info("STOP");
     threadRunning = false;
 }

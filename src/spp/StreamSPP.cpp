@@ -48,13 +48,17 @@ Result   StreamSPP::get(Data& data) {
     }
 
     Packet packet;
-    auto timeoutDuration = std::chrono::milliseconds(timeoutValue);
-    auto hasData = connection->clientQueue.pop(packet, timeoutDuration);
+    auto hasData = connection->receiveQueue.get(seq, packet);
 
     Reason reason;
     if (hasData) {
-        data = packet.data;
-        reason = packet.attention() ? Reason::timeout : Reason::normal;
+        if (packet.attention()) {
+            // ignore attention packet
+            reason = Reason::timeout;
+        } else {
+            data = packet.data;
+            reason = Reason::normal;
+        }
     } else {
         reason = connection->closed() ? Reason::endOfStream : Reason::timeout;
     }
@@ -68,8 +72,27 @@ void     StreamSPP::put(Data& data, SST sst, bool endOfMessage) {
 void     StreamSPP::attention(uint8_t value) {
     connection->transmitAttention(value);
 }
-int      StreamSPP::attention() { // return -1 when no attention
-    return connection->attention();
+
+bool StreamSPP::checkAttention() {
+    bool flag;
+    uint8_t value;
+    flag = connection->receiveQueue.checkAttention(value);
+    if (flag) {
+        attentionFlag = true;
+        attentionValue = value;
+    }
+    return attentionFlag;
+}
+uint8_t StreamSPP::attention() {
+    if (attentionFlag) {
+        auto ret = attentionValue;
+        // clear attentionFlag and attentionValue
+        attentionFlag  = false;
+        attentionValue = 0;
+        return ret;
+    } else {
+        return 0;
+    }
 }
 
 uint32_t StreamSPP::timeout() { // unit is milliseconds
