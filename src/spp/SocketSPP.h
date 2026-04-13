@@ -53,21 +53,13 @@ using milliseconds  = std::chrono::milliseconds;
 
 // SocketSPP process request and add client socket to newly allocated socket
 class SocketSPP: public Listener {
-protected:
-    std::string myName;
-
 public:
-    SocketSPP(const std::string& name) : myName(name) {}
     virtual ~SocketSPP() = default;
 
     void process(Session& session, ByteBuffer&rx, bool& stopped) override;
-    const std::string& name() override {
-        return myName;
-    }
 
-    virtual Listener* getListener()          = 0;
+    virtual Listener* getListener(Socket sorcket, uint32_t key) = 0;
     virtual Client*   getClient(Connection*) = 0;
-
 };
 
 

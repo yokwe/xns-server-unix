@@ -62,34 +62,47 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
         ERROR()
     }
 
-    // get new socket for srcSocket
-    auto srcSocket = socketManager->newSocket();
+    const uint16_t dstID = rxHeader.srcID;
 
-    // set dst.socket to redirect socket
-    session.rxIDP.dst.socket = srcSocket;
-
-    // start listening new socket
-    auto* clientListener = getListener();
-    socketManager->add(srcSocket, clientListener);
+    {
+        auto oldConnection = connections.getByDstID(dstID);
+        if (oldConnection) {
+            auto& connection = *oldConnection;
+            logger.info("SPP REOPEN %s  %s", name(), connection.toString());
+            // set dst.socket to redirect socket
+            session.rxIDP.dst.socket = connection.socket;
+            // send packet
+            connection.transmitSystemAck();
+            return;
+        }
+    }
 
     // add new connection
-    const uint16_t dstID = rxHeader.srcID;
     const uint16_t srcID = connections.newSrcID(dstID);
     const uint32_t key   = getKey(srcID, dstID);
 
-    connections.add(new Connection(session, srcID, dstID));    
+    // get new socket for srcSocket
+    auto socket = socketManager->newSocket();
+
+    // set dst.socket to redirect socket
+    session.rxIDP.dst.socket = socket;
+
+    // start listening new socket
+    auto* clientListener = getListener(socket, key);
+    socketManager->add(socket, clientListener);
+
+    connections.add(new Connection(session, socket, srcID, dstID));    
 
     // get reference of connection from connections
     auto& connection = connections.get(key);
 
     // set client to connection
-
     connection.set(getClient(&connection));
 
     // start client thread
     connection.client->start();
 
-    logger.info("SPP OPEN   %s  %s", myName, connection.toString());
+    logger.info("SPP OPEN   %s  %s", name(), connection.toString());
 
     // send packet
     connection.transmitSystemAck();

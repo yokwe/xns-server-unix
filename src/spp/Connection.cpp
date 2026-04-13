@@ -145,10 +145,6 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
         // sanity check
         if (sst != SST::DATA) ERROR()
 
-        if (state == State::NEW && header.seq == 0) {
-            state = State::OPEN;
-        }
-
         retransmit(header.sendAck());
         return;
     }
@@ -270,6 +266,14 @@ uint16_t Connections::newSrcID(uint16_t dstID) {
         }
     }
     return srcID;
+}
+
+Connection* Connections::getByDstID(uint16_t dstID) {
+    std::lock_guard<std::mutex> lock(mutex);
+    for(auto* e: vector) {
+        if (e && e->dstID == dstID) return e;
+    }
+    return 0;
 }
 
 }

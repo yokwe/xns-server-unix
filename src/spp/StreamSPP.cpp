@@ -43,10 +43,6 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 Result   StreamSPP::get(Data& data) {
-    if (connection->closed()) {
-        return Result(Reason::endOfStream, SST::DATA, false);
-    }
-
     Packet packet;
     auto hasData = connection->receiveQueue.get(seq, packet);
 
@@ -60,7 +56,7 @@ Result   StreamSPP::get(Data& data) {
             reason = Reason::normal;
         }
     } else {
-        reason = connection->closed() ? Reason::endOfStream : Reason::timeout;
+        reason = Reason::timeout;
     }
 
     return Result(reason, packet.sst, packet.endOfMessage());

@@ -37,8 +37,6 @@
 
 #include <string>
 
-#include "../util/ByteBuffer.h"
-
 #include "../xns/XNS.h"
 
 #include "../server/SocketManager.h"
@@ -49,16 +47,35 @@
 namespace spp {
 //
 using SocketManager = server::SocketManager;
-using Session       = server::Session;
-
+using Socket        = xns::Socket;
 
 struct SocketCourierClient: public SocketManager::Listener {
     static const constexpr std::string NAME = "SocketCourierClient";
 
-    SocketCourierClient() : SocketManager::Listener() {}
+    enum class State {
+        NEW, OPEN, CLOSE, CLOSE_REPLY,
+    };
+    std::string toString(State value) {
+        static std::unordered_map<State, std::string, ScopedEnumHash> map = {
+            {State::NEW,         "NEW"},
+            {State::OPEN,        "OPEN"},
+            {State::CLOSE,       "CLOSE"},
+            {State::CLOSE_REPLY, "CLOSE_REPLY"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    }
 
-    void process(Session& session, ByteBuffer&rx, bool& stopped); // rx is idb body
-    const std::string& name() {
+    const Socket   socket;
+    const uint32_t key;
+
+    State    state;
+    uint32_t closeCount;
+
+    SocketCourierClient(Socket socket_, uint32_t key_) :
+        SocketManager::Listener(), socket(socket_), key(key_), state(State::NEW), closeCount(0) {}
+
+    void process(Session& session, ByteBuffer&rx, bool& stopped) override; // rx is idb body
+    const std::string& name() override {
         return NAME;
     }
 };
@@ -66,19 +83,20 @@ struct SocketCourierClient: public SocketManager::Listener {
 
 struct SocketCourier: public SocketSPP {
     static const constexpr auto SOCKET = xns::Socket::COURIER;
-    static const constexpr auto NAME = "SocketCourier";
+    static const constexpr std::string NAME = "SocketCourier";
+    
+    SocketCourier() : SocketSPP() {}
 
-    SocketCourier() : SocketSPP(NAME) {}
-
-    SocketManager::Listener* getListener() override {
-        return new SocketCourierClient;
+    SocketManager::Listener* getListener(Socket socket, uint32_t key) override {
+        return new SocketCourierClient(socket, key);
     }
     Client* getClient(Connection* connection) override {
         return new ClientCourier(connection);
     }
+    const std::string& name() override {
+        return NAME;
+    }
 
 };
-
-
 
 }

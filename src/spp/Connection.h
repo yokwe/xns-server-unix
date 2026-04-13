@@ -42,7 +42,8 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 #include "../util/ThreadControl.h"
-#include "../util/SimpleQueue.h"
+
+#include "../xns/XNS.h"
 
 #include "../server/Session.h"
 
@@ -52,6 +53,7 @@
 namespace spp {
 //
 using Session = server::Session;
+using Socket  = xns::Socket;
 
 //
 // Connection
@@ -96,22 +98,9 @@ public:
     static const constexpr int NO_ATTENTION = -1;
     static const constexpr auto RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
 
-    enum class State {
-        NEW, OPEN, CLOSE, CLOSE_REPLY,
-    };
-    std::string toString(State value) {
-        static std::unordered_map<State, std::string, ScopedEnumHash> map = {
-            {State::NEW,         "NEW"},
-            {State::OPEN,        "OPEN"},
-            {State::CLOSE,       "CLOSE"},
-            {State::CLOSE_REPLY, "CLOSE_REPLY"},
-        };
-        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-    }
-
-    State    state;
     Session  session;
 
+    Socket   socket;
     uint16_t srcID;
     uint16_t dstID;
     uint32_t key;
@@ -131,38 +120,35 @@ public:
     int attentionValue;
 
     Connection(const Connection& that) :
-        state(that.state), session(that.session),
-        srcID(that.srcID), dstID(that.dstID), key(that.key),
+        session(that.session),
+        socket(that.socket), srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         client(that.client),
         attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
-        state(that.state), session(that.session),
-        srcID(that.srcID), dstID(that.dstID), key(that.key),
+        session(that.session),
+        socket(that.socket), srcID(that.srcID), dstID(that.dstID), key(that.key),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         client(that.client),
         attentionValue(that.attentionValue) {}
 
-    Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
-        state(State::NEW), session(session_),
-        srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
+    Connection(Session session_, Socket(socket_), uint16_t srcID_, uint16_t dstID_) :
+        session(session_),
+        socket(socket_), srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
         seq(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%s  %08X  %d  %d  %d}", toString(state), key, seq, txRange.ack, txRange.alloc);
+        return std_sprintf("{%08X  %d  %d  %d}", key, seq, txRange.ack, txRange.alloc);
     }
 
     void set(Client* client);
 
     // for client
-    bool closed() {
-        return state == State::CLOSE_REPLY;
-    }
-    int attention(); // return attention value
+    int  attention(); // return attention value
     void retransmit(bool snedAck = false);
     void maintainRetransmit();
 
@@ -186,8 +172,7 @@ public:
         seq++;
     }
     void transmitSystemAck() {
-        Data data;
-        transmitRaw(true, false, false, false, SST::DATA, data);    
+        transmitRaw(true, false, false, false, SST::DATA);    
     }
     void transmitClose() {
         transmitRaw(false, false, false, false, SST::CLOSE);
@@ -236,6 +221,8 @@ struct Connections {
 
     Connection& get(uint32_t key);
     uint32_t size();
+
+    Connection* getByDstID(uint16_t dstID);
 
     uint16_t newSrcID(uint16_t dstID);
 };
