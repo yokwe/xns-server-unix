@@ -72,17 +72,6 @@ bool SocketManager::contains(Socket socket) {
     return map.contains(socket);
 }
 
-// Listener& get(Socket socket);
-
-SocketManager::Listener* SocketManager::get(Socket socket) {
-    std::lock_guard<std::mutex> locck(mutex);
-    if (map.contains(socket)) {
-        return map[socket];
-    } else {
-        ERROR()
-    }
-}
-
 void SocketManager::process(Session& session, ByteBuffer& rx) {
     // special for Error packet
     auto packetType = session.rxIDP.packetType;

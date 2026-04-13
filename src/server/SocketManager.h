@@ -74,8 +74,6 @@ public:
     void remove  (Socket socket);
     bool contains(Socket socket);
 
-    Listener* get(Socket socket);
-
     void process(Session& session, ByteBuffer& rx); // rx is idp body
 
     Socket newSocket();
