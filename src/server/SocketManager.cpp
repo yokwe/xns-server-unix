@@ -111,6 +111,8 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
         } else {
             logger.info("    IDP  >>  %s  (%d) %s", toString(session.rxIDP), rx.byteLimit(), rx.toString());
         }
+
+        session.sendError(xns::Error::ErrorNumber::NO_SOCKET);
     }
 }
 
