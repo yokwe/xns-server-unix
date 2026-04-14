@@ -200,10 +200,9 @@ void Connection::set(Client* client_) {
 void Connections::add(Connection* connection) {
     std::lock_guard<std::mutex> lock(mutex);
     // sanity check
-    // check duplicate key
-    auto myKey = connection->key;
+    // check duplicate
     for(auto* e: vector) {
-        if (e && e->key == myKey) ERROR()
+        if (e && e->srcID == connection->srcID && e->dstID == connection->dstID) ERROR()
     }
 
     // if vector is full, resize vector with default value
@@ -220,10 +219,10 @@ void Connections::add(Connection* connection) {
     ERROR()
 }
 
-void Connections::remove(uint32_t key) {
+void Connections::remove(Connection* connection) {
     std::lock_guard<std::mutex> lock(mutex);
     for(auto& e: vector) {
-        if (e && key == e->key) {
+        if (e == connection) {
             // delete Connection
             delete e;
             // set ZERO to element
@@ -234,29 +233,18 @@ void Connections::remove(uint32_t key) {
     ERROR()
 }
 
-bool Connections::contains(uint32_t key) {
+Connection* Connections::get(uint16_t srcID, uint16_t dstID) {
     std::lock_guard<std::mutex> lock(mutex);
     for(auto* e: vector) {
-        if (e && key == e->key) return true;
+        if (e && e->srcID == srcID && e->dstID == dstID) return e;
     }
-    return false;
-}
-Connection& Connections::get(uint32_t key) {
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto* e: vector) {
-        if (e && key == e->key) return *e;
-    }
-    ERROR()
-}
-uint32_t Connections::size() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return vector.size();
+    return 0;
 }
 
-Connection* Connections::getByDstID(uint16_t dstID) {
+Connection* Connections::get(const Host& host, uint16_t dstID) {
     std::lock_guard<std::mutex> lock(mutex);
     for(auto* e: vector) {
-        if (e && e->dstID == dstID) return e;
+        if (e && e->host == host && e->dstID == dstID) return e;
     }
     return 0;
 }

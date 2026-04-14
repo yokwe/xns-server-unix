@@ -53,18 +53,12 @@
 namespace spp {
 //
 using Session = server::Session;
+using Host    = xns::Host;
 using Socket  = xns::Socket;
 
 //
 // Connection
 //
-static inline uint32_t getKey(uint16_t srcID, uint16_t dstID) {
-    return (srcID << 16) | dstID;
-}
-static inline uint32_t getKey(const xns::SPP& rxHeader) {
-    return getKey(rxHeader.dstID, rxHeader.srcID); // intentionally reverse src and dst
-}
-
 struct SeqRange {
     uint16_t ack;
     uint16_t alloc;
@@ -100,10 +94,11 @@ public:
 
     Session  session;
 
+    Host     host;
     Socket   socket;
-    uint16_t srcID;
-    uint16_t dstID;
-    uint32_t key;
+
+    uint16_t srcID;  // connectionID of this side
+    uint16_t dstID;  // connectionID of other side
 
     uint16_t seq;
 
@@ -121,7 +116,8 @@ public:
 
     Connection(const Connection& that) :
         session(that.session),
-        socket(that.socket), srcID(that.srcID), dstID(that.dstID), key(that.key),
+        host(that.host), socket(that.socket),
+        srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         client(that.client),
@@ -129,20 +125,22 @@ public:
 
     Connection(Connection&& that) :
         session(that.session),
-        socket(that.socket), srcID(that.srcID), dstID(that.dstID), key(that.key),
+        host(that.host), socket(that.socket),
+        srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
         client(that.client),
         attentionValue(that.attentionValue) {}
 
-    Connection(Session session_, Socket(socket_), uint16_t srcID_, uint16_t dstID_) :
+    Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         session(session_),
-        socket(socket_), srcID(srcID_), dstID(dstID_), key(getKey(srcID_, dstID_)),
+        host(session.dstHost()), socket(session.dstSocket()),
+        srcID(srcID_), dstID(dstID_),
         seq(0),
         attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
-        return std_sprintf("{%08X  %d  %d  %d}", key, seq, txRange.ack, txRange.alloc);
+        return std_sprintf("{%04X  %04X  %d  %d  %d}", srcID, dstID, seq, txRange.ack, txRange.alloc);
     }
 
     void set(Client* client);
@@ -197,7 +195,6 @@ private:
     }
     
     void transmitRaw(Packet& packet);
-
 };
 
 
@@ -216,13 +213,10 @@ struct Connections {
     Connections(uint32_t size = SIZE) : vector(size, 0) {}
 
     void add     (Connection* connection);
-    void remove  (uint32_t key);
-    bool contains(uint32_t key);
+    void remove  (Connection* connection);
 
-    Connection& get(uint32_t key);
-    uint32_t size();
-
-    Connection* getByDstID(uint16_t dstID);
+    Connection* get(uint16_t srcID, uint16_t dstID);
+    Connection* get(const Host& host, uint16_t dstID);
 };
 
 inline Connections connections;
