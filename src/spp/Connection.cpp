@@ -123,7 +123,7 @@ void Connection::retransmit(bool sendAck) {
 
 
 //
-// receiveXXX
+// receive
 //
 void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
@@ -162,6 +162,21 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
             // add to receiveQueue
             auto seqVec = receiveQueue.add(Packet{header, body});
             logger.info("ACCEPT  %d", rxseq);
+
+            if (header.attention()) {
+                attentionFlag = true;
+                auto data = body.toVector();
+                attentionValue = data[0];
+            }
+
+            // maitain clientQueue
+            for(;;) {
+                Packet packet;
+                auto hasData = receiveQueue.get(clientSeq, packet);
+                if (!hasData) break;
+                clientQueue.push(packet);
+                clientSeq++;
+            }
     
             // maintain txRange
             while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
@@ -178,11 +193,13 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
     if (sendAck) transmitSystemAck();
 }
 
+bool Connection::hasAttention() {
+    return attentionFlag;
+}
 int Connection::attention() {
     auto ret = attentionValue;
-    if (0 <= attentionValue) {
-        attentionValue = NO_ATTENTION;
-    }
+    attentionFlag  = false;
+    attentionValue = 0;
     return ret;
 }
 

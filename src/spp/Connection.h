@@ -42,6 +42,7 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 #include "../util/ThreadControl.h"
+#include "../util/SimpleQueue.h"
 
 #include "../xns/XNS.h"
 
@@ -108,11 +109,15 @@ public:
     PacketQueue receiveQueue;    // hold received packet
     PacketQueue retransmitQueue; // hold retransmit packet
 
+    uint16_t            clientSeq;
+    SimpleQueue<Packet> clientQueue;
+
     ThreadControl       clientThread;
 
     Client*   client;
 
-    int attentionValue;
+    bool    attentionFlag;
+    uint8_t attentionValue;
 
     Connection(const Connection& that) :
         session(that.session),
@@ -120,8 +125,8 @@ public:
         srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        client(that.client),
-        attentionValue(that.attentionValue) {}
+        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
+        attentionFlag(that.attentionFlag), attentionValue(that.attentionValue) {}
 
     Connection(Connection&& that) :
         session(that.session),
@@ -129,15 +134,16 @@ public:
         srcID(that.srcID), dstID(that.dstID),
         seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
         receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        client(that.client),
-        attentionValue(that.attentionValue) {}
+        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
+        attentionFlag(that.attentionFlag), attentionValue(that.attentionValue) {}
 
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
         session(session_),
         host(session.dstHost()), socket(session.dstSocket()),
         srcID(srcID_), dstID(dstID_),
         seq(0),
-        attentionValue(NO_ATTENTION) {}
+        clientSeq(0),
+        attentionFlag(false), attentionValue(NO_ATTENTION) {}
 
     std::string toString() {
         return std_sprintf("{%04X  %04X  %d  %d  %d}", srcID, dstID, seq, txRange.ack, txRange.alloc);
@@ -146,7 +152,9 @@ public:
     void set(Client* client);
 
     // for client
+    bool hasAttention();
     int  attention(); // return attention value
+
     void retransmit(bool snedAck = false);
     void maintainRetransmit();
 
