@@ -67,7 +67,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
     auto& connection = connections.get(key);
 
     if (state == State::NEW) {
-        if (rxHeader.seq == 0) {
+        if (rxHeader.seq == 0 && rxHeader.dstID != 0) {
             state = State::OPEN;
         } else {
             ERROR()

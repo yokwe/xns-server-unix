@@ -43,6 +43,25 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 
+static uint16_t newConnectionID() {
+    static uint16_t lastResult = 0;
+
+    // Overflow period in second  is  65536 / (1000 / N)
+    // Overflow period in minutes is  65536 / ((1000 / N) * 60)
+    // When N = 30  Overflow time is 32.768 minutes
+    constexpr uint64_t N = 30;
+    auto milliseconds = std::chrono::milliseconds(std::chrono::steady_clock::now().time_since_epoch().count()).count();
+    uint16_t result = milliseconds / N;
+    // sanity check
+    if (result == lastResult) {
+        // if same result, wait N milliseconds to incremetn result
+        std::this_thread::sleep_for(std::chrono::milliseconds(N));
+        result++;
+    }
+    return lastResult = result;
+}
+
+
 void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     stopped = false;
     if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
@@ -72,13 +91,14 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
             // set dst.socket to redirect socket
             session.rxIDP.dst.socket = connection.socket;
             // send packet
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection.transmitSystemAck();
             return;
         }
     }
 
     // add new connection
-    const uint16_t srcID = connections.newSrcID(dstID);
+    const uint16_t srcID = newConnectionID();
     const uint32_t key   = getKey(srcID, dstID);
 
     // get new socket for srcSocket
@@ -103,8 +123,9 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     connection.client->start();
 
     logger.info("SPP OPEN   %s  %s", name(), connection.toString());
-
+    
     // send packet
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     connection.transmitSystemAck();
 }
 

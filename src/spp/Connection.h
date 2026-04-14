@@ -223,8 +223,6 @@ struct Connections {
     uint32_t size();
 
     Connection* getByDstID(uint16_t dstID);
-
-    uint16_t newSrcID(uint16_t dstID);
 };
 
 inline Connections connections;

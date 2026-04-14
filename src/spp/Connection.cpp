@@ -34,7 +34,6 @@
  //
 
 #include <algorithm>
-#include <chrono>
 #include <functional>
 
 #include "../util/Util.h"
@@ -252,20 +251,6 @@ Connection& Connections::get(uint32_t key) {
 uint32_t Connections::size() {
     std::lock_guard<std::mutex> lock(mutex);
     return vector.size();
-}
-
-uint16_t Connections::newSrcID(uint16_t dstID) {
-    std::lock_guard<std::mutex> lock(mutex);
-    uint16_t srcID = static_cast<uint16_t>(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
-    auto key = getKey(srcID, dstID);
-    for(auto* e: vector) {
-        if (e && key == e->key) {
-            srcID += 13;
-            key = getKey(srcID, dstID);
-            continue;
-        }
-    }
-    return srcID;
 }
 
 Connection* Connections::getByDstID(uint16_t dstID) {
