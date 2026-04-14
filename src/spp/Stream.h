@@ -78,7 +78,7 @@ public:
     virtual void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) = 0;
 
     virtual void     attention(uint8_t value) = 0;
-    virtual bool     checkAttention() = 0;
+    virtual bool     hasAttention() = 0;
     virtual uint8_t  attention() = 0; // return -1 when no attention
 
     virtual uint32_t timeout() = 0;               // unit is milliseconds

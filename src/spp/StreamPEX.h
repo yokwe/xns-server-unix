@@ -68,7 +68,7 @@ public:
     }
 
     void     attention(uint8_t value) override;
-    bool     checkAttention() override;
+    bool     hasAttention() override;
     uint8_t  attention() override;
 
     uint32_t timeout() override;               // unit is milliseconds

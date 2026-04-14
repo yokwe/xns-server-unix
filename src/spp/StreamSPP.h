@@ -54,12 +54,9 @@ class StreamSPP : public Stream {
 
     Connection* connection;
     uint32_t    timeoutValue;
-    uint16_t    seq;
-    bool        attentionFlag;
-    uint8_t     attentionValue;
 
 public:
-    StreamSPP(Connection* connection_): connection(connection_), timeoutValue(TIMEOUT_VALUE), seq(0), attentionFlag(false), attentionValue(0) {}
+    StreamSPP(Connection* connection_): connection(connection_), timeoutValue(TIMEOUT_VALUE) {}
 
     Result   get(Data& data) override;
     void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) override;
@@ -70,7 +67,7 @@ public:
     }
 
     void     attention(uint8_t value) override;
-    bool     checkAttention() override;
+    bool     hasAttention() override;
     uint8_t  attention() override;
 
     uint32_t timeout() override;               // unit is milliseconds

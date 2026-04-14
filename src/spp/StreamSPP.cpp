@@ -44,7 +44,7 @@ namespace spp {
 //
 Result   StreamSPP::get(Data& data) {
     Packet packet;
-    auto hasData = connection->receiveQueue.get(seq, packet);
+    bool hasData = connection->clientQueue.pop(packet);
 
     Reason reason;
     if (hasData) {
@@ -69,26 +69,11 @@ void     StreamSPP::attention(uint8_t value) {
     connection->transmitAttention(value);
 }
 
-bool StreamSPP::checkAttention() {
-    bool flag;
-    uint8_t value;
-    flag = connection->receiveQueue.checkAttention(value);
-    if (flag) {
-        attentionFlag = true;
-        attentionValue = value;
-    }
-    return attentionFlag;
+bool StreamSPP::hasAttention() {
+    return connection->hasAttention();
 }
 uint8_t StreamSPP::attention() {
-    if (attentionFlag) {
-        auto ret = attentionValue;
-        // clear attentionFlag and attentionValue
-        attentionFlag  = false;
-        attentionValue = 0;
-        return ret;
-    } else {
-        return 0;
-    }
+    return connection->attention();
 }
 
 uint32_t StreamSPP::timeout() { // unit is milliseconds

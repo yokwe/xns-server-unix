@@ -58,7 +58,7 @@ void     StreamPEX::attention(uint8_t value) {
     (void)value;
     ERROR()
 }
-bool    StreamPEX::checkAttention() {
+bool    StreamPEX::hasAttention() {
     ERROR();
 }
 uint8_t StreamPEX::attention() { // return -1 when no attention
