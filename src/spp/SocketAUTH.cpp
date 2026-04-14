@@ -59,8 +59,6 @@ void SocketAUTH::process(Session& session, ByteBuffer&rx, bool& stopped) {
     auto tx = service::services.callCourier(&stream, pexBody);
     if (tx.empty()) return;
 
-    
-    logger.info("duration  %d", session.duration());
     session.sendPEX(tx);
 }
 
