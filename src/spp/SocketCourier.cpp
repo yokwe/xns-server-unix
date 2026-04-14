@@ -59,12 +59,17 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
     rx.read(rxHeader, rxbb);
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
-    auto key = getKey(rxHeader);
     auto sst = rxHeader.sst;
-    logger.info("SPP  %s  %08X  %s  %s", xns::toString(socket), key, xns::SPP::toString(sst), toString(state));
+    auto srcID = rxHeader.dstID;
+    auto dstID = rxHeader.srcID;
 
-    if (!connections.contains(key)) ERROR()
-    auto& connection = connections.get(key);
+    logger.info("SPP  %s  %s  %s", xns::toString(socket), xns::SPP::toString(sst), toString(state));
+
+    auto* connection = connections.get(srcID, dstID);
+    if (connection == 0) {
+        logger.warn("Unexpected srcID dstID  %04X  %04X", srcID, dstID);
+        return;
+    }
 
     if (state == State::NEW) {
         if (rxHeader.seq == 0 && rxHeader.dstID != 0) {
@@ -78,52 +83,52 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
         closeCount++;
         if (closeCount == 1) {
             state = State::CLOSE;
-            connection.receiveQueue.clear();
-            connection.retransmitQueue.clear();
+            connection->receiveQueue.clear();
+            connection->retransmitQueue.clear();
             // reduce window
-            connection.txRange.alloc = connection.txRange.ack;
-            connection.txRange++;
+            connection->txRange.alloc = connection->txRange.ack;
+            connection->txRange++;
             // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            connection.transmitClose();
+            connection->transmitClose();
         } else if (closeCount < 4) {
             // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            connection.transmitClose();
+            connection->transmitClose();
         } else {
             // Unexpected situation
-            logger.info("SSP  %s  %08X  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), key, xns::SPP::toString(sst));
+            logger.info("SSP  %s  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), xns::SPP::toString(sst));
             goto close_connection;
         }
     } else if (sst == SST::CLOSE_REPLY) {
         state = State::CLOSE_REPLY;
-        connection.seq++;
-        connection.txRange++;
+        connection->seq++;
+        connection->txRange++;
         // send close reply
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        connection.transmitCloseReply();
+        connection->transmitCloseReply();
         // send close reply again
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        connection.transmitCloseReply();
+        connection->transmitCloseReply();
         goto close_connection;
     } else {
         if (state == State::CLOSE || state == State::CLOSE_REPLY) {
             // Unexpected situation
-            logger.info("SSP  %s  %08X  %s  UNEXPECTED state", xns::toString(socket), key, xns::SPP::toString(sst));
+            logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
             goto close_connection;
         } else {
-            connection.receive(rxHeader, rxbb);
+            connection->receive(rxHeader, rxbb);
         }
     }
     return;
 
 close_connection:
-    connection.receiveQueue.clear();
-    connection.retransmitQueue.clear();
+    connection->receiveQueue.clear();
+    connection->retransmitQueue.clear();
     // stop client
-    connection.client->stop();
+    connection->client->stop();
     // remove connection from connections
-    connections.remove(key);
+    connections.remove(connection);
     // notify SocketManager to stop listening this socket
     stopped = true;
 }

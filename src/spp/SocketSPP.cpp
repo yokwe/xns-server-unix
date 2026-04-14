@@ -92,12 +92,13 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     const uint16_t dstID = rxHeader.srcID;
 
     {
-        auto oldConnection = connections.getByDstID(dstID);
+        const Host host = session.dstHost();
+        auto* oldConnection = connections.get(host, dstID);
         if (oldConnection) {
             auto& connection = *oldConnection;
             logger.info("SPP REOPEN %s  %s", name(), connection.toString());
-            // set dst.socket to redirect socket
-            session.rxIDP.dst.socket = connection.socket;
+            // set dst.socket to redirect response
+            session.dstSocket(connection.socket);
             // send packet
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection.transmitSystemAck();
@@ -107,34 +108,31 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
 
     // add new connection
     const uint16_t srcID = newConnectionID();
-    const uint32_t key   = getKey(srcID, dstID);
 
     // get new socket for srcSocket
     auto socket = socketManager->newSocket();
 
     // set dst.socket to redirect socket
-    session.rxIDP.dst.socket = socket;
+    session.dstSocket(socket);
 
     // start listening new socket
-    auto* clientListener = getListener(socket, key);
+    auto* clientListener = getListener(socket, srcID, dstID);
     socketManager->add(socket, clientListener);
 
-    connections.add(new Connection(session, socket, srcID, dstID));    
-
-    // get reference of connection from connections
-    auto& connection = connections.get(key);
+    auto* connection = new Connection(session, srcID, dstID);
+    connections.add(connection);    
 
     // set client to connection
-    connection.set(getClient(&connection));
+    connection->set(getClient(connection));
 
     // start client thread
-    connection.client->start();
+    connection->client->start();
 
-    logger.info("SPP OPEN   %s  %s", name(), connection.toString());
+    logger.info("SPP OPEN   %s  %s", name(), connection->toString());
     
     // send packet
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    connection.transmitSystemAck();
+    connection->transmitSystemAck();
 }
 
 }

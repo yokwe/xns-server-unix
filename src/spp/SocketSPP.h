@@ -58,7 +58,7 @@ public:
 
     void process(Session& session, ByteBuffer&rx, bool& stopped) override;
 
-    virtual Listener* getListener(Socket sorcket, uint32_t key) = 0;
+    virtual Listener* getListener(Socket sorcket, uint16_t srcID, uint16_t dstID) = 0;
     virtual Client*   getClient(Connection*) = 0;
 };
 
