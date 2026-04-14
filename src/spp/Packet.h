@@ -177,7 +177,6 @@ public:
     bool     empty() {
         return count == 0;
     }
-    bool     checkAttention(uint8_t& value);
 
     using MapFunction = std::function<void(Packet&)>;
     void map(MapFunction function);

@@ -107,16 +107,4 @@ void PacketQueue::mapDelete(MapDeleteFunction function) {
     count = list.size();
 }
 
-bool PacketQueue::checkAttention(uint8_t& value) {
-    if (empty()) return false;
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: list) {
-        if (e.attention()) {
-            value = e.data[0];
-            return true;
-        }
-    }
-    return false;
-}
-
 }
