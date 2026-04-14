@@ -59,12 +59,8 @@ void Session::sendEther(const ByteBuffer& bb) {
     auto length = tx.byteLimit();
     for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
 
-    if constexpr (SHOW_RESPONSE_DURATION) {
-        logger.info("duration  %d", duration());
-    }
-    if constexpr (SHOW_PACKET_ETHERNET) {
-        logger.info("ETH  <<  %s  (%d) %s", server::toString(txEthernet), bb.byteLimit(), bb.toString());
-    }
+    if constexpr (SHOW_RESPONSE_DURATION) logger.info("duration  %d", duration());
+    if constexpr (SHOW_PACKET_ETHERNET)   logger.info("ETH  <<  %s  (%d) %s", server::toString(txEthernet), bb.byteLimit(), bb.toString());
 
     TransmitData transmitData(tx);
     threadTransmit->push(transmitData);

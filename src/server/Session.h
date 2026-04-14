@@ -51,6 +51,9 @@ struct ThreadTransmit;
 
 struct Session {
     using steady_clock = std::chrono::steady_clock;
+    using Host   = xns::Host;
+    using Socket = xns::Socket;
+
     Context*        context;
     ThreadTransmit* threadTransmit;
     uint64_t        startTime; // milli seconds
@@ -59,7 +62,6 @@ struct Session {
     xns::Ethernet rxEthernet;
     xns::IDP      rxIDP;
     xns::PEX      rxPEX;
-    xns::SPP      rxSPP;
 
     Session() : Session(0, 0) {}
     Session(Context* context_, ThreadTransmit* threadTransmit_) :
@@ -79,6 +81,16 @@ struct Session {
 
     uint64_t duration() {
         return microTime() - startTime;
+    }
+
+    Host dstHost() {
+        return rxIDP.dst.host;
+    }
+    void dstSocket(Socket newValue) {
+        rxIDP.dst.socket = newValue;
+    }
+    Socket dstSocket() {
+        return rxIDP.dst.socket;
     }
 
     void send(const xns::Ethernet& header, const ByteBuffer& body);
