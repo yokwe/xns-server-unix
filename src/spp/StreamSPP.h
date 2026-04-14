@@ -50,7 +50,7 @@ using SST    = xns::SPP::SST;
 class Connection;
 
 class StreamSPP : public Stream {
-    static constexpr uint32_t TIMEOUT_VALUE = 3'600'000;
+    static constexpr uint32_t TIMEOUT_VALUE = 3'600'000; // unit is milliseconds
 
     Connection* connection;
     uint32_t    timeoutValue;

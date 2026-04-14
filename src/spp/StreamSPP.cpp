@@ -44,7 +44,7 @@ namespace spp {
 //
 Result   StreamSPP::get(Data& data) {
     Packet packet;
-    bool hasData = connection->clientQueue.pop(packet);
+    bool hasData = connection->clientQueue.pop(packet, std::chrono::milliseconds(timeoutValue));
 
     Reason reason;
     if (hasData) {

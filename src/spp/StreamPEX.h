@@ -52,12 +52,13 @@ using Session = server::Session;
 using SST     = xns::SPP::SST;
 
 class StreamPEX : public Stream {
-    Session& session;
+    static constexpr uint32_t TIMEOUT_VALUE = 3'600'000; // unit is milliseconds
 
+    Session& session;
     uint32_t timeoutValue   = 3'600'000; // unit is milliseconds
 
 public:
-    StreamPEX(Session& session_): session(session_) {}
+    StreamPEX(Session& session_): session(session_), timeoutValue(TIMEOUT_VALUE) {}
 
     Result   get(Data& data) override;
     void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) override;
