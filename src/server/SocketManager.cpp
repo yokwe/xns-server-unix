@@ -82,7 +82,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
         return;
     }
 
-    auto socket = session.rxIDP.dst.socket;
+    auto socket = session.dstSocket();
     Listener* listener;
     {
         std::lock_guard<std::mutex> locck(mutex);
