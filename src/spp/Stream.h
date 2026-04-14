@@ -72,8 +72,7 @@ using Data = std::vector<uint8_t>;
 
 class Stream {
 public:
-    static const constexpr int NO_ATTENTION = -1;
-
+    
     virtual Result   get(Data& data) = 0;
     virtual void     put(Data& data, SST sst = SST::DATA, bool endOfMessage = false) = 0;
 
