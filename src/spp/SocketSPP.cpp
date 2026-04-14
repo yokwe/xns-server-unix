@@ -80,6 +80,14 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
         logger.error("Unexpected rxbb is not empty");
         ERROR()
     }
+    if (rxHeader.ack == 0 && rxHeader.dstID == 0) {
+        // Expected
+    } else {
+        // Unexpected
+        // Ignore this packet
+        logger.error("Unexpected packet  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+        return;
+    }
 
     const uint16_t dstID = rxHeader.srcID;
 
