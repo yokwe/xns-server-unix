@@ -91,7 +91,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
             // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
-        } else if (closeCount < 4) {
+        } else if (closeCount < 99) {
             // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
@@ -109,7 +109,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
         connection->transmitCloseReply();
         goto close_connection;
     } else {
-        if (state == State::CLOSE || state == State::CLOSE_REPLY) {
+        if ((state == State::CLOSE || state == State::CLOSE_REPLY) && !rxHeader.system()) {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
             goto close_connection;
