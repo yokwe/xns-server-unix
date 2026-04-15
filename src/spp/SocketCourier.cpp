@@ -107,9 +107,6 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
         // send close reply
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         connection->transmitCloseReply();
-        // send close reply again
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        connection->transmitCloseReply();
         goto close_connection;
     } else {
         if (state == State::CLOSE || state == State::CLOSE_REPLY) {
