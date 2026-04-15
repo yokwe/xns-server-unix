@@ -53,20 +53,36 @@ public:
 
 
     enum class Checksum : uint16_t {
-        ENUM_NAME_VALUE(Checksum, ZERO,    0)       // plus  zero
-        ENUM_NAME_VALUE(Checksum, NOCHECK, 0xFFFF)  // minus zero
+        ZERO    =      0,
+        NOCHECK = 0xFFFF,
     };
-    static std::string toString(Checksum value);
+    inline static std::string toString(Checksum value) {
+        static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
+            {Checksum::ZERO,    "ZERO"},
+            {Checksum::NOCHECK, "NOCHECK"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    };
 
     enum class PacketType : uint8_t {
-        ENUM_NAME_VALUE(PacketType, RIP,    1)
-        ENUM_NAME_VALUE(PacketType, ECHO,   2)
-        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
-        ENUM_NAME_VALUE(PacketType, PEX,    4)
-        ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   9)
+        RIP    = 1,
+        ECHO   = 2,
+        ERROR_ = 3,
+        PEX    = 4,
+        SPP    = 5,
+        BOOT   = 6,
     };
-    static std::string toString(PacketType value);
+    inline static std::string toString(PacketType value) {
+        static std::unordered_map<PacketType, std::string, ScopedEnumHash> map = {
+            {PacketType::RIP,    "RIP"},
+            {PacketType::ECHO,   "ECHO"},
+            {PacketType::ERROR_, "ERROR_"},
+            {PacketType::PEX,    "PEX"},
+            {PacketType::SPP,    "SPP"},
+            {PacketType::BOOT,   "BOOT"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    };
     
     static Checksum computeChecksum(const uint8_t* data, int start, int endPlusOne);
 

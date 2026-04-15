@@ -57,12 +57,12 @@ static courier::Time::Response call(Session& session, courier::Time::Request req
 
     // sanity check
     if (request.version != Version::CURRENT) ERROR()
-    if (request.type    != courier::Time::Type::REQUEST)    ERROR()
+    if (request.operation    != courier::Time::Operation::REQUEST)    ERROR()
 
     courier::Time::Response response;
 
     response.version         = Version::CURRENT;
-    response.type            = Type::RESPONSE;
+    response.operation       = Operation::RESPONSE;
     response.time            = Util::getMesaTime();
     response.offsetDirection = static_cast<Response::Direction>(context.config.time.offsetDirection);
     response.offsetHours     = context.config.time.offsetHours;

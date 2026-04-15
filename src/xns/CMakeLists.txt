@@ -16,12 +16,8 @@ target_sources(
 		SPP.h
 		XNS.h
 	PRIVATE
-		Error.cpp
-		Ethernet.cpp
 		IDP.cpp
-		PEX.cpp
 		RIP.cpp
-		SPP.cpp
 		XNS.cpp
 )
 

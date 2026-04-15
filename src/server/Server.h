@@ -43,20 +43,10 @@
 #include "../util/net.h"
 #include "../util/ByteBuffer.h"
 
-#include "../xns/XNS.h"
-#include "../xns/RIP.h"
-#include "../xns/Ethernet.h"
-#include "../xns/IDP.h"
-
 
 namespace server {
 //
 struct Session;
-
-using Delay   = xns::Delay;
-using Host    = xns::Host;
-using Network = xns::Network;
-using Socket  = xns::Socket;
 
 const uint32_t MIN_PACKET_SIZE = net::minBytesPerEthernetPacket;
 const uint32_t MAX_PACKET_SIZE = net::maxBytesPerEthernetPacket;
@@ -99,24 +89,5 @@ namespace Clearinghouse3 {
 void enable();
 void disable();
 }
-
-
-//
-// toString()
-//
-
-std::string toStringNetwork(uint32_t value);
-inline std::string toStringNetwork(Network value) {
-    return toStringNetwork(std::to_underlying(value));
-}
-
-std::string toStringHost(uint64_t value);
-inline std::string toStringHost(Host value) {
-    return toStringHost((uint64_t)value);
-}
-
-std::string toString(const xns::Ethernet& value);
-std::string toString(const xns::RIP& value);
-std::string toString(const xns::IDP& value);
 
 }

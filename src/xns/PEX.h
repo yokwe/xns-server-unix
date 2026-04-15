@@ -54,12 +54,18 @@ public:
     //     outsideXeroxFirst(100000B), outsideXeroxLast(LAST[CARDINAL])};
 
     enum class ClientType : uint16_t {
-        ENUM_NAME_VALUE(ClientType, UNSPEC,    0)
-        ENUM_NAME_VALUE(ClientType, TIME,      1)
-        ENUM_NAME_VALUE(ClientType, CHS,       2)
-        ENUM_NAME_VALUE(ClientType, TELEDEBUG, 8)
+        UNSPEC  = 0,
+        TIME    = 1,
+        CHS     = 2,
     };
-    static std::string toString(ClientType value);
+    static std::string toString(ClientType value) {
+        static std::unordered_map<ClientType, std::string, ScopedEnumHash> map = {
+            {ClientType::UNSPEC, "UNSPEC"},
+            {ClientType::TIME,   "TIME"},
+            {ClientType::CHS,    "CHS"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    }
 
     uint32_t   id;
     ClientType clientType;

@@ -33,37 +33,13 @@
  // IDP.cpp
  //
 
- #include <utility>
-
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "IDP.h"
 
-#undef  ENUM_NAME_VALUE
-#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
-
 namespace xns {
 //
-std::string IDP::toString(Checksum value) {
-    static std::unordered_map<Checksum, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Checksum, NOCHECK, 0)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
-}
-
-std::string IDP::toString(PacketType value) {
-    static std::unordered_map<PacketType, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(PacketType, RIP,    1)
-        ENUM_NAME_VALUE(PacketType, ECHO,   2)
-        ENUM_NAME_VALUE(PacketType, ERROR_, 3)
-        ENUM_NAME_VALUE(PacketType, PEX,    4)
-        ENUM_NAME_VALUE(PacketType, SPP,    5)
-        ENUM_NAME_VALUE(PacketType, BOOT,   9)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
-
 IDP::Checksum IDP::computeChecksum(const uint8_t* data, int start, int endPlusOne) {
     uint32_t s = 0;
     for(int i = start; i < endPlusOne;) {

@@ -63,7 +63,7 @@ public:
             bb.write(network, delay);
         }
         std::string toString() const {
-            return std_sprintf("{%s  %s}", xns::toString(network), ::toString(delay));
+            return std_sprintf("{%s  %s}", xns::toString(network), xns::toString(delay));
         }
     };
 

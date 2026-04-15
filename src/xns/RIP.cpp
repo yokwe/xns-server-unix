@@ -33,17 +33,12 @@
  // RIP.cpp
  //
 
- #include <utility>
-
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
 #include "RIP.h"
-
-#undef  ENUM_NAME_VALUE
-#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
 
 namespace xns {
 //
@@ -67,7 +62,7 @@ std::string RIP::toString() const {
     for(const auto& e: entryList) {
         string += std_sprintf(" %s", e.toString());
     }
-    return std_sprintf("{%-8s  (%d) %s}", ::toString(operation), entryList.size(), string.empty() ? "" : string.substr(1));
+    return std_sprintf("{%-8s  (%d) %s}", xns::toString(operation), entryList.size(), string.empty() ? "" : string.substr(1));
 }
 
 }

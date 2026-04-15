@@ -38,56 +38,76 @@
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
 
+#include "../xns/XNS.h"
+
 namespace courier::Time {
 //
-enum class Version : uint16_t {
-    ENUM_NAME_VALUE(Version, CURRENT, 2)
-};
-std::string toString(Version value);
+using Operation = xns::Operation;
 
-enum class Type : uint16_t {
-    ENUM_NAME_VALUE(Type, REQUEST,  1)
-    ENUM_NAME_VALUE(Type, RESPONSE, 2)    
+enum class Version : uint16_t {
+    CURRENT = 2,
 };
-std::string toString(Type value);
+inline std::string toString(Version value) {
+    static std::unordered_map<Version, std::string, ScopedEnumHash> map = {
+        {Version::CURRENT, "CURRENT"},
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+}
 
 class Request {
 public:
-    Version version;
-    Type    type;
+    Version   version;
+    Operation operation;
 
     void read(const ByteBuffer& bb) {
-        bb.read(version, type);
+        bb.read(version, operation);
     }
     void write(ByteBuffer& bb) const {
-        bb.write(version, type);
+        bb.write(version, operation);
     }
     std::string toString() const {
-        return std_sprintf("{%s  %s}", Time::toString(version), Time::toString(type));
+        return std_sprintf("{%s  %s}", Time::toString(version), xns::toString(operation));
     }
 };
 
 class Response {
 public:
     enum class Direction : uint16_t {
-        ENUM_NAME_VALUE(Direction, WEST, 0)
-        ENUM_NAME_VALUE(Direction, EAST, 1)
+        WEST = 0,
+        EAST = 1,
     };
-    static std::string toString(Direction value);
+    static std::string toString(Direction value) {
+        static std::unordered_map<Direction, std::string, ScopedEnumHash> map = {
+            {Direction::WEST, "WEST"},
+            {Direction::EAST, "EAST"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    }
 
     enum class Tolerance : uint16_t {
-        ENUM_NAME_VALUE(Tolerance, UNKNOWN, 0)
-        ENUM_NAME_VALUE(Tolerance, KNOWN,   1)
+        UNKNOWN = 0,
+        KNOWN   = 1,
     };
-    static std::string toString(Tolerance value);
+    static std::string toString(Tolerance value) {
+        static std::unordered_map<Tolerance, std::string, ScopedEnumHash> map = {
+            {Tolerance::KNOWN,   "KNOWN"},
+            {Tolerance::UNKNOWN, "UNKNOWN"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    }
 
     enum class DST : uint16_t {
-        ENUM_NAME_VALUE(DST, NO, 0)
+        NO = 0,
     };
-    static std::string toString(DST value);
+    static std::string toString(DST value) {
+        static std::unordered_map<DST, std::string, ScopedEnumHash> map = {
+            {DST::NO,  "NO"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    }
 
     Version   version;
-    Type      type;
+    Operation operation;
     uint32_t  time;             // current time between 12:00:00, 1 Jan. 1968 and 6:28:23, 6 Feb. 2104 inclusive
     Direction offsetDirection;
     uint16_t  offsetHours;
@@ -98,17 +118,17 @@ public:
     uint32_t  toleranceValue;   // if tolerance is KNOWN time error in unit of millisecond
 
     void read(const ByteBuffer& bb) {
-        bb.read(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
+        bb.read(version, operation, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
     }
     void write(ByteBuffer& bb) const {
-        bb.write(version, type, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
+        bb.write(version, operation, time, offsetDirection, offsetHours, offsetMinutes, dstStart, dstEnd, tolerance, toleranceValue);
     }
     std::string toString() const {
         uint32_t unixTime = Util::toUnixTime(time);
         std::string timeString = Util::toString(unixTime);
 
         return std_sprintf("{%s  %s  %s  %s  %dh%dm  %d-%d  %s-%d}",
-            Time::toString(version), Time::toString(type), timeString,
+            Time::toString(version), xns::toString(operation), timeString,
             toString(offsetDirection), offsetHours, offsetMinutes, dstStart, dstEnd,
             toString(tolerance), toleranceValue);
     }

@@ -60,7 +60,7 @@ void Session::sendEther(const ByteBuffer& bb) {
     for(uint32_t i = length; i < MIN_PACKET_SIZE; i++) tx.put8(0);
 
     if constexpr (SHOW_RESPONSE_DURATION) logger.info("duration  %d", duration());
-    if constexpr (SHOW_PACKET_ETHERNET)   logger.info("ETH  <<  %s  (%d) %s", server::toString(txEthernet), bb.byteLimit(), bb.toString());
+    if constexpr (SHOW_PACKET_ETHERNET)   logger.info("ETH  <<  %s  (%d) %s", txEthernet.toString(), bb.byteLimit(), bb.toString());
 
     TransmitData transmitData(tx);
     threadTransmit->push(transmitData);
@@ -93,7 +93,7 @@ void Session::sendIDP(const ByteBuffer& txbb) {
     tx.write(checksum);
 
     txHeader.checksum = checksum;
-    if constexpr (SHOW_PACKET_IDP)        logger.info("IDP  <<  %s  (%d) %s", server::toString(txHeader), txbb.byteLimit(), txbb.toString());
+    if constexpr (SHOW_PACKET_IDP)        logger.info("IDP  <<  %s  (%d) %s", txHeader.toString(), txbb.byteLimit(), txbb.toString());
 
     sendEther(tx);
 }

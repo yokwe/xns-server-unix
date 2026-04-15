@@ -47,25 +47,46 @@ namespace xns {
 class Error {
 public:
     enum class ErrorNumber : uint16_t {
-        ENUM_NAME_VALUE(ErrorNumber, UNSPEC,               0)
-        ENUM_NAME_VALUE(ErrorNumber, BAD_CHECKSUM,         1)
-        ENUM_NAME_VALUE(ErrorNumber, NO_SOCKET,            2)
-        ENUM_NAME_VALUE(ErrorNumber, RESOURCE_LIMIT,       3)
+        UNSPEC               = 0,
+        BAD_CHECKSUM         = 1,
+        NO_SOCKET            = 2,
+        RESOURCE_LIMIT       = 3,
     
-        ENUM_NAME_VALUE(ErrorNumber, LISTEN_REJECT,        4)
-        ENUM_NAME_VALUE(ErrorNumber, INVALID_PACKET_TYPE,  5)
-        ENUM_NAME_VALUE(ErrorNumber, PROTOCOL_VIOLATION,   6)
+        LISTEN_REJECT        = 4,
+        INVALID_PACKET_TYPE  = 5,
+        PROTOCOL_VIOLATION   = 6,
     
-        ENUM_NAME_VALUE(ErrorNumber, UNSPECIFIED_IN_ROUTE, 01000)
-        ENUM_NAME_VALUE(ErrorNumber, INCONSISTENT,         01001)
-        ENUM_NAME_VALUE(ErrorNumber, CANT_GET_THERE,       01002)
-        ENUM_NAME_VALUE(ErrorNumber, EXCESS_HOPS,          01003)
-        ENUM_NAME_VALUE(ErrorNumber, TOO_BIG,              01004)
+        UNSPECIFIED_IN_ROUTE = 01000,
+        INCONSISTENT         = 01001,
+        CANT_GET_THERE       = 01002,
+        EXCESS_HOPS          = 01003,
+        TOO_BIG              = 01004,
     
-        ENUM_NAME_VALUE(ErrorNumber, CONGESTION_WARNING,   01005)
-        ENUM_NAME_VALUE(ErrorNumber, CONGESTION_DISCARD,   01006)
+        CONGESTION_WARNING   = 01005,
+        CONGESTION_DISCARD   = 01006,
     };
-    static std::string toString(ErrorNumber value);
+    static std::string toString(ErrorNumber value) {
+        static std::unordered_map<ErrorNumber, std::string, ScopedEnumHash> map = {
+            {ErrorNumber::UNSPEC,              "UNSPEC"},
+            {ErrorNumber::BAD_CHECKSUM,        "BAD_CHECKSUM"},
+            {ErrorNumber::NO_SOCKET,           "NO_SOCKET"},
+            {ErrorNumber::RESOURCE_LIMIT,      "RESOURCE_LIMIT"},
+        
+            {ErrorNumber::LISTEN_REJECT,       "LISTEN_REJECT"},
+            {ErrorNumber::INVALID_PACKET_TYPE, "INVALID_PACKET_TYPE"},
+            {ErrorNumber::PROTOCOL_VIOLATION,  "PROTOCOL_VIOLATION"},
+        
+            {ErrorNumber::UNSPECIFIED_IN_ROUTE, "UNSPECIFIED_IN_ROUTE"},
+            {ErrorNumber::INCONSISTENT,         "INCONSISTENT"},
+            {ErrorNumber::CANT_GET_THERE,       "CANT_GET_THERE"},
+            {ErrorNumber::EXCESS_HOPS,         "EXCESS_HOPS"},
+            {ErrorNumber::TOO_BIG,             "TOO_BIG"},
+        
+            {ErrorNumber::CONGESTION_WARNING,  "CONGESTION_WARNING"},
+            {ErrorNumber::CONGESTION_DISCARD,  "CONGESTION_DISCARD"},
+            };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    }
 
     ErrorNumber errorNumber;
     uint16_t    errorParameter;

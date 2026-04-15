@@ -47,11 +47,18 @@ namespace xns {
 class Ethernet {
 public:
     enum class Type : uint16_t {
-        ENUM_NAME_VALUE(Type, XNS, 0x0600)
-        ENUM_NAME_VALUE(Type, IP4, 0x0800)
-        ENUM_NAME_VALUE(Type, PUP, 0x0A00)
+        XNS = 0x600,
+        IP4 = 0x800,
+        PUP = 0xA00,
     };
-    static std::string toString(Type value);
+    static inline std::string toString(Type value) {
+        static std::unordered_map<Type, std::string, ScopedEnumHash> map = {
+            {Type::XNS, "XNS"},
+            {Type::IP4, "IP4"},
+            {Type::PUP, "PUP"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    };
 
     Host dest;
     Host source;

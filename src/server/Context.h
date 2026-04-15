@@ -48,6 +48,7 @@ namespace server{
 
 inline struct Context {
     using Network = xns::Network;
+    using Host    = xns::Host;
     using Delay   = xns::Delay;
 
     struct Routing {
@@ -57,13 +58,13 @@ inline struct Context {
     };
     
     using RoutingMap     = std::map<Network, Routing>;
-    using NetworkNameMap = std::map<uint32_t, std::string>;
-    using HostNameMap    = std::map<uint64_t, std::string>;
+    using NetworkNameMap = std::map<Network, std::string>;
+    using HostNameMap    = std::map<Host,    std::string>;
 
     Config          config;
     net::Driver*    driver;
     // delieved values
-    uint64_t        me;
+    Host            me;
     Network         net;
     RoutingMap      routingMap;
     NetworkNameMap  networkNameMap;

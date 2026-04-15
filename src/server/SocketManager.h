@@ -49,6 +49,8 @@
 
 namespace server {
 //
+using Socket = xns::Socket;
+
 class SocketManager {
 public:
     class Listener {
@@ -79,7 +81,6 @@ public:
     Socket newSocket();
 
 private:
-    using Socket       = xns::Socket;
     using LISTENER_MAP = std::unordered_map<Socket, Listener*>;
 
     LISTENER_MAP map;

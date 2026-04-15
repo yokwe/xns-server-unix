@@ -38,6 +38,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
 
+#include "../xns/XNS.h"
 #include "../xns/RIP.h"
 
 #include "Server.h"
@@ -48,6 +49,11 @@ static const Logger logger(__FILE__);
 
 namespace server {
 //
+using RIP       = xns::RIP;
+using Network   = xns::Network;
+using Delay     = xns::Delay;
+using Operation = xns::Operation;
+
 void SocketRIP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     stopped = false;
     if (session.rxIDP.packetType != xns::IDP::PacketType::RIP)    ERROR()
@@ -58,13 +64,13 @@ void SocketRIP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     xns::RIP rxHeader;
     rx.read(rxHeader);
     auto rxbb = rx.rangeRemains();
-    if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", server::toString(rxHeader), rxbb.byteLimit(), rxbb.toString());
+    if constexpr (SHOW_PACKET_RIP) logger.info("RIP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     // sanity check
     if (!rxbb.empty()) ERROR();
 
-    if (rxHeader.operation == xns::Operation::REQUEST) {
-        xns::RIP txHeader{xns::Operation::RESPONSE};
+    if (rxHeader.operation == Operation::REQUEST) {
+        xns::RIP txHeader{Operation::RESPONSE};
         for(const auto& e: rxHeader.entryList) {
             if (e.network == Network::ALL && e.delay == Delay::INFINITY) {
                 for(const auto& [key, value] : context.routingMap) {
@@ -80,7 +86,7 @@ void SocketRIP::process(Session& session, ByteBuffer&rx, bool& stopped) {
 
         auto tx = getByteBuffer();
         tx.write(txHeader);
-        if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", server::toString(txHeader));
+        if constexpr (SHOW_PACKET_RIP) logger.info("RIP  <<  %s", txHeader.toString());
 
         session.sendIDP(tx);
     }

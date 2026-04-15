@@ -69,9 +69,10 @@ int main(int, char **) {
 	setSignalHandler(SIGTRAP);
 	setSignalHandler(SIGABRT);
 
-	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), toStringHost(context.driver->device.address), context.driver->device.name);
-	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), toStringHost(context.me));
-	logger.info("network  %d  %s", context.net, toStringNetwork(context.net));
+
+	logger.info("device   %s  %s  %s", net::toHexaDecimalString(context.driver->device.address), xns::Host{context.driver->device.address}.toString(), context.driver->device.name);
+	logger.info("me       %s  %s", net::toHexaDecimalString(context.me), context.me.toString());
+	logger.info("network  %d  %s", context.net, xns::toString(context.net));
 
     auto& driver = *context.driver;
 	driver.open();
@@ -129,11 +130,11 @@ int main(int, char **) {
         }
         if (!myPacket) continue;
     
-        if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", server::toString(session.rxEthernet), ethenetBody.byteLimit(), ethenetBody.toString());
+        if constexpr (SHOW_PACKET_ETHERNET) logger.info("ETH  >>  %s  (%d) %s", session.rxEthernet.toString(), ethenetBody.byteLimit(), ethenetBody.toString());
     
         ethenetBody.read(session.rxIDP);
         auto idpBody = ethenetBody.byteRange(xns::IDP::HEADER_SIZE_IN_BYTE, session.rxIDP.length - xns::IDP::HEADER_SIZE_IN_BYTE);
-        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", server::toString(session.rxIDP), idpBody.byteLimit(), idpBody.toString());
+        if constexpr (SHOW_PACKET_IDP) logger.info("IDP  >>  %s  (%d) %s", session.rxIDP.toString(), idpBody.byteLimit(), idpBody.toString());
     
         // sanity check
         if (session.rxIDP.checksum != xns::IDP::Checksum::NOCHECK) {

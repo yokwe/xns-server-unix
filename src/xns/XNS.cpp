@@ -33,73 +33,25 @@
  // XNS.cpp
  //
 
- #include <unordered_map>
-#include <utility>
-
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/net.h"
 
-#include "XNS.h"
+#include "../server/Context.h"
 
-#undef  ENUM_NAME_VALUE
-#define ENUM_NAME_VALUE(enum,name,value) { enum :: name, #name },
+#include "XNS.h"
 
 namespace xns {
 //
 std::string Host::toString() const {
-    static std::unordered_map<uint64_t, std::string> map = {
-        {BROADCAST,         "BROADCAST"},
-        {BFN_GVWIN_NETBOOT, "BFN_GVWIN_NETBOOT"},
-    };
-    return map.contains(value) ? map[value] : net::toHexaDecimalString(value, "-");
+    auto& map = server::context.hostNameMap;
+    return map.contains(value) ? map[value] : net::toHexaDecimalString(value, "");
 }
 
 std::string toString(Network value) {
-    static std::unordered_map<Network, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
-        ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%08X", std::to_underlying(value));
-}
-std::string toString(Socket value) {
-    static std::unordered_map<Socket, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Socket, UNKNOWN,    0)
-        ENUM_NAME_VALUE(Socket, RIP,        1)
-        ENUM_NAME_VALUE(Socket, ECHO,       2)
-        ENUM_NAME_VALUE(Socket, ERROR_,     3)
-        ENUM_NAME_VALUE(Socket, COURIER,    5)
-        ENUM_NAME_VALUE(Socket, CHS_OLD,    7)
-        ENUM_NAME_VALUE(Socket, TIME,       8)
-        ENUM_NAME_VALUE(Socket, BOOT,      10)
-        ENUM_NAME_VALUE(Socket, DIAG,      19)
-        ENUM_NAME_VALUE(Socket, CHS,       20)
-        ENUM_NAME_VALUE(Socket, AUTH,      21)
-        ENUM_NAME_VALUE(Socket, MAIL,      22)
-        ENUM_NAME_VALUE(Socket, NET_EXEC,  23)
-        ENUM_NAME_VALUE(Socket, WS_INFO,   24)
-        ENUM_NAME_VALUE(Socket, BINDING,   28)
-        ENUM_NAME_VALUE(Socket, GERM,      35)
-        ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
-        ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
-}
-
-std::string toString(Operation value) {
-    static std::unordered_map<Operation, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Operation, REQUEST,  1)
-        ENUM_NAME_VALUE(Operation, RESPONSE, 2)    
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-}
-
-std::string toString(Delay value) {
-    static std::unordered_map<Delay, std::string, ScopedEnumHash> map = {
-        ENUM_NAME_VALUE(Delay, INFINITY, 16)
-    };
-    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+    auto& map = server::context.networkNameMap;
+    return map.contains(value) ? map[value] : std_sprintf("%08X", value);
 }
 
 }

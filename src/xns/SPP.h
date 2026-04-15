@@ -54,12 +54,20 @@ public:
     static const constexpr uint32_t MAX_BODY_SIZE_IN_BYTE = IDP::MAX_BODY_SIZE_IN_BYTE - HEADER_SIZE_IN_BYTE;
 
     enum class SST : uint8_t {
-        ENUM_NAME_VALUE(SST, DATA,          0) // for all Courier messages
-        ENUM_NAME_VALUE(SST, BULK,          1) // for bulk data
-        ENUM_NAME_VALUE(SST, CLOSE,       254) // for closing connection
-        ENUM_NAME_VALUE(SST, CLOSE_REPLY, 255) // for reply of closing connection (handshake)
+        DATA        =   0,
+        BULK        =   1,
+        CLOSE       = 254, // for closing connection
+        CLOSE_REPLY = 255, // for reply of closing connection (handshake)
     };
-    static std::string toString(SST value);
+    static std::string toString(SST value) {
+        static std::unordered_map<SST, std::string, ScopedEnumHash> map = {
+            {SST::DATA,        "DATA"},
+            {SST::BULK,        "BULK"},
+            {SST::CLOSE,       "CLOSE"},
+            {SST::CLOSE_REPLY, "CLOSE_REPLY"},
+        };
+        return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+    }
 
     // function for seq comparison  consider the case when seq is overflowed
     // return true when a is before b

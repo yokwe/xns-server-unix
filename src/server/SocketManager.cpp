@@ -97,7 +97,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
             map.erase(socket);
         }
     } else {
-        logger.warn("no listener  %s  %s", toString(socket), xns::IDP::toString(packetType));
+        logger.warn("no listener  %s  %s", xns::toString(socket), xns::IDP::toString(packetType));
         if (packetType == xns::IDP::PacketType::PEX) {
             xns::PEX   pexHeader;
             ByteBuffer pexBody = getByteBuffer();
@@ -109,7 +109,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
             rx.read(sppHeader, sppBody);
             logger.info("    SPP  >>  %s  (%d) %s", sppHeader.toString(), sppBody.byteLimit(), sppBody.toString());
         } else {
-            logger.info("    IDP  >>  %s  (%d) %s", toString(session.rxIDP), rx.byteLimit(), rx.toString());
+            logger.info("    IDP  >>  %s  (%d) %s", session.rxIDP.toString(), rx.byteLimit(), rx.toString());
         }
 
         session.sendError(xns::Error::ErrorNumber::NO_SOCKET);
@@ -119,8 +119,8 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
 Socket SocketManager::newSocket() {
     auto ret = static_cast<Socket>(std::chrono::system_clock::now().time_since_epoch().count() >> 10);
     for(;;) {
-        if (ret <= xns::MAX_WELLKNOWN_SOCKET) {
-            ret = ret + static_cast<uint16_t>(xns::MAX_WELLKNOWN_SOCKET);
+        if (ret <= Socket::MAX_WELLKNOWN_SOCKET) {
+            ret = ret + static_cast<uint16_t>(Socket::MAX_WELLKNOWN_SOCKET);
             continue;
         }
         if (!map.contains(ret)) return ret;

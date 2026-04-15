@@ -12,8 +12,6 @@ target_sources(
 		Time.h
 	PRIVATE
 		Config.cpp
-		Courier.cpp
-		Time.cpp
 )
 
 target_link_libraries(courier xns util log4cxx)

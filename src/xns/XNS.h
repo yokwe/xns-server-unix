@@ -96,8 +96,8 @@ public:
 // Network
 //
 enum class Network : uint32_t {
-    ENUM_NAME_VALUE(Network, UNKNOWN, 0x0000'0000)
-    ENUM_NAME_VALUE(Network, ALL,     0xFFFF'FFFF)
+    UNKNOWN  = 0x0000'0000,
+    ALL      = 0xFFFF'FFFF,
 };
 std::string toString(Network value);
 
@@ -106,29 +106,52 @@ std::string toString(Network value);
 // Socket
 //
 enum class Socket : uint16_t {
-    ENUM_NAME_VALUE(Socket, UNKNOWN,    0)
-    ENUM_NAME_VALUE(Socket, RIP,        1)
-    ENUM_NAME_VALUE(Socket, ECHO,       2)
-    ENUM_NAME_VALUE(Socket, ERROR_,     3)
-    ENUM_NAME_VALUE(Socket, ENVOY,      4)
-    ENUM_NAME_VALUE(Socket, COURIER,    5)
-    ENUM_NAME_VALUE(Socket, CHS_OLD,    7)
-    ENUM_NAME_VALUE(Socket, TIME,       8)
-    ENUM_NAME_VALUE(Socket, BOOT,      10)
-    ENUM_NAME_VALUE(Socket, DIAG,      19)
-    ENUM_NAME_VALUE(Socket, CHS,       20)
-    ENUM_NAME_VALUE(Socket, AUTH,      21)
-    ENUM_NAME_VALUE(Socket, MAIL,      22)
-    ENUM_NAME_VALUE(Socket, NET_EXEC,  23)
-    ENUM_NAME_VALUE(Socket, WS_INFO,   24)
-    ENUM_NAME_VALUE(Socket, BINDING,   28)
-    ENUM_NAME_VALUE(Socket, GERM,      35)
-    ENUM_NAME_VALUE(Socket, TELEDEBUG, 48)
-    ENUM_NAME_VALUE(Socket, ALL,       0xFFFF)
+    UNKNOWN              =      0,
+    RIP                  =      1,
+    ECHO                 =      2,
+    ERROR_               =      3,
+    ENVOY                =      4,
+    COURIER              =      5,
+    CHS_OLD              =      7,
+    TIME                 =      8,
+    BOOT                 =     10,
+    DIAG                 =     19,
+    CHS                  =     20,
+    AUTH                 =     21,
+    MAIL                 =     22,
+    NET_EXEC             =     23,
+    WS_INFO              =     24,
+    BINDING              =     28,
+    GERM                 =     35,
+    TELEDEBUG            =     48,
+    MAX_WELLKNOWN_SOCKET =   3000,
+    ALL                  = 0xFFFF,
 };
-std::string toString(Socket value);
-
-inline const constexpr Socket MAX_WELLKNOWN_SOCKET = static_cast<Socket>(2047);
+inline std::string toString(Socket value) {
+    static std::unordered_map<Socket, std::string, ScopedEnumHash> map = {
+        {Socket::UNKNOWN,              "UNKNOWN"},
+        {Socket::RIP,                  "RIP"},
+        {Socket::ECHO,                 "ECHO"},
+        {Socket::ERROR_,               "ERROR_"},
+        {Socket::ENVOY,                "ENVOY"},
+        {Socket::COURIER,              "COURIER"},
+        {Socket::CHS_OLD,              "CHS_OLD"},
+        {Socket::TIME,                 "TIME"},
+        {Socket::BOOT,                 "BOOT"},
+        {Socket::DIAG,                 "DIAG"},
+        {Socket::CHS,                  "CHS"},
+        {Socket::AUTH,                 "AUTH"},
+        {Socket::MAIL,                 "MAIL"},
+        {Socket::NET_EXEC,             "NET_EXEC"},
+        {Socket::WS_INFO,              "WS_INFO"},
+        {Socket::BINDING,              "BINDING"},
+        {Socket::GERM,                 "GERM"},
+        {Socket::TELEDEBUG,            "TELEDEBUG"},
+        {Socket::MAX_WELLKNOWN_SOCKET, "MAX_WELLKNOWN_SOCKET"},
+        {Socket::ALL,                  "ALL"},
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%04X", std::to_underlying(value));
+};
 
 //
 // NetworkAddress
@@ -158,19 +181,30 @@ public:
 // Operation
 //
 enum class Operation : uint16_t {
-    ENUM_NAME_VALUE(Operation, REQUEST,  1)
-    ENUM_NAME_VALUE(Operation, RESPONSE, 2)
+    REQUEST = 1,
+    RESPONSE = 2,
 };
-std::string toString(Operation value);
+inline std::string toString(Operation value) {
+    static std::unordered_map<Operation, std::string, ScopedEnumHash> map = {
+        {Operation::REQUEST,  "REQUEST"},
+        {Operation::RESPONSE, "RESPONSE"},
+    };
+    
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
 
 //
 // Delay
 //
 enum class Delay : uint16_t {
-    ENUM_NAME_VALUE(Delay, INFINITY, 16)
+    INFINITY = 15,
 };
-std::string toString(Delay delay);
-
+inline std::string toString(Delay value) {
+    static std::unordered_map<Delay, std::string, ScopedEnumHash> map = {
+        {Delay::INFINITY, "INFINITY"},
+    };
+    
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
 }
 
 //
@@ -178,4 +212,6 @@ std::string toString(Delay delay);
 //
 inline xns::Socket operator +(const xns::Socket a, const uint16_t b) {
     return static_cast<xns::Socket>(static_cast<uint16_t>(a) + b);
+}
+
 }

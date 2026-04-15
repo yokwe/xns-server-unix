@@ -34,7 +34,6 @@
  //
 
 
-#include <cstdint>
 #include <string>
 
 #include "../util/Util.h"
@@ -90,63 +89,14 @@ Context::Context() {
     }
     // build networdkNameMap
     for(const auto& e: config.net) {
-        networkNameMap[e.net] = e.name;
+        auto net = static_cast<Network>(e.net);
+        networkNameMap[net] = e.name;
     }
     // build hostNameMap
     for(const auto& e: config.host) {
-        hostNameMap[e.address] = e.name;
+        Host host = e.address;
+        hostNameMap[host] = e.name;
     }
-}
-
-
-//
-// toString()
-//
-std::string toStringNetwork(uint32_t value) {
-    auto& map = context.networkNameMap;
-    return map.contains(value) ? map[value] : std_sprintf("%08X", value);
-}
-std::string toStringHost(uint64_t value) {
-    auto& map = context.hostNameMap;
-    return map.contains(value) ? map[value] : net::toHexaDecimalString(value);
-}
-
-std::string toString(const xns::Ethernet& value) {
-    return std_sprintf("{%s  %s  %s}",
-        toStringHost(value.dest),
-        toStringHost(value.source),
-        xns::Ethernet::toString(value.type));
-}
-
-static std::string toString(const xns::RIP::Entry& value) {
-    return std_sprintf("{%s  %s}",
-        toStringNetwork(value.network),
-        ::toString(value.delay));
-}
-std::string toString(const xns::RIP& value) {
-    std::string string;
-    for(const auto& e: value.entryList) {
-        string += std_sprintf(" %s", toString(e));
-    }
-    return std_sprintf("{%-8s  (%d) %s}",
-        xns::toString(value.operation),
-        value.entryList.size(),
-        string.empty() ? "" : string.substr(1));
-}
-
-static std::string toString(const xns::NetworkAddress& value) {
-    return std_sprintf("%s-%s-%s",
-        toStringNetwork(value.network),
-        toStringHost(value.host),
-        xns::toString(value.socket));
-}
-std::string toString(const xns::IDP& value) {
-    return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-        xns::IDP::toString(value.checksum),
-        value.length,
-        value.control,
-        xns::IDP::toString(value.packetType),
-        toString(value.dst), toString(value.src));    
 }
 
 }
