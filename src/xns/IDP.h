@@ -76,7 +76,7 @@ public:
         static std::unordered_map<PacketType, std::string, ScopedEnumHash> map = {
             {PacketType::RIP,    "RIP"},
             {PacketType::ECHO,   "ECHO"},
-            {PacketType::ERROR_, "ERROR_"},
+            {PacketType::ERROR_, "ERROR"},
             {PacketType::PEX,    "PEX"},
             {PacketType::SPP,    "SPP"},
             {PacketType::BOOT,   "BOOT"},
