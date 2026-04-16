@@ -50,7 +50,7 @@ static const Logger logger(__FILE__);
 
 namespace spp {
 //
-
+using SPP = xns::SPP;
 using SST = xns::SPP::SST;
 
 
@@ -65,7 +65,7 @@ void Connection::queue(bool sendAck, bool attention, bool endOfMessage, SST sst,
     retransmitQueue.add(Packet{false, sendAck, attention, endOfMessage, sst, seq, data});
 }
 void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-    xns::SPP txHeader;
+    SPP txHeader;
     txHeader.system(system);
     txHeader.sendAck(sendAck);
     txHeader.attention(attention);
@@ -84,7 +84,7 @@ void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool end
 }
 
 void Connection::transmitRaw(Packet& packet) {
-    xns::SPP txHeader;
+    SPP txHeader;
     txHeader.control = packet.control;
     txHeader.sst     = packet.sst;
     txHeader.srcID   = srcID;
@@ -112,8 +112,8 @@ void Connection::retransmit(bool sendAck) {
     PacketQueue::MapFunction function = [&](Packet& e) {
         // transmit only within txRange
         if (txRange.contains(e.seq)) {
-            transmitRaw(e);
             logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+            transmitRaw(e);
             sendAck = false;
         }
     };
@@ -125,7 +125,7 @@ void Connection::retransmit(bool sendAck) {
 //
 // receive
 //
-void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
+void Connection::receive(const SPP& header, const ByteBuffer& body) {
     // seq   -- seq of next data packet
     // ack   -- all packets with sequence numbers preceding ack have been acknowledged in other side
     // alloc -- other side can accept sequence number [ack..alloc]
@@ -144,50 +144,46 @@ void Connection::receive(const xns::SPP& header, const ByteBuffer& body) {
         // sanity check
         if (sst != SST::DATA) ERROR()
 
+        logger.info("SYSTEM  %s", header.sendAck() ? "SEND_ACK" : "");
         retransmit(header.sendAck());
         return;
     }
 
-    logger.info("SST %s", xns::SPP::toString(header.sst));
+    logger.info("SST %s", SPP::toString(header.sst));
 
     bool sendAck = header.sendAck();
-    auto rxseq = header.seq;
+    const auto rxseq = header.seq;
     
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
     if (txRange.contains(rxseq)) {
-        if (receiveQueue.contains(rxseq)) {
-            // already processed
-            logger.info("DUP     %d  %s", rxseq, xns::SPP::toString(header.sst));
-        } else {
-            // add to receiveQueue
-            auto seqVec = receiveQueue.add(Packet{header, body});
-            logger.info("ACCEPT  %d", rxseq);
+        // special for attention
+        if (header.attention()) {
+            attentionFlag = true;
+            auto data = body.toVector();
+            attentionValue = data[0];
+        }
 
-            if (header.attention()) {
-                attentionFlag = true;
-                auto data = body.toVector();
-                attentionValue = data[0];
-            }
+        // add to receiveQueue
+        auto seqVec = receiveQueue.add(Packet{header, body});
+        logger.info("ACCEPT  %d", rxseq);
 
-            // maitain clientQueue
-            for(;;) {
-                Packet packet;
-                auto hasData = receiveQueue.get(clientSeq, packet);
-                if (!hasData) break;
-                clientQueue.push(packet);
-                clientSeq++;
-            }
-    
-            // maintain txRange
-            while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
-                txRange++;
-                sendAck = true;
-                logger.info("NEW ACK %d", txRange.ack);
-            }
+        // maintain txRange
+        while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
+            txRange++;
+            sendAck = true;
+            logger.info("NEW ACK %d", txRange.ack);
+        }
+
+        // move packet from receivedQueue to clientQueue
+        for(;;) {
+            Packet packet;
+            auto hasData = receiveQueue.get(clientSeq, packet);
+            if (!hasData) break;
+            clientQueue.push(packet);
+            clientSeq++;
         }
     } else {
-        logger.info("rxRange  %d  %d", rxRange.ack, rxRange.alloc);
-        logger.info("REJECT  %d  %s", rxseq, xns::SPP::toString(header.sst));
+        logger.info("REJECT  %d  %s", rxseq, SPP::toString(header.sst));
     }
 
     if (sendAck) transmitSystemAck();
