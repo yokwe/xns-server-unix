@@ -108,11 +108,10 @@ void Connection::maintainRetransmit() {
     };
     retransmitQueue.mapDelete(function);    
 }
-void Connection::retransmit(bool sendAck) {    
+void Connection::retransmit(bool sendAck) {
     PacketQueue::MapFunction function = [&](Packet& e) {
-        // transmit only within txRange
-        if (txRange.contains(e.seq)) {
-            logger.info("RETRANSMIT  TRANSMIT %d", e.seq);
+        // transmit only within rxRange
+        if (rxRange.contains(e.seq)) {
             transmitRaw(e);
             sendAck = false;
         }
