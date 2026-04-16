@@ -85,22 +85,16 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
             state = State::CLOSE;
             connection->receiveQueue.clear();
             connection->retransmitQueue.clear();
-            // reduce window
-            connection->txRange.alloc = connection->txRange.ack;
+            // increment ack and alloc
             connection->txRange++;
             // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
         } else if (closeCount < 99) {
+            // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            if (rxHeader.sendAck()) {
-                // send ack
-                connection->transmitSystemAck();
-            } else {
-                // send close
-                connection->transmitClose();
-            }
-        } else {
+            connection->transmitClose();
+    } else {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), xns::SPP::toString(sst));
             goto close_connection;
