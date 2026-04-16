@@ -112,6 +112,7 @@ void Connection::retransmit(bool sendAck) {
     PacketQueue::MapFunction function = [&](Packet& e) {
         // transmit only within rxRange
         if (rxRange.contains(e.seq)) {
+            logger.info("RETRANSMIT  %d", e.seq);
             transmitRaw(e);
             sendAck = false;
         }
