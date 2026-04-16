@@ -92,9 +92,14 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
         } else if (closeCount < 99) {
-            // send close
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            connection->transmitClose();
+            if (rxHeader.sendAck()) {
+                // send ack
+                connection->transmitSystemAck();
+            } else {
+                // send close
+                connection->transmitClose();
+            }
         } else {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), xns::SPP::toString(sst));
