@@ -50,7 +50,6 @@ void SocketManager::add(Socket socket, Listener* listener) {
     if (map.contains(socket)) {
         ERROR()
     } else {
-        listener->set(this);
         map[socket] = listener;
         logger.info("add  %-8s  %s", toString(socket), listener->name());
     }

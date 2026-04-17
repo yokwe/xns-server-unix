@@ -36,6 +36,8 @@
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
+#include "../server/SocketManager.h"
+
 #include "Connection.h"
 
 #include "SocketSPP.h"
@@ -110,14 +112,14 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     const uint16_t srcID = newConnectionID();
 
     // get new socket for srcSocket
-    auto socket = socketManager->newSocket();
+    auto socket = server::socketManager.newSocket();
 
     // set dst.socket to redirect socket
     session.dstSocket(socket);
 
     // start listening new socket
     auto* clientListener = getListener(socket, srcID, dstID);
-    socketManager->add(socket, clientListener);
+    server::socketManager.add(socket, clientListener);
 
     auto* connection = new Connection(session, srcID, dstID);
     connections.add(connection);

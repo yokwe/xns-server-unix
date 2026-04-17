@@ -54,17 +54,12 @@ using Socket = xns::Socket;
 class SocketManager {
 public:
     class Listener {
-    protected:
-        SocketManager* socketManager;
-
     public:
         virtual ~Listener() = default;
-        virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
         virtual const std::string& name() = 0;
 
-        void set(SocketManager* socketManager_) {
-            socketManager = socketManager_;
-        }
+        virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
+        
     };
 
     template<typename T>
@@ -86,5 +81,7 @@ private:
     LISTENER_MAP map;
     std::mutex   mutex;
 };
+
+inline SocketManager socketManager;
 
 }

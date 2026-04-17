@@ -87,7 +87,8 @@ int main(int, char **) {
 	ThreadControl t2("threadTransmit", f2);
 
     // set socket listener
-    SocketManager socketManager;
+    auto& socketManager = server::socketManager;
+    
     socketManager.add<server::SocketError>();
     socketManager.add<server::SocketTime>();
     socketManager.add<server::SocketRIP>();
