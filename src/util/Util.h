@@ -231,6 +231,13 @@ void readFile(const std::string& path, std::vector<uint8_t>& data);
 // https://stackoverflow.com/questions/18361638/converting-steady-clocktime-point-to-time-t
 std::chrono::system_clock::time_point to_system_clock(std::chrono::steady_clock::time_point steady_time);
 
+static inline uint64_t milliSecondSteadyClock() {
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+static inline uint64_t microSecondSteadyClock() {
+	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 
 // helper macro for syscall
 #define LOG_ERRNO(errNo)               { logger.error( "errno = %d  \"%s\"", errNo, strerror(errNo)); }
