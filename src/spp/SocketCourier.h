@@ -75,10 +75,14 @@ struct SocketCourierClient: public SocketManager::Listener {
     SocketCourierClient(Socket socket_, uint16_t srcID_, uint16_t dstID_) :
         SocketManager::Listener(), socket(socket_), srcID(srcID_), dstID(dstID_), state(State::NEW), closeCount(0) {}
 
-    void process(Session& session, ByteBuffer&rx, bool& stopped) override; // rx is idb body
     const std::string& name() override {
         return NAME;
     }
+
+    void start() override {}
+    void stop()  override {}
+
+    void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
 };
 
 

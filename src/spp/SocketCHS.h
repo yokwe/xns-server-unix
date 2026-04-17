@@ -49,10 +49,14 @@ struct SocketCHS: public SocketManager::Listener {
     static const constexpr auto SOCKET = Socket::CHS;
     static const constexpr std::string NAME = "SocketCHS";
 
-    void process(Session& session, ByteBuffer&rx, bool& stopped) override;
     const std::string& name() override {
         return NAME;
     }
+
+    void start() override {}
+    void stop()  override {}
+
+    void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
 };
 
 }

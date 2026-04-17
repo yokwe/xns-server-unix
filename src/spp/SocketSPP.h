@@ -56,6 +56,9 @@ class SocketSPP: public Listener {
 public:
     virtual ~SocketSPP() = default;
 
+    void start() override {}
+    void stop()  override {}
+
     void process(Session& session, ByteBuffer&rx, bool& stopped) override;
 
     virtual Listener* getListener(Socket sorcket, uint16_t srcID, uint16_t dstID) = 0;
