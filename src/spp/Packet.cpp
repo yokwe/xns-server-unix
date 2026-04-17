@@ -53,9 +53,7 @@ void PacketQueue::add(const Packet& packet) {
 
     for(auto& e: queue) {
         if (e.empty) {
-            e.empty = false;
-            e.packet = packet;
-            e.updateTimestamp();
+            e.set(packet);
             return;
         }
     }
@@ -63,9 +61,7 @@ void PacketQueue::add(const Packet& packet) {
     queue.reserve(queue.size() + QUEUE_SIZE);
     for(auto& e: queue) {
         if (e.empty) {
-            e.empty = false;
-            e.packet = packet;
-            e.updateTimestamp();
+            e.set(packet);
             return;
         }
     }

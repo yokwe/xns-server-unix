@@ -162,28 +162,35 @@ private:
 
 class PacketQueue {
 public:
+    using Clock      = std::chrono::steady_clock;
+    using time_point = Clock::time_point;
+    using duration   = Clock::duration;
+
     struct Entry {
-        bool     empty;
-        uint64_t timestamp; // milliseconds
-        Packet   packet;
+        bool       empty;
+        time_point time;
+        Packet     packet;
 
-        Entry() : empty(true), timestamp(0) {}
+        Entry() : empty(true), time(time_point::max()) {}
 
-        void updateTimestamp() {
-            timestamp = milliSecondSteadyClock();
-        }
         void clear() {
-            empty     = true;
-            timestamp = 0;
+            empty = true;
+            time  = time_point::max();
             packet.clear();
         }
-        // return true if timestamp is before time;
-        bool before(uint64_t time) {
-            return timestamp < time;
+        void set(const Packet& newValue) {
+            empty  = false;
+            time   = Clock::now();
+            packet = newValue;
         }
-        // return true if timestamp is after time;
-        bool after(uint64_t time) {
-            return time < timestamp;
+        //
+        // timeout
+        //
+        bool timeout(duration duration, time_point now  = Clock::now()) {
+            return duration < (now - time);
+        }
+        void updateTime(duration duration) {
+            time += duration;
         }
     };
 

@@ -50,13 +50,15 @@ struct Context;
 struct ThreadTransmit;
 
 struct Session {
-    using steady_clock = std::chrono::steady_clock;
-    using Host   = xns::Host;
-    using Socket = xns::Socket;
+    using Clock      = std::chrono::steady_clock;
+    using time_point = Clock::time_point;
+    using duration   = Clock::duration;
+    using Host       = xns::Host;
+    using Socket     = xns::Socket;
 
     Context*        context;
     ThreadTransmit* threadTransmit;
-    uint64_t        startTime; // milli seconds
+    time_point      startTime;
 
     // received headers
     xns::Ethernet rxEthernet;
@@ -67,13 +69,21 @@ struct Session {
     Session(Context* context_, ThreadTransmit* threadTransmit_) :
         context(context_),
         threadTransmit(threadTransmit_),
-        startTime(microSecondSteadyClock()) {}
+        startTime(Clock::now()) {}
     
     Session(const Session&)             = default;
     Session& operator =(const Session&) = default;
 
-    uint64_t duration() {
-        return microSecondSteadyClock() - startTime;
+    template<typename T>
+    uint64_t elapsed() {
+        auto duration = Clock::now() - startTime;
+        return std::chrono::duration_cast<T>(duration).count();
+    }
+    uint64_t elapsedMicro() {
+        return elapsed<std::chrono::microseconds>();
+    }
+    uint64_t elapsedMilli() {
+        return elapsed<std::chrono::milliseconds>();
     }
 
     Host dstHost() {

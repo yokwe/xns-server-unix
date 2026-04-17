@@ -113,13 +113,13 @@ void Connection::maintainRetransmit() {
     retransmitQueue.mapDelete(function);    
 }
 void Connection::retransmit(bool sendAck) {
-    auto now = milliSecondSteadyClock() - RETRANSMIT_INTERVAL;
+    auto now = PacketQueue::Clock::now();
     auto function = [&](PacketQueue::Entry& e) {
         // transmit only within rxRange
-        if (rxRange.contains(e.packet.seq) && e.before(now)) {
+        if (rxRange.contains(e.packet.seq) && e.timeout(RETRANSMIT_INTERVAL, now)) {
             logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
             transmitRaw(e.packet);
-            e.timestamp += RETRANSMIT_INTERVAL;
+            e.updateTime(RETRANSMIT_INTERVAL);
             sendAck = false;
         }
     };

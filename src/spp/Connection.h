@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <cstdint>
 #include <vector>
@@ -91,7 +92,7 @@ struct SeqRange {
 class Connection {
 public:
     static const constexpr int NO_ATTENTION = -1;
-    static const constexpr uint64_t RETRANSMIT_INTERVAL = 500; // unit is millisecond
+    static const constexpr PacketQueue::duration RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
 
     Session  session;
 
