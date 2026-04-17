@@ -72,7 +72,7 @@ void ClientCourier::run() {
             ByteBuffer rx(rxdata.data(), rxdata.size());
             auto tx = service::services.callCourier(&stream, rx);
             auto txdata = tx.toVector();
-            stream.put(txdata, xns::SPP::SST::DATA, true);    
+            stream.put(txdata, xns::SPP::SST::DATA, true);
         } else if (result.sst == SST::BULK) {
             // FIXME
         } else {

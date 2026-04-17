@@ -179,7 +179,7 @@ public:
         seq++;
     }
     void transmitSystemAck() {
-        transmitRaw(true, false, false, false, SST::DATA);    
+        transmitRaw(true, false, false, false, SST::DATA);
     }
     void transmitClose() {
         transmitRaw(false, false, false, false, SST::CLOSE);

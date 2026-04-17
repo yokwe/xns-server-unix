@@ -77,7 +77,7 @@ ByteBuffer ServicesBase::callExpeditedMessage(Stream* stream, const ByteBuffer& 
         tx.write(protocolRange);
         tx.write(response);
     
-        return tx;    
+        return tx;
     }
 }
 
@@ -141,7 +141,7 @@ ByteBuffer ServicesBase::callCourierMessage(Stream* stream, const ByteBuffer& rx
             auto tx = getByteBuffer();
             tx.write(message);
             tx.write(result);
-            return tx;    
+            return tx;
         }
     } catch (const courier::ErrorBase& errorBase) {
         // Abort

@@ -120,7 +120,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
     socketManager->add(socket, clientListener);
 
     auto* connection = new Connection(session, srcID, dstID);
-    connections.add(connection);    
+    connections.add(connection);
 
     // set client to connection
     connection->set(getClient(connection));

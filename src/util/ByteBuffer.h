@@ -293,14 +293,14 @@ public:
         checkBeforeWrite(4);
         if constexpr (USE_MESA_BYTE_ORDER) {
             myData[myBytePos++] = value >>  8;
-            myData[myBytePos++] = value >>  0;    
+            myData[myBytePos++] = value >>  0;
             myData[myBytePos++] = value >> 24;
             myData[myBytePos++] = value >> 16;
         } else {
             myData[myBytePos++] = value >> 24;
             myData[myBytePos++] = value >> 16;
             myData[myBytePos++] = value >>  8;
-            myData[myBytePos++] = value >>  0;    
+            myData[myBytePos++] = value >>  0;
         }
 
         if (myByteLimit < myBytePos) myByteLimit = myBytePos;

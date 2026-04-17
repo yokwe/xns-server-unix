@@ -110,7 +110,7 @@ void Connection::maintainRetransmit() {
         }
         return ret;
     };
-    retransmitQueue.mapDelete(function);    
+    retransmitQueue.mapDelete(function);
 }
 void Connection::retransmit(bool sendAck) {
     auto now = PacketQueue::Clock::now();
@@ -140,7 +140,7 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
     {
         bool rangeChanged = rxRange.ack != header.ack || rxRange.alloc != header.alloc;
         rxRange = {header.ack, header.alloc};
-        if (rangeChanged) maintainRetransmit();    
+        if (rangeChanged) maintainRetransmit();
     }
 
     auto sst = header.sst;

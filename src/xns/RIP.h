@@ -51,7 +51,7 @@ public:
     class Entry {
     public:
         Network network;
-        Delay   delay;        
+        Delay   delay;
 
         Entry() : delay(Delay::INFINITY) {}
         Entry(Network network_, Delay delay_) : network(network_), delay(delay_) {}

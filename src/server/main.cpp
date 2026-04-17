@@ -108,7 +108,7 @@ int main(int, char **) {
     t2.start();
 
     for(;;) {
-        ReceiveData receiveData;        
+        ReceiveData receiveData;
         threadReceive.pop(receiveData);
         auto& rx = receiveData.rx;
         if (rx.empty()) continue;

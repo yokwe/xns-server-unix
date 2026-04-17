@@ -102,7 +102,7 @@ public:
     }
     std::string toString() const {
         return std_sprintf("{%s  %d  %d  %s  %s  %s}",
-            toString(checksum), length, control, toString(packetType), dst.toString(), src.toString());    
+            toString(checksum), length, control, toString(packetType), dst.toString(), src.toString());
     }
 };
 
