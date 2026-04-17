@@ -58,6 +58,9 @@ public:
         virtual ~Listener() = default;
         virtual const std::string& name() = 0;
 
+        virtual void start() = 0; // called once from SocketMangaer::add
+        virtual void stop()  = 0; // called once from SocketManager::remove
+
         virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
         
     };

@@ -52,6 +52,7 @@ void SocketManager::add(Socket socket, Listener* listener) {
     } else {
         map[socket] = listener;
         logger.info("add  %-8s  %s", toString(socket), listener->name());
+        listener->start();
     }
 }
 void SocketManager::remove(Socket socket) {
@@ -59,6 +60,7 @@ void SocketManager::remove(Socket socket) {
     if (map.contains(socket)) {
         auto* listener = map[socket];
         logger.info("remove   %s  %s", toString(socket), listener->name());
+        listener->stop();
         delete listener;
         map.erase(socket); // remove from map
     } else {
