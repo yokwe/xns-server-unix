@@ -38,8 +38,8 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
-#include <mutex>
-#include <list>
+#include <iterator>
+#include <vector>
 
 #include "../util/Util.h"
 #include "../util/ByteBuffer.h"
@@ -62,23 +62,34 @@ class Connection;
 
 class Packet {
 public:
+    static constexpr uint32_t RESERVE_SIZE = 1500;
+
     uint8_t  control; // Control Bit
     SST      sst;     // Sub System Type
     uint16_t seq;
     Data     data;
 
     Packet(const xns::SPP& header, const ByteBuffer& bb) :
-        control(header.control), sst(header.sst), seq(0), data(bb.toVector()) {}
+        control(header.control), sst(header.sst), seq(0) {
+            auto span = bb.toSpan();
+            data.reserve(RESERVE_SIZE);
+            std::copy(span.begin(), span.end(), std::back_inserter(data));
+        }
 
     Packet(bool system_, bool sendAck_, bool attention_, bool endOfMessage_, SST sst_, uint16_t seq_, Data data_) :
-        control(0), sst(sst_), seq(seq_), data(data_) {
+        control(0), sst(sst_), seq(seq_) {
         system(system_);
         sendAck(sendAck_);
         attention(attention_);
         endOfMessage(endOfMessage_);
+        //
+        data.reserve(RESERVE_SIZE);
+        std::copy(data_.begin(), data_.end(), std::back_inserter(data));
     }
     
-    Packet() : control(0), sst(SST::DATA), seq(0) {}
+    Packet() : control(0), sst(SST::DATA), seq(0) {
+        data.reserve(RESERVE_SIZE);
+    }
 
     // Copy
     Packet(const Packet&  that)             = default;
@@ -88,8 +99,11 @@ public:
     Packet(Packet&&  that)             = default;
     Packet& operator = (Packet&& that) = default;
 
-    xns::SPP toSPP(uint16_t srcID_, uint16_t dstID_, uint16_t ack_, uint16_t alloc_) {
-        return xns::SPP(control, sst, srcID_, dstID_, seq, ack_, alloc_);
+    void clear() {
+        control = 0;
+        sst     = SST::DATA;
+        seq     = 0;
+        data.clear();
     }
 
     bool system() const {
@@ -147,43 +161,96 @@ private:
 
 
 class PacketQueue {
-    using LIST   = std::list<Packet>;
+public:
+    struct Entry {
+        bool     empty;
+        uint64_t timestamp; // milliseconds
+        Packet   packet;
+
+        Entry() : empty(true), timestamp(0) {}
+
+        void updateTimestamp() {
+            timestamp = milliSecondSteadyClock();
+        }
+        void clear() {
+            empty     = true;
+            timestamp = 0;
+            packet.clear();
+        }
+        // return true if timestamp is before time;
+        bool before(uint64_t time) {
+            return timestamp < time;
+        }
+        // return true if timestamp is after time;
+        bool after(uint64_t time) {
+            return time < timestamp;
+        }
+    };
+
+    using QUEUE  = std::vector<Entry>;
     using SEQVEC = std::vector<uint16_t>;
 
-    int         count;
-    LIST        list;
-    std::mutex  mutex;
+    static constexpr uint32_t QUEUE_SIZE = 10;
+
+    PacketQueue() : queue(QUEUE_SIZE) {}
+    PacketQueue(const PacketQueue& that) : queue(that.queue) {}
+
+    bool   contains(uint16_t seq);
+    void   add(const Packet& packet);
+
+    Entry* get(uint16_t seq);
 
     inline SEQVEC seqVec() {
         SEQVEC ret;
-        ret.reserve(list.size());
-        for(auto& e: list) {
-            ret.push_back(e.seq);
+        ret.reserve(queue.size());
+        for(auto& e: queue) {
+            if (!e.empty) ret.push_back(e.packet.seq);
         }
         return ret;
     }
-public:
-    PacketQueue() : count(0), list() {}
-    PacketQueue(const PacketQueue& that) : count(that.count), list(that.list) {}
 
-    bool     contains(uint16_t seq);
-    SEQVEC   add(const Packet& packet);
-    bool     get(uint16_t seq, Packet& packet);
-
+    inline uint32_t size() {
+        uint32_t ret = 0;
+        for(auto& e: queue) {
+            if (!e.empty) ret++;
+        }
+        return ret;
+    }
     void     clear();
-    uint32_t size() {
-        return count;
-    }
-    bool     empty() {
-        return count == 0;
-    }
 
     using MapFunction = std::function<void(Packet&)>;
-    void map(MapFunction function);
-
+    void map(MapFunction function) {
+        for(auto& e: queue) {
+            if (!e.empty) function(e.packet);
+        }
+    }
     using MapDeleteFunction = std::function<bool(Packet&)>;
-    void mapDelete(MapDeleteFunction function);
+    void mapDelete(MapDeleteFunction function) {
+        for(auto& e: queue) {
+            if (!e.empty && function(e.packet)) {
+                e.clear();
+            }
+        }
+    }
 
+    using MapEntryFunction = std::function<void(Entry&)>;
+    void map(MapEntryFunction function) {
+        for(auto i = queue.begin(); i != queue.end(); i++) {
+            if (!i->empty) function(*i);
+        }
+    }
+
+    using MapEntryDeleteFunction = std::function<bool(Entry&)>;
+    void mapDelete(MapEntryDeleteFunction function) {
+        for(auto i = queue.begin(); i != queue.end(); i++) {
+            if (!i->empty && function(*i)) {
+                i->clear();
+            }
+        }
+    }
+
+private:
+    QUEUE queue;
 };
 
 }

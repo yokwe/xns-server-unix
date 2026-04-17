@@ -67,20 +67,13 @@ struct Session {
     Session(Context* context_, ThreadTransmit* threadTransmit_) :
         context(context_),
         threadTransmit(threadTransmit_),
-        startTime(microTime()) {}
+        startTime(microSecondSteadyClock()) {}
     
     Session(const Session&)             = default;
     Session& operator =(const Session&) = default;
 
-    static uint64_t milliTime() {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    }
-    static uint64_t microTime() {
-        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    }
-
     uint64_t duration() {
-        return microTime() - startTime;
+        return microSecondSteadyClock() - startTime;
     }
 
     Host dstHost() {

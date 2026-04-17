@@ -49,12 +49,6 @@ namespace spp {
 using Clock = std::chrono::steady_clock;
 
 void ClientCourier::idle() {
-    static Clock::time_point lastRetransmit = Clock::now();
-
-    auto now = Clock::now();
-
-    if (now < (lastRetransmit + Connection::RETRANSMIT_INTERVAL)) return;
-    lastRetransmit += Connection::RETRANSMIT_INTERVAL;
     connection->retransmit();
 }
 

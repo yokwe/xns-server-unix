@@ -61,9 +61,6 @@ using SST = xns::SPP::SST;
 //
 // transmitXXX
 //
-void Connection::queue(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-    retransmitQueue.add(Packet{false, sendAck, attention, endOfMessage, sst, seq, data});
-}
 void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
     SPP txHeader;
     txHeader.system(system);
@@ -97,6 +94,13 @@ void Connection::transmitRaw(Packet& packet) {
     session.send(txHeader, txbb);
 }
 
+//
+// retransmit
+//
+void Connection::queue(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+    logger.info("RETRANSMIT  ADD     %d", seq);
+    retransmitQueue.add(Packet{false, sendAck, attention, endOfMessage, sst, seq, data});
+}
 void Connection::maintainRetransmit() {    
     PacketQueue::MapDeleteFunction function = [&](Packet& e) {
         // remove entry before rxRange
@@ -109,11 +113,13 @@ void Connection::maintainRetransmit() {
     retransmitQueue.mapDelete(function);    
 }
 void Connection::retransmit(bool sendAck) {
-    PacketQueue::MapFunction function = [&](Packet& e) {
+    auto now = milliSecondSteadyClock() - RETRANSMIT_INTERVAL;
+    auto function = [&](PacketQueue::Entry& e) {
         // transmit only within rxRange
-        if (rxRange.contains(e.seq)) {
-            logger.info("RETRANSMIT  %d", e.seq);
-            transmitRaw(e);
+        if (rxRange.contains(e.packet.seq) && e.before(now)) {
+            logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
+            transmitRaw(e.packet);
+            e.timestamp += RETRANSMIT_INTERVAL;
             sendAck = false;
         }
     };
@@ -164,10 +170,12 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
         }
 
         // add to receiveQueue
-        auto seqVec = receiveQueue.add(Packet{header, body});
+        receiveQueue.add(Packet{header, body});
         logger.info("ACCEPT  %d", rxseq);
 
         // maintain txRange
+        auto seqVec = receiveQueue.seqVec();
+        std::sort(seqVec.begin(), seqVec.end());
         while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
             txRange++;
             sendAck = true;
@@ -176,11 +184,11 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
 
         // move packet from receivedQueue to clientQueue
         for(;;) {
-            Packet packet;
-            auto hasData = receiveQueue.get(clientSeq, packet);
-            if (!hasData) break;
-            clientQueue.push(packet);
+            PacketQueue::Entry* entry = receiveQueue.get(clientSeq);
+            if (entry == 0) break;
+            clientQueue.push(entry->packet);
             clientSeq++;
+            entry->clear();
         }
     } else {
         logger.info("REJECT  %d  %s", rxseq, SPP::toString(header.sst));

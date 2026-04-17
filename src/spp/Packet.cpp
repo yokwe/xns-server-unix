@@ -33,8 +33,6 @@
  // Packet.cpp
  //
 
-#include <functional>
-
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -43,68 +41,48 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 bool PacketQueue::contains(uint16_t seq) {
-    if (empty()) return false;
-
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: list) {
-        if (e.seq == seq) return true;
+    for(auto& e: queue) {
+        if (!e.empty && e.packet.seq == seq) return true;
     }
     return false;
 }
-PacketQueue::SEQVEC PacketQueue::add(const Packet& packet) {
-    if (packet.system()) ERROR();
-
-    std::lock_guard<std::mutex> lock(mutex);
+void PacketQueue::add(const Packet& packet) {
     // sanity check
-    for(auto& e: list) {
-        if (e.seq == packet.seq) {
-            logger.info("Duplicate seq");
-            logger.info("  packet %s", packet.toString());
-            logger.info("  e      %s", e.toString());
-            ERROR()
+    if (packet.system()) ERROR();
+    if (get(packet.seq)) ERROR()
+
+    for(auto& e: queue) {
+        if (e.empty) {
+            e.empty = false;
+            e.packet = packet;
+            e.updateTimestamp();
+            return;
         }
     }
-
-    list.push_back(packet);
-    count++;
-    return seqVec();
+    // expand queue
+    queue.reserve(queue.size() + QUEUE_SIZE);
+    for(auto& e: queue) {
+        if (e.empty) {
+            e.empty = false;
+            e.packet = packet;
+            e.updateTimestamp();
+            return;
+        }
+    }
+    ERROR()
 }
 
-bool PacketQueue::get(uint16_t seq, Packet& packet) {
-    if (empty()) return false;
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto i = list.begin(); i != list.end();) {
-        if (i->seq == seq) {
-            packet = *i;
-            list.erase(i);
-            count--;
-            return true;
-        } else {
-            i++;
-        }
+PacketQueue::Entry* PacketQueue::get(uint16_t seq) {
+    for(auto& e: queue) {
+        if (!e.empty && e.packet.seq == seq) return &e;
     }
-    return false;
+    return 0;
 }
 
 void PacketQueue::clear() {
-    std::lock_guard<std::mutex> lock(mutex);
-    list.clear();
-    count = 0;
-}
-
-void PacketQueue::map(MapFunction function) {
-    if (empty()) return;
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto& e: list) {
-        function(e);
+    for(auto& e: queue) {
+        e.clear();
     }
-}
-
-void PacketQueue::mapDelete(MapDeleteFunction function) {
-    if (empty()) return;
-    std::lock_guard<std::mutex> lock(mutex);
-    list.remove_if(function);
-    count = list.size();
 }
 
 }
