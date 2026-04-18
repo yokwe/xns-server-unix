@@ -58,6 +58,9 @@ public:
 
     void start() override {}
     void stop()  override {}
+    Listener::time_point stopAt() override {
+        return Listener::time_point::max(); // never stop
+    }
 
     void process(Session& session, ByteBuffer&rx, bool& stopped) override;
 

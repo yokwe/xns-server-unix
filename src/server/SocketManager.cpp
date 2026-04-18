@@ -33,6 +33,9 @@
  // SocketManager.cpp
  //
 
+#include <chrono>
+#include <thread>
+
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
 
@@ -46,7 +49,7 @@ namespace server {
 //
 
 void SocketManager::add(Socket socket, Listener* listener) {
-    std::lock_guard<std::mutex> locck(mutex);
+//    std::lock_guard<std::mutex> lock(mutex);
     if (map.contains(socket)) {
         ERROR()
     } else {
@@ -56,7 +59,7 @@ void SocketManager::add(Socket socket, Listener* listener) {
     }
 }
 void SocketManager::remove(Socket socket) {
-    std::lock_guard<std::mutex> locck(mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     if (map.contains(socket)) {
         auto* listener = map[socket];
         logger.info("remove   %s  %s", toString(socket), listener->name());
@@ -66,11 +69,6 @@ void SocketManager::remove(Socket socket) {
     } else {
         ERROR()
     }
-}
-
-bool SocketManager::contains(Socket socket) {
-    std::lock_guard<std::mutex> locck(mutex);
-    return map.contains(socket);
 }
 
 void SocketManager::process(Session& session, ByteBuffer& rx) {
@@ -126,6 +124,43 @@ Socket SocketManager::newSocket() {
         }
         if (!map.contains(ret)) return ret;
         ret = ret + 13;
+    }
+}
+
+constexpr auto MAINTAIL_INTERVAL = std::chrono::seconds(1);
+
+void SocketManager::start() {
+    std::function<void()> function = std::bind(&SocketManager::maintain, this);
+    maintainThread.set("SocketManager::maintain", function);
+    maintainThread.start();
+    std::this_thread::yield();
+}
+
+void SocketManager::maintain() {
+    logger.info("maintain START");
+    auto time = Listener::Clock::now();
+
+    for(;;) {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            auto now = Listener::Clock::now();
+            for(auto i = map.begin(); i != map.end();) {
+                Socket    socket   = i->first;
+                Listener* listener = i->second;
+                auto stopAt = listener->stopAt();
+                if (stopAt < now) {
+                    logger.info("stopAt   %s  %s", toString(socket), listener->name());
+                    listener->stop();
+                    delete listener;
+                    i = map.erase(i); // delete element of map point by i
+                } else {
+                    i++;
+                }
+            }
+        }
+
+        time += MAINTAIL_INTERVAL;
+        std::this_thread::sleep_until(time);
     }
 }
 

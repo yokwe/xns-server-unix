@@ -88,6 +88,7 @@ int main(int, char **) {
 
     // set socket listener
     auto& socketManager = server::socketManager;
+    socketManager.start();
     
     socketManager.add<server::SocketError>();
     socketManager.add<server::SocketTime>();

@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <string>
 
 #include "../xns/XNS.h"
@@ -51,6 +52,7 @@ using Socket        = xns::Socket;
 
 struct SocketCourierClient: public SocketManager::Listener {
     static const constexpr std::string NAME = "SocketCourierClient";
+    static constexpr auto CLOSE_REPLY_TIMEOUT = std::chrono::seconds(5);
 
     enum class State {
         NEW, OPEN, CLOSE, CLOSE_REPLY,
@@ -80,9 +82,14 @@ struct SocketCourierClient: public SocketManager::Listener {
     }
 
     void start() override {}
-    void stop()  override {}
-
+    void stop()  override;
+    Listener::time_point stopAt() override {
+        return stopAtTime;
+    }
     void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
+
+private:
+    Listener::time_point stopAtTime = Listener::time_point::max(); // never stop
 };
 
 

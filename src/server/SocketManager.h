@@ -41,6 +41,7 @@
 
 
 #include "../util/ByteBuffer.h"
+#include "../util/ThreadControl.h"
 
 #include "../xns/XNS.h"
 
@@ -55,11 +56,16 @@ class SocketManager {
 public:
     class Listener {
     public:
+        using Clock = std::chrono::steady_clock;
+        using time_point = Clock::time_point;
+
         virtual ~Listener() = default;
         virtual const std::string& name() = 0;
 
         virtual void start() = 0; // called once from SocketMangaer::add
         virtual void stop()  = 0; // called once from SocketManager::remove
+
+        virtual time_point stopAt() = 0; // listener will stop after stopAt()
 
         virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
         
@@ -70,9 +76,12 @@ public:
         add(T::SOCKET, new T);
     }
 
+    SocketManager() {}
+    void start();
+
     void add     (Socket socket, Listener* listener);
     void remove  (Socket socket);
-    bool contains(Socket socket);
+//    bool contains(Socket socket);
 
     void process(Session& session, ByteBuffer& rx); // rx is idp body
 
@@ -83,6 +92,9 @@ private:
 
     LISTENER_MAP map;
     std::mutex   mutex;
+
+    void maintain();
+    ThreadControl maintainThread;
 };
 
 inline SocketManager socketManager;

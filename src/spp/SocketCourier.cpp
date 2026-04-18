@@ -33,8 +33,10 @@
  // SocketCourier.cpp
  //
 
-#include "../util/Util.h"
+#include <chrono>
 #include <thread>
+ 
+#include "../util/Util.h"
 static const Logger logger(__FILE__);
 
 #include "../util/ByteBuffer.h"
@@ -43,7 +45,7 @@ static const Logger logger(__FILE__);
 #include "../xns/SPP.h"
 
 #include "Connection.h"
-
+#include "SocketSPP.h"
 #include "SocketCourier.h"
 
 
@@ -63,7 +65,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
     auto srcID = rxHeader.dstID;
     auto dstID = rxHeader.srcID;
 
-    logger.info("SPP  %s  %s  %s", xns::toString(socket), xns::SPP::toString(sst), toString(state));
+    logger.info("SPP  %s  %04X  %-10s  %s", xns::toString(socket), rxHeader.seq, xns::SPP::toString(sst), toString(state));
 
     auto* connection = connections.get(srcID, dstID);
     if (connection == 0) {
@@ -88,45 +90,47 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
             // increment ack and alloc
             connection->txRange++;
             // send close
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
         } else if (closeCount < 99) {
             // send close
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection->transmitClose();
-    } else {
+        } else {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), xns::SPP::toString(sst));
-            goto close_connection;
+            stopAtTime = Listener::time_point::min(); // stop as soon as possible
         }
     } else if (sst == SST::CLOSE_REPLY) {
-        state = State::CLOSE_REPLY;
-        connection->seq++;
-        connection->txRange++;
+        if (state == State::CLOSE) {
+            state = State::CLOSE_REPLY;
+            connection->retransmitQueue.clear();
+            connection->receiveQueue.clear();
+            connection->seq++;
+            connection->txRange++;
+            stopAtTime = Listener::Clock::now() + CLOSE_REPLY_TIMEOUT; // stop after CLOSE_REPLY_TIMEOUT
+        }
+        if (state != State::CLOSE_REPLY) ERROR()
+
         // send close reply
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         connection->transmitCloseReply();
-        goto close_connection;
     } else {
         if ((state == State::CLOSE || state == State::CLOSE_REPLY) && !rxHeader.system()) {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
-            goto close_connection;
+            stopAtTime = Listener::time_point::min(); // stop as soon as possible
         } else {
             connection->receive(rxHeader, rxbb);
         }
     }
-    return;
+}
 
-close_connection:
+void SocketCourierClient::stop() {
+    auto* connection = connections.get(srcID, dstID);
     connection->receiveQueue.clear();
     connection->retransmitQueue.clear();
     // stop client
     connection->client->stop();
     // remove connection from connections
     connections.remove(connection);
-    // notify SocketManager to stop listening this socket
-    stopped = true;
 }
 
 }

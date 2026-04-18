@@ -145,12 +145,22 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
 
     auto sst = header.sst;
 
+    // sepcial for probe
+    if (header.system() && header.sendAck()) {
+        // sanity check
+        if (sst != SST::DATA) ERROR()
+
+        logger.info("PROBE");
+        retransmit(header.sendAck());
+        return;
+    }
+
     // sepcial for system packet
     if (header.system()) {
         // sanity check
         if (sst != SST::DATA) ERROR()
 
-        logger.info("SYSTEM  %s", header.sendAck() ? "SEND_ACK" : "");
+        logger.info("SYSTEM");
         retransmit(header.sendAck());
         return;
     }
@@ -162,33 +172,37 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
     
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
     if (txRange.contains(rxseq)) {
-        // special for attention
-        if (header.attention()) {
-            attentionFlag = true;
-            auto data = body.toVector();
-            attentionValue = data[0];
-        }
-
-        // add to receiveQueue
-        receiveQueue.add(Packet{header, body});
-        logger.info("ACCEPT  %d", rxseq);
-
-        // maintain txRange
-        auto seqVec = receiveQueue.seqVec();
-        std::sort(seqVec.begin(), seqVec.end());
-        while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
-            txRange++;
-            sendAck = true;
-            logger.info("NEW ACK %d", txRange.ack);
-        }
-
-        // move packet from receivedQueue to clientQueue
-        for(;;) {
-            PacketQueue::Entry* entry = receiveQueue.get(clientSeq);
-            if (entry == 0) break;
-            clientQueue.push(entry->packet);
-            clientSeq++;
-            entry->clear();
+        if (receiveQueue.contains(rxseq)) {
+            logger.info("DUP     %d  %s", rxseq, SPP::toString(header.sst));
+        } else {
+            // special for attention
+            if (header.attention()) {
+                attentionFlag = true;
+                auto data = body.toVector();
+                attentionValue = data[0];
+            }
+    
+            // add to receiveQueue
+            logger.info("ACCEPT  %d", rxseq);
+            receiveQueue.add(Packet{header, body});
+    
+            // maintain txRange
+            auto seqVec = receiveQueue.seqVec();
+            std::sort(seqVec.begin(), seqVec.end());
+            while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
+                txRange++;
+                sendAck = true;
+                logger.info("NEW ACK %d", txRange.ack);
+            }
+    
+            // move packet from receivedQueue to clientQueue
+            for(;;) {
+                PacketQueue::Entry* entry = receiveQueue.get(clientSeq);
+                if (entry == 0) break;
+                clientQueue.push(entry->packet);
+                clientSeq++;
+                entry->clear();
+            }    
         }
     } else {
         logger.info("REJECT  %d  %s", rxseq, SPP::toString(header.sst));

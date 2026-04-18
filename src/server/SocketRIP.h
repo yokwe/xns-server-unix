@@ -50,6 +50,9 @@ struct SocketRIP: public SocketManager::Listener {
 
     void start() override {}
     void stop()  override {}
+    Listener::time_point stopAt() override {
+        return Listener::time_point::max(); // never stop
+    }
 
     void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
 };

@@ -102,7 +102,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
             // set dst.socket to redirect response
             session.dstSocket(connection.socket);
             // send packet
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+//            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection.transmitSystemAck();
             return;
         }
