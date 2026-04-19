@@ -48,8 +48,7 @@ static const Logger logger(__FILE__);
 namespace server {
 //
 
-void SocketError::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketError::process(Session& session, ByteBuffer&rx) {
     // sanity check
     if (session.rxIDP.packetType != xns::IDP::PacketType::ERROR_) ERROR()
 

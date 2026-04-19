@@ -54,10 +54,22 @@ using Socket = xns::Socket;
 
 class SocketManager {
 public:
+    using Clock = std::chrono::steady_clock;
+    using time_point = Clock::time_point;
+
     class Listener {
+    protected:
+        time_point stopAtValue;
+
     public:
-        using Clock = std::chrono::steady_clock;
-        using time_point = Clock::time_point;
+        static time_point STOP_AT_NOW() {
+            return Clock::now();
+        }
+        static time_point STOP_AT_NEVER() {
+            return time_point::max();
+        }
+
+        Listener() : stopAtValue(STOP_AT_NEVER()) {}
 
         virtual ~Listener() = default;
         virtual const std::string& name() = 0;
@@ -65,10 +77,12 @@ public:
         virtual void start() = 0; // called once from SocketMangaer::add
         virtual void stop()  = 0; // called once from SocketManager::remove
 
-        virtual time_point stopAt() = 0; // listener will stop after stopAt()
+        virtual void process(Session& session, ByteBuffer& rx) = 0;
 
-        virtual void process(Session& session, ByteBuffer& rx, bool& stopped) = 0;
-        
+        // listener will stop after stopAt() by SocketManager
+        time_point stopAt() {
+            return stopAtValue;
+        }
     };
 
     template<typename T>
@@ -89,6 +103,8 @@ public:
 
 private:
     using LISTENER_MAP = std::unordered_map<Socket, Listener*>;
+
+    static constexpr auto MAINTAIN_INTERVAL = std::chrono::seconds(1);
 
     LISTENER_MAP map;
     std::mutex   mutex;

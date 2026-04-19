@@ -58,11 +58,8 @@ public:
 
     void start() override {}
     void stop()  override {}
-    Listener::time_point stopAt() override {
-        return Listener::time_point::max(); // never stop
-    }
 
-    void process(Session& session, ByteBuffer&rx, bool& stopped) override;
+    void process(Session& session, ByteBuffer&rx) override;
 
     virtual Listener* getListener(Socket sorcket, uint16_t srcID, uint16_t dstID) = 0;
     virtual Client*   getClient(Connection*) = 0;

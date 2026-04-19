@@ -54,8 +54,7 @@ using Network   = xns::Network;
 using Delay     = xns::Delay;
 using Operation = xns::Operation;
 
-void SocketRIP::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketRIP::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::RIP)    ERROR()
 
     // make reference

@@ -117,10 +117,15 @@ void Connection::retransmit(bool sendAck) {
     auto function = [&](PacketQueue::Entry& e) {
         // transmit only within rxRange
         if (rxRange.contains(e.packet.seq) && e.timeout(RETRANSMIT_INTERVAL, now)) {
-            logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
-            transmitRaw(e.packet);
-            e.updateTime(RETRANSMIT_INTERVAL);
-            sendAck = false;
+            if (e.count < RETRANSMIT_COUNT_MAX) {
+                logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
+                transmitRaw(e.packet);
+                e.updateTime(RETRANSMIT_INTERVAL);
+                sendAck = false;    
+            } else {
+                logger.info("RETRANSMIT  CLEAR   %d", e.packet.seq);
+                e.clear();
+            }
         }
     };
     retransmitQueue.map(function);
@@ -165,14 +170,12 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
         return;
     }
 
-    logger.info("SST %s", SPP::toString(header.sst));
-
     bool sendAck = header.sendAck();
     const auto rxseq = header.seq;
-    
+
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
     if (txRange.contains(rxseq)) {
-        if (receiveQueue.contains(rxseq)) {
+        if (receiveQueue.get(rxseq)) {
             logger.info("DUP     %d  %s", rxseq, SPP::toString(header.sst));
         } else {
             // special for attention

@@ -40,10 +40,6 @@ static const Logger logger(__FILE__);
 
 #include "../courier/Boot.h"
 
-#include "../server/Server.h"
-#include "../server/Session.h"
-#include "../server/Context.h"
-
 #include "SocketBoot.h"
 
 namespace spp {
@@ -52,8 +48,7 @@ using PacketType = xns::IDP::PacketType;
 
 using namespace courier::Boot;
 
-void SocketBoot::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketBoot::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != PacketType::BOOT)    ERROR()
 
     // make reference

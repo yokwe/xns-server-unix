@@ -64,8 +64,7 @@ static uint16_t newConnectionID() {
 }
 
 
-void SocketSPP::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketSPP::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
 
     xns::SPP   rxHeader;

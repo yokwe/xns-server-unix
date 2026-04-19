@@ -83,13 +83,7 @@ struct SocketCourierClient: public SocketManager::Listener {
 
     void start() override {}
     void stop()  override;
-    Listener::time_point stopAt() override {
-        return stopAtTime;
-    }
-    void process(Session& session, ByteBuffer&rxß, bool& stopped) override;
-
-private:
-    Listener::time_point stopAtTime = Listener::time_point::max(); // never stop
+    void process(Session& session, ByteBuffer&rxß) override;
 };
 
 

@@ -70,7 +70,7 @@ public:
     Data     data;
 
     Packet(const xns::SPP& header, const ByteBuffer& bb) :
-        control(header.control), sst(header.sst), seq(0) {
+        control(header.control), sst(header.sst), seq(header.seq) {
             auto span = bb.toSpan();
             data.reserve(RESERVE_SIZE);
             std::copy(span.begin(), span.end(), std::back_inserter(data));
@@ -168,18 +168,21 @@ public:
 
     struct Entry {
         bool       empty;
+        uint32_t   count;
         time_point time;
         Packet     packet;
 
-        Entry() : empty(true), time(time_point::max()) {}
+        Entry() : empty(true), count(0), time(time_point::max()) {}
 
         void clear() {
             empty = true;
+            count = 0;
             time  = time_point::max();
             packet.clear();
         }
         void set(const Packet& newValue) {
             empty  = false;
+            count  = 0;
             time   = Clock::now();
             packet = newValue;
         }
@@ -191,6 +194,11 @@ public:
         }
         void updateTime(duration duration) {
             time += duration;
+            count++;
+        }
+
+        std::string toString() {
+            return std_sprintf("{%d  %d  %s}", empty, count, packet.toString());
         }
     };
 
@@ -199,13 +207,13 @@ public:
 
     static constexpr uint32_t QUEUE_SIZE = 10;
 
-    PacketQueue() : queue(QUEUE_SIZE) {}
+    PacketQueue() {
+        queue.resize(QUEUE_SIZE);
+    }
     PacketQueue(const PacketQueue& that) : queue(that.queue) {}
 
-    bool   contains(uint16_t seq);
-    void   add(const Packet& packet);
-
     Entry* get(uint16_t seq);
+    void   add(const Packet& packet);
 
     inline SEQVEC seqVec() {
         SEQVEC ret;
@@ -247,14 +255,7 @@ public:
         }
     }
 
-    using MapEntryDeleteFunction = std::function<bool(Entry&)>;
-    void mapDelete(MapEntryDeleteFunction function) {
-        for(auto i = queue.begin(); i != queue.end(); i++) {
-            if (!i->empty && function(*i)) {
-                i->clear();
-            }
-        }
-    }
+    void dump();
 
 private:
     QUEUE queue;

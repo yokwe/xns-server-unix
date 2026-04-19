@@ -40,16 +40,14 @@ static const Logger logger(__FILE__);
 
 namespace spp {
 //
-bool PacketQueue::contains(uint16_t seq) {
-    for(auto& e: queue) {
-        if (!e.empty && e.packet.seq == seq) return true;
-    }
-    return false;
-}
 void PacketQueue::add(const Packet& packet) {
     // sanity check
     if (packet.system()) ERROR();
-    if (get(packet.seq)) ERROR()
+    if (get(packet.seq)) {
+        logger.error("packet.seq  %d", packet.seq);
+        logger.error("packet  %s", packet.toString());
+        ERROR()
+    }
 
     for(auto& e: queue) {
         if (e.empty) {
@@ -58,7 +56,7 @@ void PacketQueue::add(const Packet& packet) {
         }
     }
     // expand queue
-    queue.reserve(queue.size() + QUEUE_SIZE);
+    queue.resize(queue.size() + QUEUE_SIZE);
     for(auto& e: queue) {
         if (e.empty) {
             e.set(packet);
@@ -70,7 +68,8 @@ void PacketQueue::add(const Packet& packet) {
 
 PacketQueue::Entry* PacketQueue::get(uint16_t seq) {
     for(auto& e: queue) {
-        if (!e.empty && e.packet.seq == seq) return &e;
+        if (e.empty) continue;
+        if (e.packet.seq == seq) return &e;
     }
     return 0;
 }
@@ -79,6 +78,14 @@ void PacketQueue::clear() {
     for(auto& e: queue) {
         e.clear();
     }
+}
+
+void PacketQueue::dump() {
+    logger.info("DUMP START");
+    for(uint32_t i = 0; i < queue.size(); i++) {
+        logger.info("DUMP  %2d  %s", i, queue[i].toString());
+    }
+    logger.info("DUMP STOP");
 }
 
 }

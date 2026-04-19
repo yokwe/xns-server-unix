@@ -47,8 +47,7 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 
-void SocketCHS::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketCHS::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::PEX)    ERROR()
 
     ByteBuffer pexBody;

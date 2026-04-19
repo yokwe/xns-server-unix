@@ -47,8 +47,7 @@ static const Logger logger(__FILE__);
 
 namespace server {
 //
-void SocketEcho::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketEcho::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::ECHO) ERROR()
 
     xns::Echo rxHeader;

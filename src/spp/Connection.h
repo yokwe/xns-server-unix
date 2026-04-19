@@ -91,8 +91,8 @@ struct SeqRange {
 };
 class Connection {
 public:
-    static const constexpr int NO_ATTENTION = -1;
-    static const constexpr PacketQueue::duration RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
+    static const constexpr auto     RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
+    static const constexpr uint32_t RETRANSMIT_COUNT_MAX = 20;
 
     Session  session;
 
@@ -144,7 +144,7 @@ public:
         srcID(srcID_), dstID(dstID_),
         seq(0),
         clientSeq(0),
-        attentionFlag(false), attentionValue(NO_ATTENTION) {}
+        attentionFlag(false), attentionValue(0) {}
 
     std::string toString() {
         return std_sprintf("{%04X  %04X  %d  %d  %d}", srcID, dstID, seq, txRange.ack, txRange.alloc);

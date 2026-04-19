@@ -32,9 +32,6 @@
  //
  // SocketCourier.cpp
  //
-
-#include <chrono>
-#include <thread>
  
 #include "../util/Util.h"
 static const Logger logger(__FILE__);
@@ -52,8 +49,7 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 
-void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped) {
-    stopped = false;
+void SocketCourierClient::process(Session& session, ByteBuffer&rx) {
     if (session.rxIDP.packetType != xns::IDP::PacketType::SPP)    ERROR()
 
     xns::SPP   rxHeader;
@@ -97,7 +93,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
         } else {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED CLOSE COUNT", xns::toString(socket), xns::SPP::toString(sst));
-            stopAtTime = Listener::time_point::min(); // stop as soon as possible
+            stopAtValue = STOP_AT_NOW(); // stop as soon as possible
         }
     } else if (sst == SST::CLOSE_REPLY) {
         if (state == State::CLOSE) {
@@ -106,7 +102,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
             connection->receiveQueue.clear();
             connection->seq++;
             connection->txRange++;
-            stopAtTime = Listener::Clock::now() + CLOSE_REPLY_TIMEOUT; // stop after CLOSE_REPLY_TIMEOUT
+            stopAtValue = STOP_AT_NOW() + CLOSE_REPLY_TIMEOUT; // stop after CLOSE_REPLY_TIMEOUT
         }
         if (state != State::CLOSE_REPLY) ERROR()
 
@@ -116,7 +112,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx, bool& stopped
         if ((state == State::CLOSE || state == State::CLOSE_REPLY) && !rxHeader.system()) {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
-            stopAtTime = Listener::time_point::min(); // stop as soon as possible
+            stopAtValue = STOP_AT_NOW(); // stop as soon as possible
         } else {
             connection->receive(rxHeader, rxbb);
         }

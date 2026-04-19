@@ -76,8 +76,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
     auto packetType = session.rxIDP.packetType;
     if (packetType == xns::IDP::PacketType::ERROR_) {
         static SocketError socketError;
-        bool stopped = false;
-        socketError.process(session, rx, stopped);
+        socketError.process(session, rx);
         return;
     }
 
@@ -88,13 +87,7 @@ void SocketManager::process(Session& session, ByteBuffer& rx) {
         listener = map.contains(socket) ? map[socket] : 0;
     }
     if (listener) {
-        bool stopped = false;
-        listener->process(session, rx, stopped);
-        if (stopped) {
-            logger.info("stopped      %s  %s", toString(socket), listener->name());
-            delete listener;
-            map.erase(socket);
-        }
+        listener->process(session, rx);
     } else {
         logger.warn("no listener  %s  %s", xns::toString(socket), xns::IDP::toString(packetType));
         if (packetType == xns::IDP::PacketType::PEX) {
@@ -127,8 +120,6 @@ Socket SocketManager::newSocket() {
     }
 }
 
-constexpr auto MAINTAIL_INTERVAL = std::chrono::seconds(1);
-
 void SocketManager::start() {
     std::function<void()> function = std::bind(&SocketManager::maintain, this);
     maintainThread.set("SocketManager::maintain", function);
@@ -138,12 +129,12 @@ void SocketManager::start() {
 
 void SocketManager::maintain() {
     logger.info("maintain START");
-    auto time = Listener::Clock::now();
+    auto time = Clock::now();
 
     for(;;) {
         {
             std::lock_guard<std::mutex> lock(mutex);
-            auto now = Listener::Clock::now();
+            auto now = Clock::now();
             for(auto i = map.begin(); i != map.end();) {
                 Socket    socket   = i->first;
                 Listener* listener = i->second;
@@ -159,7 +150,7 @@ void SocketManager::maintain() {
             }
         }
 
-        time += MAINTAIL_INTERVAL;
+        time += MAINTAIN_INTERVAL;
         std::this_thread::sleep_until(time);
     }
 }
