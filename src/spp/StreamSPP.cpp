@@ -62,11 +62,11 @@ Result   StreamSPP::get(Data& data) {
     return Result(reason, packet.sst, packet.endOfMessage());
 }
 void     StreamSPP::put(Data& data, SST sst, bool endOfMessage) {
-    connection->transmitUser(false, endOfMessage, sst, data);
+    connection->transmitQueue(false, endOfMessage, sst, data);
 }
 
 void     StreamSPP::attention(uint8_t value) {
-    connection->transmitAttention(value);
+    connection->transmitQueue(value);
 }
 
 bool StreamSPP::hasAttention() {

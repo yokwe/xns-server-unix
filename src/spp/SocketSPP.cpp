@@ -93,7 +93,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     const uint16_t dstID = rxHeader.srcID;
 
     {
-        const Host host = session.dstHost();
+        const Host host = session.srcHost();
         auto* oldConnection = connections.get(host, dstID);
         if (oldConnection) {
             auto& connection = *oldConnection;

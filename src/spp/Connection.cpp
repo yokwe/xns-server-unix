@@ -43,8 +43,6 @@ static const Logger logger(__FILE__);
 
 #include "../xns/SPP.h"
 
-#include "../server/Server.h"
-
 #include "Connection.h"
 #include "Packet.h"
 
@@ -59,9 +57,9 @@ using SST = xns::SPP::SST;
 //
 
 //
-// transmitXXX
+// transmit
 //
-void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+void Connection::transmit(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, ByteBuffer& bb) {
     SPP txHeader;
     txHeader.system(system);
     txHeader.sendAck(sendAck);
@@ -74,13 +72,10 @@ void Connection::transmitRaw(bool system, bool sendAck, bool attention, bool end
     txHeader.ack   = txRange.ack;
     txHeader.alloc = txRange.alloc;
 
-    ByteBuffer txbb = server::getByteBuffer();
-    txbb.putVector(data);
-
-    session.send(txHeader, txbb);
+    session.send(txHeader, bb);
 }
 
-void Connection::transmitRaw(Packet& packet) {
+void Connection::transmit(Packet& packet) {
     SPP txHeader;
     txHeader.control = packet.control;
     txHeader.sst     = packet.sst;
@@ -90,16 +85,16 @@ void Connection::transmitRaw(Packet& packet) {
     txHeader.ack     = txRange.ack;
     txHeader.alloc   = txRange.alloc;
 
-    ByteBuffer txbb(packet.data.data(), packet.data.size());
+    ByteBuffer txbb(packet.data);
     session.send(txHeader, txbb);
 }
 
 //
 // retransmit
 //
-void Connection::queue(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
+void Connection::queue(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
     logger.info("RETRANSMIT  ADD     %d", seq);
-    retransmitQueue.add(Packet{false, sendAck, attention, endOfMessage, sst, seq, data});
+    retransmitQueue.add(Packet{system, sendAck, attention, endOfMessage, sst, seq, data});
 }
 void Connection::maintainRetransmit() {    
     PacketQueue::MapDeleteFunction function = [&](Packet& e) {
@@ -119,7 +114,7 @@ void Connection::retransmit(bool sendAck) {
         if (rxRange.contains(e.packet.seq) && e.timeout(RETRANSMIT_INTERVAL, now)) {
             if (e.count < RETRANSMIT_COUNT_MAX) {
                 logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
-                transmitRaw(e.packet);
+                transmit(e.packet);
                 e.updateTime(RETRANSMIT_INTERVAL);
                 sendAck = false;    
             } else {

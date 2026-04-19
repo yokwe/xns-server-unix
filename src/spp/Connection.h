@@ -89,16 +89,30 @@ struct SeqRange {
         return !(xns::SPP::isBefore(seq, ack) || xns::SPP::isBefore(alloc, seq));
     }
 };
+
+enum class State {
+    OPENING, OPEN, CLOSING, CLOSE,
+};
+inline std::string toString(State value) {
+    static std::unordered_map<State, std::string, ScopedEnumHash> map = {
+        {State::OPENING, "OPENING"},
+        {State::OPEN,    "OPEN"},
+        {State::CLOSING, "CLOSING"},
+        {State::CLOSE,   "CLOSE"},
+    };
+    return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
+}
+
 class Connection {
 public:
     static const constexpr auto     RETRANSMIT_INTERVAL = std::chrono::milliseconds(500);
     static const constexpr uint32_t RETRANSMIT_COUNT_MAX = 20;
 
+    State    state;
+
     Session  session;
-
-    Host     host;
-    Socket   socket;
-
+    Host     host;   // host of other side
+    Socket   socket; // socket of this side
     uint16_t srcID;  // connectionID of this side
     uint16_t dstID;  // connectionID of other side
 
@@ -110,100 +124,82 @@ public:
     PacketQueue receiveQueue;    // hold received packet
     PacketQueue retransmitQueue; // hold retransmit packet
 
+    // client
     uint16_t            clientSeq;
     SimpleQueue<Packet> clientQueue;
-
     ThreadControl       clientThread;
+    Client*             client;
 
-    Client*   client;
-
+    // attention
     bool    attentionFlag;
     uint8_t attentionValue;
 
-    Connection(const Connection& that) :
-        session(that.session),
-        host(that.host), socket(that.socket),
-        srcID(that.srcID), dstID(that.dstID),
-        seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
-        receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
-        attentionFlag(that.attentionFlag), attentionValue(that.attentionValue) {}
-
-    Connection(Connection&& that) :
-        session(that.session),
-        host(that.host), socket(that.socket),
-        srcID(that.srcID), dstID(that.dstID),
-        seq(that.seq), rxRange(that.rxRange), txRange(that.txRange),
-        receiveQueue(that.receiveQueue), retransmitQueue(that.retransmitQueue),
-        clientSeq(that.clientSeq), clientQueue(that.clientQueue), client(that.client),
-        attentionFlag(that.attentionFlag), attentionValue(that.attentionValue) {}
-
     Connection(Session session_, uint16_t srcID_, uint16_t dstID_) :
+        state(State::OPENING),
         session(session_),
-        host(session.dstHost()), socket(session.dstSocket()),
+        host(session.srcHost()), socket(session.dstSocket()),
         srcID(srcID_), dstID(dstID_),
         seq(0),
         clientSeq(0),
         attentionFlag(false), attentionValue(0) {}
+    
+    Connection(const Connection&) = delete;
+    Connection(Connection&&)      = delete;
+    Connection& operator = (const Connection&) = delete;
+    Connection& operator = (Connection&&)      = delete;
 
     std::string toString() {
-        return std_sprintf("{%04X  %04X  %d  %d  %d}", srcID, dstID, seq, txRange.ack, txRange.alloc);
+        return std_sprintf("{%-7s  %04X  %04X  %d  %d  %d}", spp::toString(state), srcID, dstID, seq, txRange.ack, txRange.alloc);
     }
 
+    // client
     void set(Client* client);
 
-    // for client
+    // attention
     bool hasAttention();
     int  attention(); // return attention value
 
+    // retransmit
     void retransmit(bool snedAck = false);
     void maintainRetransmit();
 
-    void transmitUser(bool sendAck, bool endOfMessage, SST sst, Data& data) {
-        transmit(sendAck, false, endOfMessage, sst, data);
-        queue   (sendAck, false, endOfMessage, sst, data);
+    // transmit
+    void transmitQueue(bool sendAck, bool endOfMessage, SST sst, Data& data) {
+        ByteBuffer bb(data);
+        transmit(false, sendAck, false, endOfMessage, sst, bb);
+        queue   (false, sendAck, false, endOfMessage, sst, data);
         seq++;
     }
-    void transmitUser(bool sendAck, bool endOfMessage, SST sst) {
-        Data data;
-        transmitUser(sendAck, endOfMessage, sst, data);
-    }
-    void transmitUser(bool sendAck, bool endOfMessage, SST sst, ByteBuffer& bb) {
-        Data data = bb.toVector();
-        transmitUser(sendAck, endOfMessage, sst, data);
-    }
-    void transmitAttention(uint8_t value) {
-        Data data = { value };
-        transmit(false, true, false, SST::DATA, data);
-        queue   (false, true, false, SST::DATA, data);
+    void transmitQueue(uint8_t attentionValue) {
+        Data data = { attentionValue };
+        ByteBuffer bb(data);
+        transmit(false, false, true, false, SST::DATA, bb);
+        queue   (false, false, true, false, SST::DATA, data);
         seq++;
     }
+
+    // transmit without retransmit
     void transmitSystemAck() {
-        transmitRaw(true, false, false, false, SST::DATA);
+        ByteBuffer bb;
+        transmit(true, false, false, false, SST::DATA, bb);
     }
     void transmitClose() {
-        transmitRaw(false, false, false, false, SST::CLOSE);
+        ByteBuffer bb;
+        transmit(false, false, false, false, SST::CLOSE, bb);
     }
     void transmitCloseReply() {
-        transmitRaw(false, false, false, false, SST::CLOSE_REPLY);
+        ByteBuffer bb;
+        transmit(false, false, false, false, SST::CLOSE_REPLY, bb);
     }
 
     // from network
     void receive(const xns::SPP& header, const ByteBuffer& body);
 
 private:
-    void queue   (bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
-    void transmit(bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-        transmitRaw(false, sendAck, attention, endOfMessage, sst, data);
-    }
+    void transmit(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, ByteBuffer& data);
+    void queue   (bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
 
-    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data);
-    void transmitRaw(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst) {
-        Data data;
-        transmitRaw(system, sendAck, attention, endOfMessage, sst, data);
-    }
-    
-    void transmitRaw(Packet& packet);
+    void transmit(Packet& packet);
 };
 
 
