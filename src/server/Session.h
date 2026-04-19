@@ -86,8 +86,8 @@ struct Session {
         return elapsed<std::chrono::milliseconds>();
     }
 
-    Host dstHost() {
-        return rxIDP.dst.host;
+    Host srcHost() {
+        return rxIDP.src.host;
     }
     void dstSocket(Socket newValue) {
         rxIDP.dst.socket = newValue;
