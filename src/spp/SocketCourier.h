@@ -84,7 +84,7 @@ struct SocketCourierClient: public SocketManager::Listener {
 
     void start() override {}
     void stop()  override;
-    void process(Session& session, ByteBuffer&rxß) override;
+    void process(Session& session, ByteBuffer&rx) override;
 };
 
 
