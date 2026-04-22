@@ -41,6 +41,7 @@ static const Logger logger(__FILE__);
 
 #include "../util/ThreadControl.h"
 
+#include "../xns/XNS.h"
 #include "../xns/SPP.h"
 
 #include "Connection.h"
@@ -266,18 +267,15 @@ void Connections::remove(Connection* connection) {
     ERROR()
 }
 
-Connection* Connections::get(uint16_t srcID, uint16_t dstID) {
+Connection* Connections::get(const Host& host, uint16_t srcID, uint16_t dstID) {
     std::lock_guard<std::mutex> lock(mutex);
     for(auto* e: vector) {
-        if (e && e->srcID == srcID && e->dstID == dstID) return e;
-    }
-    return 0;
-}
-
-Connection* Connections::get(const Host& host, uint16_t dstID) {
-    std::lock_guard<std::mutex> lock(mutex);
-    for(auto* e: vector) {
-        if (e && e->host == host && e->dstID == dstID) return e;
+        if (e && e->host == host && e->dstID == dstID) {
+            if (e->srcID == srcID) return e;
+            if (e->srcID == 0)     return e;
+            logger.warn("Connection::get unexpected srcID");
+            logger.warn("arg  %s  %04X  %04X", host.toString(), srcID, dstID);
+        }
     }
     return 0;
 }

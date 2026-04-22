@@ -68,14 +68,15 @@ struct SocketCourierClient: public SocketManager::Listener {
     }
 
     const Socket   socket;
+    const Host     host;
     const uint16_t srcID;
     const uint16_t dstID;
 
     State    state;
     uint32_t closeCount;
 
-    SocketCourierClient(Socket socket_, uint16_t srcID_, uint16_t dstID_) :
-        SocketManager::Listener(), socket(socket_), srcID(srcID_), dstID(dstID_), state(State::NEW), closeCount(0) {}
+    SocketCourierClient(Socket socket_, const Host& host_, uint16_t srcID_, uint16_t dstID_) :
+        SocketManager::Listener(), socket(socket_), host(host_), srcID(srcID_), dstID(dstID_), state(State::NEW), closeCount(0) {}
 
     const std::string& name() override {
         return NAME;
@@ -93,8 +94,8 @@ struct SocketCourier: public SocketSPP {
     
     SocketCourier() : SocketSPP() {}
 
-    SocketManager::Listener* getListener(Socket socket, uint16_t srcID, uint16_t dstID) override {
-        return new SocketCourierClient(socket, srcID, dstID);
+    SocketManager::Listener* getListener(Socket socket, const Host& host, uint16_t srcID, uint16_t dstID) override {
+        return new SocketCourierClient(socket, host, srcID, dstID);
     }
     Client* getClient(Connection* connection) override {
         return new ClientCourier(connection);

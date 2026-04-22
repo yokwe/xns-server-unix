@@ -58,14 +58,15 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx) {
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto sst = rxHeader.sst;
+    auto host = session.srcHost();
     auto srcID = rxHeader.dstID;
     auto dstID = rxHeader.srcID;
 
     logger.info("SPP  %s  %04X  %-10s  %s", xns::toString(socket), rxHeader.seq, xns::SPP::toString(sst), toString(state));
 
-    auto* connection = connections.get(srcID, dstID);
+    auto* connection = connections.get(host, srcID, dstID);
     if (connection == 0) {
-        logger.warn("Unexpected srcID dstID  %04X  %04X", srcID, dstID);
+        logger.warn("Unexpected host srcID dstID  %s  %04X  %04X", host.toString(), srcID, dstID);
         return;
     }
 
@@ -120,7 +121,7 @@ void SocketCourierClient::process(Session& session, ByteBuffer&rx) {
 }
 
 void SocketCourierClient::stop() {
-    auto* connection = connections.get(srcID, dstID);
+    auto* connection = connections.get(host, srcID, dstID);
     connection->receiveQueue.clear();
     connection->retransmitQueue.clear();
     // stop client

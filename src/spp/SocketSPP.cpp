@@ -90,11 +90,12 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
         return;
     }
 
+    const Host     host  = session.srcHost();
     const uint16_t dstID = rxHeader.srcID;
 
     {
-        const Host host = session.srcHost();
-        auto* oldConnection = connections.get(host, dstID);
+        const uint16_t srcID = rxHeader.dstID;
+        auto* oldConnection = connections.get(host, srcID, dstID);
         if (oldConnection) {
             auto& connection = *oldConnection;
             logger.info("SPP REOPEN %s  %s", name(), connection.toString());
@@ -117,7 +118,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     session.dstSocket(socket);
 
     // start listening new socket
-    auto* clientListener = getListener(socket, srcID, dstID);
+    auto* clientListener = getListener(socket, host, srcID, dstID);
     server::socketManager.add(socket, clientListener);
 
     auto* connection = new Connection(session, srcID, dstID);

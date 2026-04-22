@@ -220,8 +220,7 @@ struct Connections {
     void add     (Connection* connection);
     void remove  (Connection* connection);
 
-    Connection* get(uint16_t srcID, uint16_t dstID);
-    Connection* get(const Host& host, uint16_t dstID);
+    Connection* get(const Host& host, uint16_t srcID, uint16_t dstID);
 };
 
 inline Connections connections;
