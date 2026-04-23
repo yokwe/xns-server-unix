@@ -51,7 +51,6 @@ namespace spp {
 void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
     // sanity check
     if (session.rxIDP.packetType != xns::IDP::PacketType::SPP) ERROR()
-    if (connection == 0) ERROR()
 
     xns::SPP   rxHeader;
     ByteBuffer rxbb;
@@ -59,10 +58,10 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto sst = rxHeader.sst;
-    logger.info("SPP  %s  %04X  %s  %s", xns::toString(socket), rxHeader.seq, toString(connection->state), xns::SPP::toString(sst));
+    logger.info("SPP  %s  %04X  %s  %s", xns::toString(connection.socket), rxHeader.seq, toString(connection.state), xns::SPP::toString(sst));
 
     // create alias of connection->state;
-    auto& state = connection->state;
+    auto& state = connection.state;
 
     if (state == State::OPENING) {
         if (rxHeader.seq == 0 && rxHeader.dstID != 0) {
@@ -77,26 +76,26 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
     if (sst == SST::CLOSE) {
         if (state == State::OPEN) {
             state = State::CLOSING;
-            connection->receiveQueue.clear();
-            connection->retransmitQueue.clear();
+            connection.receiveQueue.clear();
+            connection.retransmitQueue.clear();
             // increment ack and alloc
-            connection->txRange++;
+            connection.txRange++;
         } else if (state == State::CLOSING) {
             // OK
         } else {
             ERROR();
         }
         // send close
-        connection->transmitClose();
+        connection.transmitClose();
     } else if (sst == SST::CLOSE_REPLY) {
         if (state == State::CLOSING) {
             state = State::CLOSE;
-            connection->retransmitQueue.clear();
-            connection->receiveQueue.clear();
+            connection.retransmitQueue.clear();
+            connection.receiveQueue.clear();
             // increment seq
-            connection->seq++;
+            connection.seq++;
             // increment ack and alloc
-            connection->txRange++;
+            connection.txRange++;
             // stop after CLOSE_REPLY_TIMEOUT from now
             stopAtValue = STOP_AT_NOW() + CLOSING_TIMEOUT;
         } else if (state == State::CLOSE) {
@@ -106,26 +105,25 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
         }
 
         // send close reply
-        connection->transmitCloseReply();
+        connection.transmitCloseReply();
     } else {
         if ((state == State::CLOSE || state == State::CLOSING) && !rxHeader.system()) {
             // Unexpected situation
-            logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
+            logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(connection.socket), xns::SPP::toString(sst));
             stopAtValue = STOP_AT_NOW(); // stop as soon as possible
         } else {
-            connection->receive(rxHeader, rxbb);
+            connection.receive(rxHeader, rxbb);
         }
     }
 }
 
 void SocketSPPClient::stop() {
-    auto* connection = connections.get(host, srcID, dstID);
-    connection->receiveQueue.clear();
-    connection->retransmitQueue.clear();
+    connection.receiveQueue.clear();
+    connection.retransmitQueue.clear();
     // stop client
-    connection->client->stop();
+    connection.client->stop();
     // remove connection from connections
-    connections.remove(connection);
+    connections.remove(&connection);
 }
 
 
@@ -200,25 +198,24 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     // set dst.socket to redirect socket
     session.dstSocket(socket);
 
-    auto* connection = new Connection(session, srcID, dstID);
-    connections.add(connection);
+    Connection& connection = *new Connection(session, srcID, dstID);
+    connections.add(&connection);
 
     // set client to connection
-    connection->set(getClient(connection));
+    connection.set(getClient(&connection));
 
     // start client thread
-    connection->client->start();
+    connection.client->start();
 
     // start listening new socket
-    auto* listener = new SocketSPPClient(socket, host, srcID, dstID);
+    auto* listener = new SocketSPPClient(connection);
     server::socketManager.add(socket, listener);
-    listener->stopAt(STOP_AT_NOW() + OPENING_TIMEOUT);
 
-    logger.info("SPP OPENING  %s  %s", name(), connection->toString());
+    logger.info("SPP OPENING  %s  %s", name(), connection.toString());
     
     // send packet
 //    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    connection->transmitSystemAck();
+    connection.transmitSystemAck();
 }
 
 }
