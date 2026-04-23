@@ -272,7 +272,7 @@ Connection* Connections::get(const Host& host, uint16_t srcID, uint16_t dstID) {
     for(auto* e: vector) {
         if (e && e->host == host && e->dstID == dstID) {
             if (e->srcID == srcID) return e;
-            if (e->srcID == 0)     return e;
+            if (srcID == 0)        return e;
             logger.warn("Connection::get unexpected srcID");
             logger.warn("arg  %s  %04X  %04X", host.toString(), srcID, dstID);
         }
