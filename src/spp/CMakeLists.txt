@@ -30,7 +30,6 @@ target_sources(
 		SocketAUTH.cpp
 		SocketBoot.cpp
 		SocketCHS.cpp
-		SocketCourier.cpp
 		SocketSPP.cpp
 		StreamPEX.cpp
 		StreamSPP.cpp
