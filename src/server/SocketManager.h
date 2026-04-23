@@ -83,6 +83,9 @@ public:
         time_point stopAt() {
             return stopAtValue;
         }
+        void stopAt(time_point newValue) {
+            stopAtValue = newValue;
+        }
     };
 
     template<typename T>
