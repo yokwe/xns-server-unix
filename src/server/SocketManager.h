@@ -69,7 +69,7 @@ public:
             return time_point::max();
         }
 
-        Listener() : stopAtValue(STOP_AT_NEVER()) {}
+        Listener(const time_point stopAtValue_ = STOP_AT_NEVER()) : stopAtValue(stopAtValue_) {}
 
         virtual ~Listener() = default;
         virtual const std::string& name() = 0;
