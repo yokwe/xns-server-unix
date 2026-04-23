@@ -51,8 +51,36 @@ using Session       = server::Session;
 using Socket        = xns::Socket;
 using milliseconds  = std::chrono::milliseconds;
 
+class SocketSPPClient: public Listener {
+    static constexpr auto CLOSING_TIMEOUT = std::chrono::seconds(5);
+
+    const Socket   socket;
+    const Host     host;
+    const uint16_t srcID;
+    const uint16_t dstID;
+
+    Connection* connection;
+    
+public:
+    static const constexpr std::string NAME = "SocketSPPClient";
+
+    SocketSPPClient(Socket socket_, const Host& host_, uint16_t srcID_, uint16_t dstID_):
+        Listener(), socket(socket_), host(host_), srcID(srcID_), dstID(dstID_),
+        connection(connections.get(host, srcID, dstID)) {}
+
+    const std::string& name() override {
+        return NAME;
+    }
+    
+    void start() override {}
+    void stop()  override;
+    void process(Session& session, ByteBuffer&rx) override;
+};
+
 // SocketSPP process request and add client socket to newly allocated socket
 class SocketSPP: public Listener {
+    static constexpr auto OPENING_TIMEOUT = std::chrono::seconds(10);
+
 public:
     virtual ~SocketSPP() = default;
 
@@ -61,9 +89,7 @@ public:
 
     void process(Session& session, ByteBuffer&rx) override;
 
-    virtual Listener* getListener(Socket sorcket, const Host& host, uint16_t srcID, uint16_t dstID) = 0;
     virtual Client*   getClient(Connection*) = 0;
 };
-
 
 }

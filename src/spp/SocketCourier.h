@@ -35,7 +35,6 @@
 
 #pragma once
 
-#include <chrono>
 #include <string>
 
 #include "../xns/XNS.h"
@@ -50,60 +49,18 @@ namespace spp {
 using SocketManager = server::SocketManager;
 using Socket        = xns::Socket;
 
-struct SocketCourierClient: public SocketManager::Listener {
-    static const constexpr std::string NAME = "SocketCourierClient";
-    static constexpr auto CLOSE_REPLY_TIMEOUT = std::chrono::seconds(5);
-
-    enum class State {
-        NEW, OPEN, CLOSE, CLOSE_REPLY,
-    };
-    std::string toString(State value) {
-        static std::unordered_map<State, std::string, ScopedEnumHash> map = {
-            {State::NEW,         "NEW"},
-            {State::OPEN,        "OPEN"},
-            {State::CLOSE,       "CLOSE"},
-            {State::CLOSE_REPLY, "CLOSE_REPLY"},
-        };
-        return map.contains(value) ? map[value] : std_sprintf("%d", std::to_underlying(value));
-    }
-
-    const Socket   socket;
-    const Host     host;
-    const uint16_t srcID;
-    const uint16_t dstID;
-
-    State    state;
-    uint32_t closeCount;
-
-    SocketCourierClient(Socket socket_, const Host& host_, uint16_t srcID_, uint16_t dstID_) :
-        SocketManager::Listener(), socket(socket_), host(host_), srcID(srcID_), dstID(dstID_), state(State::NEW), closeCount(0) {}
-
-    const std::string& name() override {
-        return NAME;
-    }
-
-    void start() override {}
-    void stop()  override;
-    void process(Session& session, ByteBuffer&rx) override;
-};
-
-
 struct SocketCourier: public SocketSPP {
     static const constexpr auto SOCKET = xns::Socket::COURIER;
     static const constexpr std::string NAME = "SocketCourier";
     
     SocketCourier() : SocketSPP() {}
 
-    SocketManager::Listener* getListener(Socket socket, const Host& host, uint16_t srcID, uint16_t dstID) override {
-        return new SocketCourierClient(socket, host, srcID, dstID);
-    }
     Client* getClient(Connection* connection) override {
         return new ClientCourier(connection);
     }
     const std::string& name() override {
         return NAME;
     }
-
 };
 
 }

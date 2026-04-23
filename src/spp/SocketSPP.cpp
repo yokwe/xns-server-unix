@@ -45,6 +45,90 @@ static const Logger logger(__FILE__);
 namespace spp {
 //
 
+//
+// SocketSPPClient
+//
+void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
+    // sanity check
+    if (session.rxIDP.packetType != xns::IDP::PacketType::SPP) ERROR()
+    if (connection == 0) ERROR()
+
+    xns::SPP   rxHeader;
+    ByteBuffer rxbb;
+    rx.read(rxHeader, rxbb);
+    if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
+
+    auto sst = rxHeader.sst;
+    logger.info("SPP  %s  %04X  %s  %s", xns::toString(socket), rxHeader.seq, toString(connection->state), xns::SPP::toString(sst));
+
+    // create alias of connection->state;
+    auto& state = connection->state;
+
+    if (state == State::OPENING) {
+        if (rxHeader.seq == 0 && rxHeader.dstID != 0) {
+            // connection is esablished
+            state = State::OPEN;
+            stopAtValue = STOP_AT_NEVER();
+        } else {
+            ERROR()
+        }
+    }
+
+    if (sst == SST::CLOSE) {
+        if (state == State::OPEN) {
+            state = State::CLOSING;
+            connection->receiveQueue.clear();
+            connection->retransmitQueue.clear();
+            // increment ack and alloc
+            connection->txRange++;
+        } else if (state == State::CLOSING) {
+            // OK
+        } else {
+            ERROR();
+        }
+        // send close
+        connection->transmitClose();
+    } else if (sst == SST::CLOSE_REPLY) {
+        if (state == State::CLOSING) {
+            state = State::CLOSE;
+            connection->retransmitQueue.clear();
+            connection->receiveQueue.clear();
+            // increment seq
+            connection->seq++;
+            // increment ack and alloc
+            connection->txRange++;
+            // stop after CLOSE_REPLY_TIMEOUT from now
+            stopAtValue = STOP_AT_NOW() + CLOSING_TIMEOUT;
+        } else if (state == State::CLOSE) {
+            // OK
+        } else {
+            ERROR();
+        }
+
+        // send close reply
+        connection->transmitCloseReply();
+    } else {
+        if ((state == State::CLOSE || state == State::CLOSING) && !rxHeader.system()) {
+            // Unexpected situation
+            logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(socket), xns::SPP::toString(sst));
+            stopAtValue = STOP_AT_NOW(); // stop as soon as possible
+        } else {
+            connection->receive(rxHeader, rxbb);
+        }
+    }
+}
+
+void SocketSPPClient::stop() {
+    auto* connection = connections.get(host, srcID, dstID);
+    connection->receiveQueue.clear();
+    connection->retransmitQueue.clear();
+    // stop client
+    connection->client->stop();
+    // remove connection from connections
+    connections.remove(connection);
+}
+
+
 static uint16_t newConnectionID() {
     static uint16_t lastResult = 0;
 
@@ -102,7 +186,6 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
             // set dst.socket to redirect response
             session.dstSocket(connection.socket);
             // send packet
-//            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             connection.transmitSystemAck();
             return;
         }
@@ -117,10 +200,6 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     // set dst.socket to redirect socket
     session.dstSocket(socket);
 
-    // start listening new socket
-    auto* clientListener = getListener(socket, host, srcID, dstID);
-    server::socketManager.add(socket, clientListener);
-
     auto* connection = new Connection(session, srcID, dstID);
     connections.add(connection);
 
@@ -130,10 +209,15 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     // start client thread
     connection->client->start();
 
-    logger.info("SPP OPEN   %s  %s", name(), connection->toString());
+    // start listening new socket
+    auto* listener = new SocketSPPClient(socket, host, srcID, dstID);
+    server::socketManager.add(socket, listener);
+    listener->stopAt(STOP_AT_NOW() + OPENING_TIMEOUT);
+
+    logger.info("SPP OPENING  %s  %s", name(), connection->toString());
     
     // send packet
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+//    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     connection->transmitSystemAck();
 }
 
