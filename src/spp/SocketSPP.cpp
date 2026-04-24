@@ -67,7 +67,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
         if (rxHeader.seq == 0 && rxHeader.dstID != 0) {
             // connection is esablished
             state = State::OPEN;
-            stopAtValue = STOP_AT_NEVER();
+            stopAt(STOP_AT_NEVER());
         } else {
             ERROR()
         }
@@ -96,8 +96,8 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
             connection.seq++;
             // increment ack and alloc
             connection.txRange++;
-            // stop after CLOSE_REPLY_TIMEOUT from now
-            stopAtValue = STOP_AT_NOW() + CLOSING_TIMEOUT;
+            // stop after CLOSING_TIMEOUT from now
+            stopAt(CLOSING_TIMEOUT);
         } else if (state == State::CLOSE) {
             // OK
         } else {
@@ -110,7 +110,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
         if ((state == State::CLOSE || state == State::CLOSING) && !rxHeader.system()) {
             // Unexpected situation
             logger.info("SSP  %s  %s  UNEXPECTED state", xns::toString(connection.socket), xns::SPP::toString(sst));
-            stopAtValue = STOP_AT_NOW(); // stop as soon as possible
+            stopAt(STOP_AT_NOW());
         } else {
             connection.receive(rxHeader, rxbb);
         }

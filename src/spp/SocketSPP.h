@@ -48,8 +48,6 @@ namespace spp {
 //
 using Listener      = server::SocketManager::Listener;
 using Session       = server::Session;
-using Socket        = xns::Socket;
-using milliseconds  = std::chrono::milliseconds;
 
 class SocketSPPClient: public Listener {
     static constexpr auto OPENING_TIMEOUT = std::chrono::seconds(10);
@@ -61,8 +59,9 @@ public:
     static const constexpr std::string NAME = "SocketSPPClient";
 
     SocketSPPClient(Connection& connection_):
-        Listener(STOP_AT_NOW() + OPENING_TIMEOUT),
-        connection(connection_) {}
+        Listener(), connection(connection_) {
+            stopAt(OPENING_TIMEOUT);
+        }
 
     const std::string& name() override {
         return NAME;
