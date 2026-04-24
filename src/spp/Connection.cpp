@@ -33,7 +33,6 @@
  // Connection.cpp
  //
 
-#include <algorithm>
 #include <functional>
 
 #include "../util/Util.h"
