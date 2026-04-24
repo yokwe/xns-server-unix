@@ -94,7 +94,7 @@ void Connection::transmit(Packet& packet) {
 // retransmit
 //
 void Connection::queue(bool system, bool sendAck, bool attention, bool endOfMessage, SST sst, Data& data) {
-    logger.info("RETRANSMIT  ADD     %d", seq);
+    logger.info("RETRANS  ADD     %d", seq);
     retransmitQueue.add(Packet{system, sendAck, attention, endOfMessage, sst, seq, data});
 }
 void Connection::maintainRetransmit() {    
@@ -102,7 +102,7 @@ void Connection::maintainRetransmit() {
         // remove entry before rxRange
         auto ret = rxRange.isBefore(e.seq);
         if (ret) {
-            logger.info("RETRANSMIT  REMOVE  %d", e.seq);
+            logger.info("RETRANS  REMOVE  %d", e.seq);
         }
         return ret;
     };
@@ -114,12 +114,12 @@ void Connection::retransmit(bool sendAck) {
         // transmit only within rxRange
         if (rxRange.contains(e.packet.seq) && e.timeout(RETRANSMIT_INTERVAL, now)) {
             if (e.count < RETRANSMIT_COUNT_MAX) {
-                logger.info("RETRANSMIT  SEND    %d", e.packet.seq);
+                logger.info("RETRANS  SEND    %d", e.packet.seq);
                 transmit(e.packet);
                 e.updateTime(RETRANSMIT_INTERVAL);
                 sendAck = false;    
             } else {
-                logger.info("RETRANSMIT  CLEAR   %d", e.packet.seq);
+                logger.info("RETRANS  CLEAR   %d", e.packet.seq);
                 e.clear();
             }
         }
@@ -172,7 +172,7 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
     // add packet to receiveQueue if header.seq is in [ack .. alloc]
     if (txRange.contains(rxseq)) {
         if (receiveQueue.get(rxseq)) {
-            logger.info("DUP     %d  %s", rxseq, SPP::toString(header.sst));
+            logger.info("DUP     %d", rxseq);
         } else {
             // special for attention
             if (header.attention()) {
@@ -191,20 +191,21 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
             while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
                 txRange++;
                 sendAck = true;
-                logger.info("NEW ACK %d", txRange.ack);
+                logger.info("ACK     %d  %d", txRange.ack, txRange.alloc);
             }
     
             // move packet from receivedQueue to clientQueue
             for(;;) {
                 PacketQueue::Entry* entry = receiveQueue.get(clientSeq);
                 if (entry == 0) break;
+                logger.info("CLIENT  %d", clientSeq);
                 clientQueue.push(entry->packet);
                 clientSeq++;
                 entry->clear();
             }    
         }
     } else {
-        logger.info("REJECT  %d  %s", rxseq, SPP::toString(header.sst));
+        logger.info("REJECT  %d", rxseq);
     }
 
     if (sendAck) transmitSystemAck();

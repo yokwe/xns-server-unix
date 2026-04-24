@@ -58,7 +58,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
     if constexpr (SHOW_PACKET_SPP) logger.info("SPP  >>  %s  (%d) %s", rxHeader.toString(), rxbb.byteLimit(), rxbb.toString());
 
     auto sst = rxHeader.sst;
-    logger.info("SPP  %s  %04X  %s  %s", xns::toString(connection.socket), rxHeader.seq, toString(connection.state), xns::SPP::toString(sst));
+    logger.info("PROCESS  %d  %d  %d  %s  %s", rxHeader.seq, rxHeader.ack, rxHeader.alloc, rxHeader.system() ? "S" : "_", xns::SPP::toString(rxHeader.sst));
 
     // create alias of connection->state;
     auto& state = connection.state;
@@ -68,6 +68,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
             // connection is esablished
             state = State::OPEN;
             stopAt(STOP_AT_NEVER());
+            logger.info("STATE  OPEN");
         } else {
             ERROR()
         }
@@ -80,6 +81,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
             connection.retransmitQueue.clear();
             // increment ack and alloc
             connection.txRange++;
+            logger.info("STATE  CLOSING");
         } else if (state == State::CLOSING) {
             // OK
         } else {
@@ -98,6 +100,7 @@ void SocketSPPClient::process(Session& session, ByteBuffer&rx) {
             connection.txRange++;
             // stop after CLOSING_TIMEOUT from now
             stopAt(CLOSING_TIMEOUT);
+            logger.info("STATE  CLOSE");
         } else if (state == State::CLOSE) {
             // OK
         } else {
@@ -180,7 +183,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
         auto* oldConnection = connections.get(host, srcID, dstID);
         if (oldConnection) {
             auto& connection = *oldConnection;
-            logger.info("SPP REOPEN %s  %s", name(), connection.toString());
+            logger.info("STATE  OPENING");
             // set dst.socket to redirect response
             session.dstSocket(connection.socket);
             // send packet
@@ -211,8 +214,7 @@ void SocketSPP::process(Session& session, ByteBuffer&rx) {
     auto* listener = new SocketSPPClient(connection);
     server::socketManager.add(socket, listener);
 
-    logger.info("SPP OPENING  %s  %s", name(), connection.toString());
-    
+    logger.info("STATE  OPENING");
     // send packet
 //    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     connection.transmitSystemAck();
