@@ -108,7 +108,7 @@ void Connection::maintainRetransmit() {
     retransmitQueue.mapDelete(function);
 }
 void Connection::retransmit(bool sendAck) {
-    auto now = PacketQueue::Clock::now();
+    auto now = Clock::now();
     auto function = [&](PacketQueue::Entry& e) {
         // transmit only within rxRange
         if (rxRange.contains(e.packet.seq) && e.timeout(RETRANSMIT_INTERVAL, now)) {

@@ -53,6 +53,8 @@ constexpr auto isBefore = xns::SPP::isBefore;
 
 // type alias
 using Clock      = std::chrono::steady_clock;
+using time_point = Clock::time_point;
+using duration   = Clock::duration;
 using Data       = std::vector<uint8_t>;
 using SST        = xns::SPP::SST;
 
@@ -162,10 +164,6 @@ private:
 
 class PacketQueue {
 public:
-    using Clock      = std::chrono::steady_clock;
-    using time_point = Clock::time_point;
-    using duration   = Clock::duration;
-
     struct Entry {
         bool       empty;
         uint32_t   count;
@@ -203,7 +201,6 @@ public:
     };
 
     using QUEUE  = std::vector<Entry>;
-    using SEQVEC = std::vector<uint16_t>;
 
     static constexpr uint32_t QUEUE_SIZE = 10;
 
@@ -215,13 +212,6 @@ public:
     Entry* get(uint16_t seq);
     void   add(const Packet& packet);
 
-    inline uint32_t size() {
-        uint32_t ret = 0;
-        for(auto& e: queue) {
-            if (!e.empty) ret++;
-        }
-        return ret;
-    }
     void     clear();
 
     using MapFunction = std::function<void(Packet&)>;
