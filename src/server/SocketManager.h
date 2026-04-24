@@ -54,11 +54,12 @@ using Socket = xns::Socket;
 
 class SocketManager {
 public:
-    using Clock = std::chrono::steady_clock;
+    using Clock      = std::chrono::steady_clock;
     using time_point = Clock::time_point;
+    using duration   = Clock::duration;
 
     class Listener {
-    protected:
+    private:
         time_point stopAtValue;
 
     public:
@@ -69,7 +70,7 @@ public:
             return time_point::max();
         }
 
-        Listener(const time_point stopAtValue_ = STOP_AT_NEVER()) : stopAtValue(stopAtValue_) {}
+        Listener() : stopAtValue(STOP_AT_NEVER()) {}
 
         virtual ~Listener() = default;
         virtual const std::string& name() = 0;
@@ -85,6 +86,9 @@ public:
         }
         void stopAt(time_point newValue) {
             stopAtValue = newValue;
+        }
+        void stopAt(duration newValue) {
+            stopAtValue = STOP_AT_NOW() + newValue;
         }
     };
 
