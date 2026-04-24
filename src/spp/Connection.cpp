@@ -182,9 +182,7 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
             receiveQueue.add(Packet{header, body});
     
             // maintain txRange
-            auto seqVec = receiveQueue.seqVec();
-            std::sort(seqVec.begin(), seqVec.end());
-            while(std::find(seqVec.begin(), seqVec.end(), txRange.ack) != seqVec.end()) {
+            while(receiveQueue.get(txRange.ack)) {
                 txRange++;
                 sendAck = true;
                 logger.info("ACK     %d  %d", txRange.ack, txRange.alloc);

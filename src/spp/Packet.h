@@ -215,15 +215,6 @@ public:
     Entry* get(uint16_t seq);
     void   add(const Packet& packet);
 
-    inline SEQVEC seqVec() {
-        SEQVEC ret;
-        ret.reserve(queue.size());
-        for(auto& e: queue) {
-            if (!e.empty) ret.push_back(e.packet.seq);
-        }
-        return ret;
-    }
-
     inline uint32_t size() {
         uint32_t ret = 0;
         for(auto& e: queue) {
