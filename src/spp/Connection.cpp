@@ -150,8 +150,6 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
     if (header.system() && header.sendAck()) {
         // sanity check
         if (sst != SST::DATA) ERROR()
-
-        logger.info("PROBE");
         retransmit(header.sendAck());
         return;
     }
@@ -160,8 +158,6 @@ void Connection::receive(const SPP& header, const ByteBuffer& body) {
     if (header.system()) {
         // sanity check
         if (sst != SST::DATA) ERROR()
-
-        logger.info("SYSTEM");
         retransmit(header.sendAck());
         return;
     }
