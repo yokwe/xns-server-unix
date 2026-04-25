@@ -51,6 +51,9 @@ distclean-macos:
 server:
 	/usr/bin/time cmake --build build --target server
 
+main:
+	/usr/bin/time cmake --build build --target main
+
 tcpdump-xns:
 	sudo tcpdump ether proto 0x0600
 
@@ -89,3 +92,8 @@ run-server: server
 	mkdir -p ${BUILD_DIR}/run
 	/bin/echo -n >${BUILD_DIR}/run/server.log
 	LOG4CXX_CONFIGURATION=data/log4j-config-server.xml ${BUILD_DIR}/server/server
+
+run-main: main
+	mkdir -p ${BUILD_DIR}/run
+	/bin/echo -n >${BUILD_DIR}/run/server.log
+	LOG4CXX_CONFIGURATION=data/log4j-config-server.xml ${BUILD_DIR}/main/main
